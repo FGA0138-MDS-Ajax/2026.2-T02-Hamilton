@@ -8,6 +8,18 @@
     <link rel="stylesheet" href="{% static 'accounts/css/login.css' %}">
 </head>
 <body>
+
     <h1>Página de Login</h1>
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit">Login</button>
+
+    </form>
+
 </body>
 </html>
