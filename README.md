@@ -36,13 +36,18 @@ Clone o repositorio
 
 Inicie a env no terminal do vscode
 
-`python -m venv .venv`
+` python -m venv .venv `
+
+### Linux/Mac
+` source .venv/bin/activate `
+
+### Windows
+`.venv\Scripts\activate `
 
 Baixe as dependencias
+` pip install -r requirements.txt ` 
 
-<!-- # TO-DO: Fazer arquivo txt com as dependencias -->
 
-`pip install -r requirements.txt`
 
 
 ---
