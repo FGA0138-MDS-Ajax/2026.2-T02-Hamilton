@@ -2,27 +2,31 @@ from django.shortcuts import render, redirect;
 from django.contrib.auth import login, logout;
 from django.contrib.auth.models import User;
 from .models import Profile;
-from .forms_stub import LoginForm, RegistrationForm;
+from .forms import LoginForm, RegistrationForm;
 
 # Create your views here.
 
 def register_view(request):
-    if request.method == "POST":
-        form = RegistrationForm(request.POST);
+    if request.method == "POST": # verifica se o usuário está enviando informações
+        form = RegistrationForm(request.POST); # manda essas informações para o formulário que irá validá-las.
         
-        if form.is_valid():
-            user = User.objects.create_user(
+        if form.is_valid(): # todas as informações são válidas.
+            user = User.objects.create_user( # cria o usuário
                 username=form.cleaned_data['username'],
                 password=form.cleaned_data['password1'],
                 email=form.cleaned_data['email']
             );
 
-            Profile.objects.create(
+            Profile.objects.create( # cria o profile que sediará o usuário
                 user=user
             );
 
-            return redirect("accounts:login");
+            return redirect("accounts:login"); # redireciona para a página de login
     else:
+        """
+        Neste caso o usuário está entrando na página agora então
+        criamos um formulário vazio para que possa preenchê-lo.
+        """
         form = RegistrationForm();
 
     return render(request, "accounts/register.html", {"form":form});
@@ -32,10 +36,10 @@ def login_view(request):
         form = LoginForm(request, data=request.POST);
 
         if form.is_valid():
-            user = form.get_user();
-            login(request, user);
+            user = form.get_user(); # pega o usuário utilizando as informações do formulário.
+            login(request, user); # faz o login nativo do Django.
 
-            return redirect("main:index");
+            return redirect("main:index"); # redireciona para a página inicial.
 
     else:
         form = LoginForm(request);
@@ -43,6 +47,6 @@ def login_view(request):
     return render(request, 'accounts/login.html', {"form":form});
 
 def logout_view(request):
-    if request.method == "GET":
-        logout(request);
-    return redirect("accounts:login");
+    if request.method == "GET": # aceita apenas requests com método GET
+        logout(request); # faz o logout nativo do Django
+    return redirect("accounts:login"); # redireciona para a página de login novamente
