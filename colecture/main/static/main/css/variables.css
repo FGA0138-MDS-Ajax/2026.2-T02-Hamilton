@@ -1,0 +1,33 @@
+:root {
+  --bg-base:        #0B0A0F;
+  --bg-surface:     #14121C;
+  --bg-elevated:    #1D1A2A;
+  --bg-input:       #181624;
+
+  --purple-900:     #2A1550;
+  --purple-700:     #4C1D95;
+  --purple-600:     #6D28D9;
+  --purple-500:     #8B5CF6;
+  --purple-400:     #A78BFA;
+  --purple-300:     #C4B5FD;
+  --purple-100:     #EDE9FE;
+
+  --text-primary:   #F4F2FA;
+  --text-secondary: #B6B0C9;
+  --text-muted:     #7C7692;
+
+  --border:         #2B2740;
+  --border-strong:  #3D3860;
+
+  --success:        #34D399;
+  --warning:        #FBBF24;
+  --danger:         #F87171;
+  --info:           #60A5FA;
+
+  --streak:         #F59E0B;
+  --badge:          #D946EF;
+
+  --glow:           0 0 24px rgba(139, 92, 246, 0.35);
+  --gradient-brand: linear-gradient(135deg, #6D28D9 0%, #8B5CF6 50%, #C084FC 100%);
+  --gradient-bg:    radial-gradient(circle at top, #2A1550 0%, #0B0A0F 60%);
+}
