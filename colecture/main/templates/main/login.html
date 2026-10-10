@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="../../static/main/css/variables.css">
+    <link rel="stylesheet" href="../../static/main/css/login.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="main-box">
+        <div class="brand-panel">
+            <h2>CoLecture</h2>
+            <p>Leia em comunidade e mantenha o hábito.</p>
+            <p class="register-text">Ainda não tem conta?</p>
+            <a href="register.html" class="btn-outline">Criar conta</a>
+        </div>
+        <div class="form-panel">
+            <form action="" method="POST" id="login-form" name="login-form">
+                <h1>Login</h1>
+                <div class="input">
+                    <input type="email" placeholder="E-mail" name="email" id="email" required>
+                    <i class='bx bxs-user'></i>
+                    <span class="error"></span>
+                </div>
+                <div class="input">
+                    <input type="password" placeholder="Senha" name="password" id="password" minlength="3" required>
+                    <i class='bx bxs-lock-alt'></i>
+                    <span class="error"></span>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
