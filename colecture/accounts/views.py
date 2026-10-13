@@ -47,6 +47,6 @@ def login_view(request):
     return render(request, 'accounts/login.html', {"form":form});
 
 def logout_view(request):
-    if request.method == "GET": # aceita apenas requests com método GET
+    if request.method == "POST": # aceita apenas requests com método POST
         logout(request); # faz o logout nativo do Django
     return redirect("main:index"); # redireciona para a main página novamente

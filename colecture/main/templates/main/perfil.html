@@ -13,7 +13,12 @@
     <div class="main-box">
       <section class="user-info">
         <h1>Perfil do Usuário</h1>
-        <p><a href="{% url 'accounts:logout' %}">Logout</a></p>
+
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button>Sair</button>
+        </form>
+
       </section>
     </div>
   </body>
