@@ -6,6 +6,7 @@ def index(request):
         return redirect('main:perfil')
     return render(request, 'main/index.html')
 
-@login_required
 def perfil(request):
-    return render(request, 'main/perfil.html')
+    if request.user.is_authenticated:
+        return render(request, 'main/perfil.html')
+    return render(request, 'main/index.html')
