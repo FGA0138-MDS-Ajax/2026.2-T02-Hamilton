@@ -1,23 +1,65 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - CoLecture</title>
+    <title>Cadastro - CoLecture</title>
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/register.css' %}">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
+    <div class="main-box register">
+            <a href="{% url 'main:index' %}" class="back-link"><i class='bx bx-arrow-back'></i> Voltar</a>
+       
+        <div class="brand-panel">
+            <h2>CoLecture</h2>
+            <p>Leia em comunidade e mantenha o hábito.</p>
+            <p class="register-text">Já tem uma conta?</p>
+            <a href="{% url 'accounts:login' %}" class="btn-outline">Entrar</a>
+        </div>
+        <div class="form-panel">
+            <form method="POST" id="register-form" name="register-form" novalidate>
+                {% csrf_token %}
+                <h1>Cadastro</h1>
 
-    <h1>Register New Account</h1>
+                {% if form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for error in form.non_field_errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
-    <form method="POST">
+                {% for field in form %}
+                    <div class="input">
+                        {{ field }}
+                        {% if field.name == 'username' %}
+                            <i class='bx bxs-user'></i>
+                        {% elif field.name == 'email' %}
+                            <i class='bx bxs-envelope'></i>
+                        {% else %}
+                            <i class='bx bxs-lock-alt'></i>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
 
-        {% csrf_token %}
+                <button type="submit" class="btn">Cadastrar</button>
+            </form>
+        </div>
+    </div>
 
-        {{ form.as_p }}
-
-        <button type="submit">REGISTER</button>
-
-    </form>
-    
+    <script>
+        // Adiciona placeholders usando o label de cada campo (sem mexer no back)
+        document.querySelectorAll('#register-form .input input').forEach(function (input) {
+            var label = document.querySelector('label[for="' + input.id + '"]');
+            input.placeholder = label ? label.textContent.replace(':', '').trim() : '';
+        });
+    </script>
 </body>
 </html>
