@@ -49,3 +49,8 @@ def logout_view(request):
     if request.method == "POST": # aceita apenas requests com método POST
         logout(request); # faz o logout nativo do Django
     return redirect("main:index"); # redireciona para a main página novamente
+
+def profile_view(request):
+    if request.user.is_authenticated:
+        return render(request, 'accounts/profile.html')
+    return render(request, 'main/index.html')

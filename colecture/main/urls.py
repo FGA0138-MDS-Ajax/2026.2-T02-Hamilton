@@ -5,5 +5,4 @@ app_name = 'main'
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('perfil/', views.perfil, name='perfil'),
 ]
