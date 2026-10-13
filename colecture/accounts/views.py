@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect;
 from django.contrib.auth import login, logout, get_user_model;
+from django.contrib.auth.decorators import login_required;
 from .models import Profile;
-from .forms import LoginForm, RegistrationForm;
+from .forms import LoginForm, RegistrationForm, EditUserForm;
 
 # Create your views here.
 
@@ -54,3 +55,19 @@ def profile_view(request):
     if request.user.is_authenticated:
         return render(request, 'accounts/profile.html')
     return render(request, 'main/index.html')
+
+@login_required # acessível apenas quando o usuário está logado.
+def edit_profile_view(request):
+    if request.method == 'POST': # o usuário está enviando novas informações.
+        form = EditUserForm(request.POST, instance=request.user) # gera formulário com as novas informações
+        if form.is_valid(): # se as informações forem válidas
+            form.save() # salva as novas informações na base de dados.
+            return redirect('accounts:profile') # redireciona para a página do usuário
+    else:
+        """
+        gera um formulário com as informações ANTIGAS (se existirem) do usuário
+        para facilitar sua alteração.
+        """
+        form = EditUserForm(instance=request.user)
+
+    return render(request, 'accounts/profileEdit.html', {'editForm': form})
