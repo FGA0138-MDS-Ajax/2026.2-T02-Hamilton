@@ -1,6 +1,5 @@
 from django.shortcuts import render, redirect;
-from django.contrib.auth import login, logout;
-from django.contrib.auth.models import User;
+from django.contrib.auth import login, logout, get_user_model;
 from .models import Profile;
 from .forms import LoginForm, RegistrationForm;
 
@@ -11,7 +10,7 @@ def register_view(request):
         form = RegistrationForm(request.POST); # manda essas informações para o formulário que irá validá-las.
         
         if form.is_valid(): # todas as informações são válidas.
-            user = User.objects.create_user( # cria o usuário
+            user = get_user_model().objects.create_user( # cria o usuário
                 username=form.cleaned_data['username'],
                 password=form.cleaned_data['password1'],
                 email=form.cleaned_data['email']
