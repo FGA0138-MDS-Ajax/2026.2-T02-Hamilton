@@ -13,19 +13,30 @@ O **CoLecture** é uma plataforma onde você pode se conectar, formar comunidade
 
 | Tecnologia | Uso |
 | ---------- | --- |
-
-<!-- # TO-DO: Fazer a tabela de tecnologia e uso -->
+| [Python](https://www.python.org/) 3.12+ | Linguagem principal do back-end. |
+| [Django](https://www.djangoproject.com/) 6.1.2 | Framework web (padrão MTV): rotas, views, formulários, autenticação, permissões, painel administrativo e proteção contra CSRF e XSS. |
+| Django ORM | Acesso aos dados. As views não escrevem SQL diretamente. |
+| [SQLite](https://www.sqlite.org/) | Banco de dados local (`db.sqlite3`), criado pelo `migrate` e não versionado. |
+| Django Forms | Validação das requisições antes do processamento (cadastro, login e edição de perfil). |
+| Django TestCase | Testes automatizados, executados com `python manage.py test`. |
 
 ### Front-end
 
 | Tecnologia | Uso |
 | ---------- | --- |
+| Templates do Django | Renderização das páginas no servidor (HTML). |
+| HTML e CSS | Estrutura e estilo das páginas, com layout responsivo (`@media`) e cores centralizadas em `variables.css`. |
+| JavaScript | Comportamento da interface. Previsto no projeto, ainda sem uso na Sprint 1 (`script.js` vazio). |
+| [Boxicons](https://boxicons.com/) | Ícones, carregados por CDN. |
+| [Google Fonts](https://fonts.google.com/) (Poppins) | Fonte do site, carregada por CDN. |
 
-<!-- # TO-DO: Fazer a tabela de tecnologia e uso -->
+> Os ícones e a fonte são carregados da internet. Sem conexão, o site funciona, mas com a aparência padrão do navegador.
 
 ---
 
 ## Como executar o projeto localmente
+
+O CoLecture roda apenas em ambiente local, sem hospedagem em provedor externo.
 
 ### Pré-requisitos
 
@@ -56,9 +67,11 @@ Ative-o de acordo com o seu sistema operacional:
 
 | Sistema | Comando |
 |---|---|
-| Linux / macOS | `source .venv/bin/activate` |
-| Arch Linux (e derivadas) | `source .venv/bin/activate` (ou `activate.fish` / `activate.csh`, conforme o seu shell) |
+| Linux / macOS (bash/zsh) | `source .venv/bin/activate` |
+| Linux (fish) | `source .venv/bin/activate.fish` |
+| Linux (csh) | `source .venv/bin/activate.csh` |
 | Windows (CMD) | `.venv\Scripts\activate` |
+| Windows (PowerShell) | `.venv\Scripts\Activate.ps1` |
 
 Quando o ambiente estiver ativo, o terminal mostrará `(.venv)` no início da linha.
 
@@ -76,25 +89,15 @@ Entre na pasta do projeto Django:
 cd colecture
 ```
 
-Crie as tabelas iniciais:
+Crie as tabelas e o administrador padrão:
 
 ```bash
 python manage.py migrate
 ```
 
-### 5. Crie um superusuário (opcional)
+O `migrate` também cria o **administrador padrão** (R03), já que o banco começa vazio. Veja a seção [Administrador padrão](#administrador-padrão).
 
-O superusuário dá acesso à página de administração (`/admin`).
-
-```bash
-python manage.py createsuperuser
-```
-
-O terminal pedirá nome de usuário, e-mail e senha (com confirmação). Se a senha for considerada curta, comum ou totalmente numérica, ele perguntará se você deseja continuar: digite `y` para confirmar ou `n` para escolher outra senha.
-
-O superusuário já é salvo no banco ao ser criado, então não é necessário rodar `migrate` novamente.
-
-### 6. Inicie o servidor
+### 5. Inicie o servidor
 
 ```bash
 python manage.py runserver
@@ -102,36 +105,129 @@ python manage.py runserver
 
 Acesse o site em [http://127.0.0.1:8000](http://127.0.0.1:8000) e o painel administrativo em [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin).
 
+### Administrador padrão
+
+A migration `accounts/migrations/0002_createDefaultAdmin.py` cria um administrador quando o banco é criado. Os valores padrão são:
+
+| Campo | Valor padrão | Variável de ambiente para alterar |
+|---|---|---|
+| Usuário | `admin` | `COLECTURE_ADMIN_USERNAME` |
+| E-mail | `admin@colecture.com` | `COLECTURE_ADMIN_EMAIL` |
+| Senha | `Admin#Colecture2026` | `COLECTURE_ADMIN_PASSWORD` |
+
+Para usar outros valores, defina as variáveis **antes** do primeiro `migrate`. Se o administrador já existir, a migration não o altera.
+
+> Essas credenciais são apenas para desenvolvimento local. Não use esses valores em qualquer ambiente acessível pela internet.
+
+Se preferir outro superusuário, também é possível criá-lo com `python manage.py createsuperuser`. O perfil (`Profile`) é criado automaticamente para todo novo usuário.
+
+### Executando os testes
+
+Dentro da pasta `colecture`:
+
+```bash
+python manage.py test
+```
+
+---
+
+### Atualizando o banco após um `git pull`
+
+Quando alguém da equipe alterar os models, aplique as novas migrations:
+
+```bash
+python manage.py migrate
+```
+
+Se você alterar um model, gere a migration com `python manage.py makemigrations` e versione o arquivo gerado. Alterações de esquema são feitas somente por migrations.
+
 ---
 
 ## Estrutura do Projeto
 
-<!-- # TO-DO: Fazer estrutura do projeto -->
+Cada módulo é um app Django independente, com seus próprios models, views, templates e testes (Documento de Arquitetura, Seção 2.5.3).
+
+```text
+2026.2-T02-Hamilton/
+├── README.md
+├── requirements.txt              # Dependências (Django)
+├── .gitignore
+├── .prettierrc.json
+└── colecture/                    # Projeto Django
+    ├── manage.py
+    ├── colecture/                # Configuração do projeto
+    │   ├── settings.py           # Apps instalados, banco SQLite, idioma pt-br
+    │   ├── urls.py               # Rotas principais (URLconf)
+    │   ├── asgi.py
+    │   └── wsgi.py
+    ├── main/                     # App da página inicial e estilos compartilhados
+    │   ├── views.py
+    │   ├── urls.py
+    │   ├── templates/main/       # index.html
+    │   └── static/main/          # css/ (index, variables) e img/ (biblioteca.svg)
+    └── accounts/                 # App de contas e perfis (Sprint 1)
+        ├── models.py             # Profile (ofensiva e dados de leitura)
+        ├── forms.py              # LoginForm, RegistrationForm, EditUserForm
+        ├── views.py              # Cadastro, login, logout, perfil e edição
+        ├── signals.py            # Cria o Profile de todo novo usuário
+        ├── urls.py
+        ├── tests.py              # CT01 e CT07
+        ├── migrations/           # 0001 (Profile), 0002 (admin padrão), 0003 (ofensiva)
+        ├── templates/accounts/   # login, register, profile e profileEdit
+        └── static/accounts/      # css/ e js/
+```
+
+### Rotas
+
+| Rota | View | Acesso |
+|---|---|---|
+| `/` | Página inicial (redireciona ao perfil se o usuário estiver logado) | Público |
+| `/user/register/` | Cadastro | Público |
+| `/user/login/` | Login | Público |
+| `/user/logout/` | Logout (somente `POST`) | Usuário logado |
+| `/user/profile/` | Perfil do usuário | Usuário logado |
+| `/user/profile/editProfile/` | Edição do perfil | Usuário logado |
+| `/admin/` | Painel administrativo do Django | Administrador |
+
+---
+
+## Padrões de código
+
+Definidos nas restrições arquiteturais (Documento de Arquitetura, Seção 2.4.2):
+
+- Back-end em Python com Django, e front-end com templates do Django (HTML, CSS e JavaScript).
+- Requisições validadas antes do processamento, com Django Forms.
+- Regras de negócio em métodos dos models, e não nas views, para poderem ser testadas sem uma requisição HTTP.
+- Identificadores (variáveis, funções, classes e tabelas) em **inglês**; comentários e documentação em **português**.
+- Banco SQLite e alterações de esquema somente por migrations.
 
 ---
 
 ## Política de Branches
 
-O repositório utiliza as seguintes branches:
+O fluxo de trabalho segue a Seção 3 do documento de Visão. O repositório utiliza as seguintes branches:
 
 | Branch | Finalidade |
 |---|---|
-| `main` | Branch principal. Recebe o código estável de cada release. |
-| `sprint-N` | Uma branch para cada sprint (ex.: `sprint-1`, `sprint-2`), onde o desenvolvimento da sprint é feito. |
+| `main` | Branch final, onde o produto é entregue. Recebe somente código testado. |
+| `sprintN` | Uma branch para cada sprint, de `sprint1` a `sprint7` (sem hífen), onde o desenvolvimento da sprint é feito e integrado. |
 | `docs` | Armazena os arquivos de documentação do trabalho. |
-| `gh-pages` | Branch usada pelo GitHub Pages para publicar o site do projeto. |
+| `gh-pages` | Usada pelo GitHub Pages para publicar o site do projeto. |
 
 ### Fluxo de trabalho
 
-1. O desenvolvimento de cada sprint acontece na sua respectiva branch `sprint-N`.
-2. Ao final da sprint, o código estável é integrado à `main`, marcando uma nova release.
+1. O desenvolvimento de cada sprint acontece na sua respectiva branch `sprintN`, para que erros e conflitos entre o código de diferentes membros sejam resolvidos sem afetar a entrega.
+2. Tudo é testado na `sprintN`. Após a confirmação dos testes e a aprovação do Dono do Produto, a `sprintN` é integrada à `main` ao final da sprint.
 3. Os arquivos de documentação são mantidos na branch `docs`, separados do código da aplicação.
 4. A `gh-pages` é usada apenas para a publicação do GitHub Pages e não deve receber código de desenvolvimento.
-
 
 ---
 
 ## Política Padrão de Commits (Conventional Commits)
+
+Formato: `tipo(escopo opcional): descrição`
+
+Exemplo: `feat(accounts): adiciona edição de perfil`
 
 ```bash
 feat      → nova funcionalidade
@@ -151,6 +247,7 @@ build     → mudanças que afetam o build
 - Mensagem no **imperativo** — "adiciona", "corrige", "atualiza"
 - Sempre em **português** no corpo da mensagem
 - Prefixo sempre em **inglês**
+- Um espaço após os dois-pontos (`feat: texto`, e não `feat:texto`)
 
 ---
 
@@ -158,7 +255,15 @@ build     → mudanças que afetam o build
 
 **Equipe Hamilton - MDS 2026.2 - UnB FCTE/FGA**
 
-| Membro | Papel |
-|---|---|
+Papéis conforme o Quadro 5 do documento de Visão. Em **negrito**, o papel em que o integrante é o responsável. Todos os integrantes também atuam como desenvolvedores.
 
-<!-- # TO-DO: Fazer tabela de equipe -->
+| Membro | Papéis |
+|---|---|
+| Ana Clara Teixeira Guimarães | **Desenvolvedora**, Engenheira de Dados |
+| Arthur Miguel Silva Rocha | **Arquiteto de Software**, Desenvolvedor, Dono do Produto, Analista de Requisitos e Documentação |
+| Gabriel Sayd de Santana Lombas Macedo | **Cliente**, Desenvolvedor, Analista de Qualidade, Engenheiro de Dados |
+| Guilherme Ribeiro Almeida | **Engenheiro de Dados**, Desenvolvedor |
+| Henrique Catharino Nunes de Mendonça | **Desenvolvedor**, Arquiteto de Software |
+| Jônatas Maciel da Silva Alves | **Analista de Requisitos e Documentação**, Desenvolvedor |
+| Letícia da Silva Pereira | **Analista de Qualidade**, Desenvolvedora, Dono do Produto |
+| Ricieri Artur Vasconcellos Vieira | **Dono do Produto**, Desenvolvedor, Analista de Qualidade, Engenheiro de Dados |
