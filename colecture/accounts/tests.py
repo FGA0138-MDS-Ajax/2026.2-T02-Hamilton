@@ -8,7 +8,7 @@ CONSIDERAÇÕES IMPORTANTES:
 de teste (a cada método).
 
 2. Para rodar os testes, utilize o comando
-"python manage.py tests" no terminal.
+"python manage.py test" no terminal.
 
 """
 
