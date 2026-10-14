@@ -102,7 +102,36 @@ class RegistrationForm(UserCreationForm):
         return email
 
 class EditUserForm(forms.ModelForm):
+    email = forms.EmailField(
+        label="E-mail",
+        required=True,
+        max_length=254,
+        error_messages={
+            "required": "Informe seu e-mail.",
+            "invalid": "Informe um e-mail válido.",
+        },
+    )
+
     class Meta:
         model = get_user_model()
         fields = ['first_name', 'last_name', 'email']
 
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+
+        if not email:
+            raise forms.ValidationError(
+                "Informe seu e-mail.",
+                code="email_required",
+            )
+
+        queryset = get_user_model().objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise forms.ValidationError(
+                "Já existe uma conta cadastrada com este e-mail.",
+                code="email_taken",
+            )
+        return email
