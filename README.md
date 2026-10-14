@@ -171,8 +171,8 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
         ├── views.py              # Cadastro, login, logout, perfil e edição
         ├── signals.py            # Cria o Profile de todo novo usuário
         ├── urls.py
-        ├── tests.py              # CT01 e CT07
-        ├── migrations/           # 0001 (Profile), 0002 (admin padrão), 0003 (ofensiva)
+        ├── tests.py              # CT01
+        ├── migrations/           # 0001 (Profile), 0002 (admin padrão)
         ├── templates/accounts/   # login, register, profile e profileEdit
         └── static/accounts/      # css/ e js/
 ```
