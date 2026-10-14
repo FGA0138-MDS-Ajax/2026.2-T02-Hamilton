@@ -1,7 +1,10 @@
+import os
+import importlib
+from django.apps import apps;
 from django.test import TestCase, Client
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
-
+from .models import Profile;
 """
 CONSIDERAÇÕES IMPORTANTES:
 1. A base de dados é limpa após cada caso
@@ -177,3 +180,159 @@ class CT01(TestCase):
         self.assertEqual(response.status_code, 302);
         self.assertEqual(user.first_name, "Linus");
         self.assertEqual(user.last_name, "Torvalds");
+
+class CT07(TestCase):
+    """
+    CT07 - Gestão Administrativa e Inicialização via Seed (R02, R03)
+ 
+    O admin é criado pela migration accounts/0002_createDefaultAdmin.
+    O TestCase roda as migrations ao montar o banco de testes, então
+    o admin já existe no início de cada método. As ações de gerenciar
+    usuários (R02) são feitas pelo painel administrativo do Django (/admin/).
+    """
+ 
+    def setUp(self):
+        self.client = Client();
+        self.User = get_user_model();
+ 
+        # mesmos valores padrão da migration (podem ser trocados por variáveis de ambiente)
+        self.admin_username = os.environ.get("COLECTURE_ADMIN_USERNAME", "admin");
+        self.admin_password = os.environ.get("COLECTURE_ADMIN_PASSWORD", "Admin#Colecture2026");
+ 
+        self.admin = self.User.objects.get(username=self.admin_username);
+ 
+    def _cria_leitor(self, username="Leitor"):
+        leitor = self.User.objects.create_user(
+            username=username,
+            password="senha123456",
+            first_name="Linus",
+            last_name="Torvalds",
+            email=f"{username.lower()}@gmail.com"
+        );
+        Profile.objects.create(user=leitor);
+        return leitor;
+ 
+    # ---------- R03: admin inicial via seed ----------
+ 
+    def test_admin_criado_pela_seed(self):
+        self.assertTrue(self.admin.is_superuser);
+        self.assertTrue(self.admin.is_staff);
+        self.assertTrue(self.admin.is_active);
+ 
+        # o banco inicia vazio: o admin é o único usuário
+        self.assertEqual(self.User.objects.count(), 1);
+ 
+    def test_admin_possui_profile(self):
+        self.assertTrue(Profile.objects.filter(user=self.admin).exists());
+ 
+    def test_seed_nao_duplica_admin(self):
+        # roda a função da migration de novo (como um segundo "migrate")
+        migration = importlib.import_module("accounts.migrations.0002_createDefaultAdmin");
+        migration.createDefaultAdmin(apps, None);
+ 
+        total = self.User.objects.filter(username=self.admin_username).count();
+        self.assertEqual(total, 1);
+        self.assertEqual(Profile.objects.filter(user=self.admin).count(), 1);
+ 
+    def test_admin_login_credenciais_padrao(self):
+        url = reverse("accounts:login");
+ 
+        response = self.client.post(url, data={
+            'username': self.admin_username,
+            'password': self.admin_password
+        });
+ 
+        self.assertEqual(response.status_code, 302);
+ 
+    def test_admin_login_senha_errada(self):
+        url = reverse("accounts:login");
+ 
+        response = self.client.post(url, data={
+            'username': self.admin_username,
+            'password': 'senhaerrada'
+        });
+ 
+        self.assertNotEqual(response.status_code, 302);
+ 
+    # ---------- R02: admin gerencia usuários (painel /admin/) ----------
+ 
+    def test_admin_acessa_painel_e_lista_usuarios(self):
+        self.client.force_login(self.admin);
+ 
+        response = self.client.get(reverse("admin:auth_user_changelist"));
+ 
+        self.assertEqual(response.status_code, 200);
+ 
+    def test_admin_adicionar_usuario(self):
+        self.client.force_login(self.admin);
+ 
+        url = reverse("admin:auth_user_add");
+ 
+        response = self.client.post(url, {
+            'username': 'NovoLeitor',
+            'usable_password': 'true',
+            'password1': 'senha123456',
+            'password2': 'senha123456',
+        });
+ 
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(self.User.objects.filter(username='NovoLeitor').exists());
+ 
+    def test_admin_editar_usuario(self):
+        leitor = self._cria_leitor();
+        self.client.force_login(self.admin);
+ 
+        url = reverse("admin:auth_user_change", args=[leitor.pk]);
+ 
+        response = self.client.post(url, {
+            'username': leitor.username,
+            'first_name': 'Bill',
+            'last_name': 'Gates',
+            'email': 'leitor@gmail.com',
+            'is_active': 'on',
+            'date_joined_0': '2026-01-01',
+            'date_joined_1': '00:00:00',
+        });
+ 
+        self.assertEqual(response.status_code, 302);
+ 
+        leitor.refresh_from_db();
+        self.assertEqual(leitor.first_name, "Bill");
+        self.assertEqual(leitor.last_name, "Gates");
+        self.assertEqual(leitor.email, "leitor@gmail.com"); # não mudou
+ 
+    def test_admin_excluir_usuario(self):
+        leitor = self._cria_leitor();
+        self.client.force_login(self.admin);
+ 
+        url = reverse("admin:auth_user_delete", args=[leitor.pk]);
+ 
+        response = self.client.post(url, {'post': 'yes'}); # confirma a exclusão
+ 
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(self.User.objects.filter(pk=leitor.pk).exists());
+        self.assertFalse(Profile.objects.filter(user_id=leitor.pk).exists()); # Profile removido em cascata
+ 
+    # ---------- restrição de acesso ----------
+ 
+    def test_leitor_nao_acessa_painel_admin(self):
+        leitor = self._cria_leitor();
+        alvo = self._cria_leitor("Alvo");
+        self.client.force_login(leitor);
+ 
+        # não acessa o painel
+        response = self.client.get(reverse("admin:index"));
+        self.assertNotEqual(response.status_code, 200);
+ 
+        # não consegue excluir outro usuário
+        response = self.client.post(reverse("admin:auth_user_delete", args=[alvo.pk]), {'post': 'yes'});
+        self.assertNotEqual(response.status_code, 200);
+        self.assertTrue(self.User.objects.filter(pk=alvo.pk).exists());
+ 
+    def test_anonimo_nao_acessa_painel_admin(self):
+        alvo = self._cria_leitor("Alvo");
+ 
+        response = self.client.post(reverse("admin:auth_user_delete", args=[alvo.pk]), {'post': 'yes'});
+ 
+        self.assertEqual(response.status_code, 302); # redirecionado para o login do admin
+        self.assertTrue(self.User.objects.filter(pk=alvo.pk).exists());
