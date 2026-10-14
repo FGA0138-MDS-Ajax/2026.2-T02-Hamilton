@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect;
 from django.contrib.auth import login, logout, get_user_model;
 from django.contrib.auth.decorators import login_required;
+from django.contrib import messages
 from .models import Profile;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
 
@@ -34,6 +35,9 @@ def login_view(request):
             login(request, user);
 
             return redirect("main:index");
+        else:
+            # Mensagem de erro ao falhar no login
+            messages.error(request, 'Usuário ou senha inválidos. Tente novamente.')
 
     else:
         form = LoginForm(request);
