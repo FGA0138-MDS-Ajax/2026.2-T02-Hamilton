@@ -6,20 +6,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
     <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <title>Perfil - CoLecture</title>
   </head>
   <body>
-    <!-- #TODO: Fazer painel de perfil -->
     <div class="main-box">
-      <section class="user-info">
-        <h1>Perfil do Usuário</h1>
+      <header class="navbar">
+        <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
 
         <form method="post" action="{% url 'accounts:logout' %}">
           {% csrf_token %}
-          <button>Sair</button>
+          <button type="submit" class="btn-outline">
+            <i class="bx bx-log-out" aria-hidden="true"></i> Sair
+          </button>
         </form>
+      </header>
 
-      </section>
+      <main class="profile">
+        <section class="user-card" aria-labelledby="user-name">
+          <div class="avatar" aria-hidden="true">
+            {{ user.username|slice:":1"|upper }}
+          </div>
+
+          <div class="user-details">
+            <h1 id="user-name">
+              {% firstof user.get_full_name user.username %}
+            </h1>
+            <p class="username">@{{ user.username }}</p>
+
+            <ul class="meta">
+              <li>
+                <i class="bx bx-envelope" aria-hidden="true"></i>
+                {% if user.email %}{{ user.email }}{% else %}E-mail não informado{% endif %}
+              </li>
+              <li>
+                <i class="bx bx-calendar" aria-hidden="true"></i>
+                Membro desde {{ user.date_joined|date:"d/m/Y" }}
+              </li>
+            </ul>
+          </div>
+
+          <a class="btn" href="{% url 'accounts:editProfile' %}">
+            <i class="bx bx-edit" aria-hidden="true"></i> Editar perfil
+          </a>
+        </section>
+
+        <div class="stats">
+          <section class="card streak-card" aria-labelledby="streak-title">
+            <h2 id="streak-title">
+              <i class="bx bxs-hot" aria-hidden="true"></i> Ofensiva
+            </h2>
+            <p class="stat-value">
+              {{ profile.streak }}
+              <span>{{ profile.streak|pluralize:"dia,dias" }} seguidos</span>
+            </p>
+            <p class="hint">
+              {% if profile.streak > 0 %}
+                Continue lendo todos os dias para manter a sequência!
+              {% else %}
+                Leia hoje para começar a sua ofensiva.
+              {% endif %}
+            </p>
+          </section>
+
+          <section class="card" aria-labelledby="badges-title">
+            <h2 id="badges-title">
+              <i class="bx bxs-award badge-icon" aria-hidden="true"></i> Insígnias
+            </h2>
+            <p class="empty">Nenhuma insígnia conquistada ainda.</p>
+          </section>
+
+          <section class="card" aria-labelledby="communities-title">
+            <h2 id="communities-title">
+              <i class="bx bxs-group" aria-hidden="true"></i> Comunidades
+            </h2>
+            <p class="empty">Você ainda não participa de nenhuma comunidade.</p>
+          </section>
+        </div>
+      </main>
     </div>
   </body>
 </html>

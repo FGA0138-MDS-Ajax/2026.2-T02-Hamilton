@@ -4,29 +4,23 @@ from django.contrib.auth.decorators import login_required;
 from .models import Profile;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
 
-# Create your views here.
-
 def register_view(request):
-    if request.method == "POST": # verifica se o usuário está enviando informações
-        form = RegistrationForm(request.POST); # manda essas informações para o formulário que irá validá-las.
+    if request.method == "POST":
+        form = RegistrationForm(request.POST);
         
-        if form.is_valid(): # todas as informações são válidas.
-            user = get_user_model().objects.create_user( # cria o usuário
+        if form.is_valid():
+            user = get_user_model().objects.create_user(
                 username=form.cleaned_data['username'],
                 password=form.cleaned_data['password1'],
                 email=form.cleaned_data['email']
             );
 
-            Profile.objects.create( # cria o profile que sediará o usuário
+            Profile.objects.create(
                 user=user
             );
 
-            return redirect("accounts:login"); # redireciona para a página de login
+            return redirect("accounts:login");
     else:
-        """
-        Neste caso o usuário está entrando na página agora então
-        criamos um formulário vazio para que possa preenchê-lo.
-        """
         form = RegistrationForm();
 
     return render(request, "accounts/register.html", {"form":form});
@@ -36,10 +30,10 @@ def login_view(request):
         form = LoginForm(request, data=request.POST);
 
         if form.is_valid():
-            user = form.get_user(); # pega o usuário utilizando as informações do formulário.
-            login(request, user); # faz o login nativo do Django.
+            user = form.get_user();
+            login(request, user);
 
-            return redirect("main:index"); # redireciona para a página inicial.
+            return redirect("main:index");
 
     else:
         form = LoginForm(request);
@@ -47,27 +41,23 @@ def login_view(request):
     return render(request, 'accounts/login.html', {"form":form});
 
 def logout_view(request):
-    if request.method == "POST": # aceita apenas requests com método POST
-        logout(request); # faz o logout nativo do Django
-    return redirect("main:index"); # redireciona para a main página novamente
+    if request.method == "POST":
+        logout(request);
+    return redirect("main:index");
 
+@login_required
 def profile_view(request):
-    if request.user.is_authenticated:
-        return render(request, 'accounts/profile.html')
-    return render(request, 'main/index.html')
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    return render(request, 'accounts/profile.html', {'profile': profile})
 
-@login_required # acessível apenas quando o usuário está logado.
+@login_required
 def edit_profile_view(request):
-    if request.method == 'POST': # o usuário está enviando novas informações.
-        form = EditUserForm(request.POST, instance=request.user) # gera formulário com as novas informações
-        if form.is_valid(): # se as informações forem válidas
-            form.save() # salva as novas informações na base de dados.
-            return redirect('accounts:profile') # redireciona para a página do usuário
+    if request.method == 'POST':
+        form = EditUserForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:profile')
     else:
-        """
-        gera um formulário com as informações ANTIGAS (se existirem) do usuário
-        para facilitar sua alteração.
-        """
         form = EditUserForm(instance=request.user)
 
     return render(request, 'accounts/profileEdit.html', {'editForm': form})

@@ -6,20 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
     <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <title>Editar Perfil - CoLecture</title>
   </head>
   <body>
-    <!-- #TODO: Fazer painel de edição de perfil -->
-    <div class="main-box">
-      <section class="user-info">
+    <div class="main-box main-box--narrow">
+      <header class="navbar">
+        <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
+        <a class="back-link" href="{% url 'accounts:profile' %}">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+        </a>
+      </header>
+
+      <section class="edit-form">
         <h1>Editar informações</h1>
 
         <form method="POST" action="{% url 'accounts:editProfile' %}">
           {% csrf_token %}
           {{ editForm.as_p }}
-          <button type="submit">Salvar</button>
+          <button type="submit" class="btn">Salvar</button>
         </form>
-
       </section>
     </div>
   </body>
