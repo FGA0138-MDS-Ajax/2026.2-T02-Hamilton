@@ -1,0 +1,53 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Início - CoLecture</title>
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+    <link rel="stylesheet" href="{% static 'main/css/index.css' %}" />
+  </head>
+
+  <body>
+    <div class="main-box">
+      <section class="main-text">
+        <header class="navbar">
+          <a class="brand" href="/">CoLecture</a>
+          <nav aria-label="Navegação principal">
+            <ul>
+              <li>
+                <a href="https://fga0138-mds-ajax.github.io/2026.2-T02-Hamilton/" target="_blank">Documentação</a>
+              </li>
+              <li>
+                <a href="https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton" target="_blank">GitHub</a>
+              </li>
+            </ul>
+          </nav>
+        </header>
+
+        <div class="hero">
+          <h1>Leia em comunidade e mantenha o hábito.</h1>
+
+          <p>Entre em clubes de leitura, acompanhe sua sequência diária e converse sobre cada capítulo com quem está lendo o mesmo livro que você.</p>
+
+          <div class="actions">
+            <a class="btn" href="{% url 'accounts:login' %}">Entrar</a>
+            <a class="btn-outline" href="{% url 'accounts:register' %}">Criar conta</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Brand Panel -->
+      <aside class="brand-panel" aria-hidden="true">
+        <!-- 
+        Imagem vinda do https://unsplash.com/pt-br/fotografias/livros-na-prateleira-de-madeira-marrom-Ft_Wn-K5YH8 sem copyrights, transformada em svg
+        -->
+        <img
+          src="{% static 'main/img/biblioteca.svg' %}"
+          alt="Corredor de uma biblioteca entre duas estantes de madeira cheias de livros coloridos, que levam a uma estante ao fundo, sob luminárias redondas acesas no teto."
+        />
+      </aside>
+    </div>
+  </body>
+</html>

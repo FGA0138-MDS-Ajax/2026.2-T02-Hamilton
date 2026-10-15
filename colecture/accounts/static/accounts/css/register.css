@@ -1,0 +1,115 @@
+.register .form-panel {
+    left: auto;
+    right: 0;
+    padding: 30px 40px;
+    overflow-y: auto; 
+}
+
+.register .brand-panel {
+    left: 0;
+    right: auto;
+    border-radius: 0 150px 150px 0;
+}
+
+.register form {
+    margin: auto 0;
+}
+
+.register h1 {
+    font-size: 30px;
+    margin: 0 0 8px;
+}
+
+.register .input {
+    margin: 12px 0;
+}
+
+.register .input input {
+    padding: 10px 44px 10px 16px;
+    font-size: 14px;
+}
+
+.register .input i {
+    right: 16px;
+    font-size: 18px;
+}
+
+.register .btn {
+    height: 40px;
+    margin-top: 6px;
+    font-size: 15px;
+}
+
+.register .error {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: left;
+    color: #ff6b6b;
+}
+
+.form-errors {
+    margin: 6px 0;
+}
+
+.register .helptext {
+    display: none;
+}
+
+/* Botão voltar */
+.back-link {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color .15s;
+}
+
+.back-link:hover {
+    color: var(--purple-400);
+}
+
+.back-link:focus-visible {
+    outline: 2px solid var(--purple-300);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.back-link i {
+    font-size: 18px;
+}
+
+.register .back-link {
+    color: #fff;
+}
+
+.register .back-link:hover {
+    color: var(--purple-100);
+}
+
+
+/* Responsividade */
+@media (max-width: 700px) {
+    .register .form-panel {
+        position: relative;
+        right: auto;
+        width: 100%;
+        height: auto;
+    }
+
+    .register .brand-panel {
+        border-radius: 80px 80px 0 0;
+    }
+
+    .register .brand-panel {
+    border-radius: 0;
+    }
+}
