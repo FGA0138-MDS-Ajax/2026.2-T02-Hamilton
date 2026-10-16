@@ -1,0 +1,1377 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação do CoLecture, plataforma web de leitura social (MDS 2026.2, UnB)">
+      
+      
+        <meta name="author" content="Grupo Hamilton">
+      
+      
+      
+        <link rel="prev" href="../projeto/">
+      
+      
+        <link rel="next" href="../metricas/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Escopo e Backlog - CoLecture</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#escopo-e-backlog" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="CoLecture" class="md-header__button md-logo" aria-label="CoLecture" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CoLecture
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Escopo e Backlog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    2026.2-T02-Hamilton
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CoLecture" class="md-nav__button md-logo" aria-label="CoLecture" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CoLecture
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    2026.2-T02-Hamilton
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão do Produto e do Projeto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Visão do Produto e do Projeto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../produto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Produto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../projeto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projeto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Escopo e Backlog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Escopo e Backlog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#classificacao-dos-requisitos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classificação dos requisitos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#perfis-de-acesso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Perfis de acesso
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cenarios-funcionais" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cenários funcionais
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backlog-do-produto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backlog do produto
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metricas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Métricas (GQM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/representacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Representação Arquitetural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/metas-restricoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metas e Restrições
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visões
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atas de Reunião
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Atas de Reunião
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lista de atas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribuir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Como contribuir
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#classificacao-dos-requisitos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classificação dos requisitos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#perfis-de-acesso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Perfis de acesso
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cenarios-funcionais" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cenários funcionais
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backlog-do-produto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backlog do produto
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="escopo-e-backlog">Escopo e Backlog<a class="headerlink" href="#escopo-e-backlog" title="Permanent link">&para;</a></h1>
+<h2 id="classificacao-dos-requisitos">Classificação dos requisitos<a class="headerlink" href="#classificacao-dos-requisitos" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Must:</strong> obrigatórios e essenciais ao funcionamento da plataforma; prioridade máxima.</li>
+<li><strong>Should:</strong> desejáveis e importantes, mas sua ausência não impede o funcionamento geral.</li>
+<li><strong>Could:</strong> menor prioridade; implementados se houver prazo após os Must e Should.</li>
+</ul>
+<p>O levantamento foi feito por brainstorm entre os integrantes, considerando necessidades do usuário e requisitos funcionais e não funcionais.</p>
+<h2 id="perfis-de-acesso">Perfis de acesso<a class="headerlink" href="#perfis-de-acesso" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Perfil</th>
+<th>Características</th>
+<th>Permissões</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cliente (Leitor)</td>
+<td>Usuário autenticado</td>
+<td>Criar/excluir comunidades, registrar livros inexistentes, sugerir edições, interagir no fórum, avaliar, registrar progresso</td>
+</tr>
+<tr>
+<td>Moderador (papel do cliente)</td>
+<td>Criador ou promovido em uma comunidade</td>
+<td>Gerenciar membros, metas e fórum da comunidade</td>
+</tr>
+<tr>
+<td>Administrador</td>
+<td>Gestor do site</td>
+<td>Gerenciar comunidades, editar usuários e livros, aprovar livros e edições</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cenarios-funcionais">Cenários funcionais<a class="headerlink" href="#cenarios-funcionais" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Cenário</th>
+<th>Nome</th>
+<th style="text-align: center;">Sprint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">C01</td>
+<td>Cadastro, login e perfil</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">C02</td>
+<td>Admin editar usuários</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">C03</td>
+<td>Registro de livro</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: center;">C04</td>
+<td>Avaliação de livros</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: center;">C05</td>
+<td>Criação de comunidade</td>
+<td style="text-align: center;">3</td>
+</tr>
+<tr>
+<td style="text-align: center;">C06</td>
+<td>Gerenciamento da comunidade</td>
+<td style="text-align: center;">3</td>
+</tr>
+<tr>
+<td style="text-align: center;">C07</td>
+<td>Criação de meta de leitura com capítulos</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td style="text-align: center;">C08</td>
+<td>Perfil com tags e livros lidos</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td style="text-align: center;">C09</td>
+<td>Fórum da comunidade por ciclo</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td style="text-align: center;">C10</td>
+<td>Registro de progresso diário e livro já lido</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td style="text-align: center;">C11</td>
+<td>Ofensiva pessoal e da comunidade</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td style="text-align: center;">C12</td>
+<td>Insígnias de comunidade</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td style="text-align: center;">C13</td>
+<td>Recomendação por temas</td>
+<td style="text-align: center;">6</td>
+</tr>
+</tbody>
+</table>
+<h2 id="backlog-do-produto">Backlog do produto<a class="headerlink" href="#backlog-do-produto" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Req.</th>
+<th style="text-align: center;">Sprint</th>
+<th>Nome</th>
+<th>Tipo</th>
+<th style="text-align: center;">Prioridade</th>
+<th>Descrição</th>
+<th style="text-align: center;">US</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">R01</td>
+<td style="text-align: center;">1</td>
+<td>Cadastro e login</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Cadastro, login, logout, editar perfil</td>
+<td style="text-align: center;">US01</td>
+</tr>
+<tr>
+<td style="text-align: center;">R02</td>
+<td style="text-align: center;">1</td>
+<td>Admin editar usuários</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Editar, adicionar e excluir usuários</td>
+<td style="text-align: center;">US02</td>
+</tr>
+<tr>
+<td style="text-align: center;">R03</td>
+<td style="text-align: center;">1</td>
+<td>Admin inicial via seed</td>
+<td>Não funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Criar admin padrão via migration/seed, pois o banco inicia vazio</td>
+<td style="text-align: center;">US03</td>
+</tr>
+<tr>
+<td style="text-align: center;">R04</td>
+<td style="text-align: center;">1</td>
+<td>Página de login</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Páginas de login, cadastro e edição de perfil</td>
+<td style="text-align: center;">US04</td>
+</tr>
+<tr>
+<td style="text-align: center;">R05</td>
+<td style="text-align: center;">2</td>
+<td>Registrar livro inexistente</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Formulário de livro</td>
+<td style="text-align: center;">US05</td>
+</tr>
+<tr>
+<td style="text-align: center;">R06</td>
+<td style="text-align: center;">2</td>
+<td>Pesquisar e filtrar catálogo</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Busca por título, autor, tema, tag</td>
+<td style="text-align: center;">US06</td>
+</tr>
+<tr>
+<td style="text-align: center;">R07</td>
+<td style="text-align: center;">2</td>
+<td>Avaliar livros</td>
+<td>Funcional</td>
+<td style="text-align: center;">Should</td>
+<td>Nota 1-5, resenha, média</td>
+<td style="text-align: center;">US07</td>
+</tr>
+<tr>
+<td style="text-align: center;">R08</td>
+<td style="text-align: center;">2</td>
+<td>Página de registro de livros e avaliação</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Página de registro, avaliação e pesquisa</td>
+<td style="text-align: center;">US08</td>
+</tr>
+<tr>
+<td style="text-align: center;">R09</td>
+<td style="text-align: center;">3</td>
+<td>Manter comunidade</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Nome, descrição, moderadores; excluir/arquivar, aprovar e remover membros, promover moderador; comunidade aberta ou fechada</td>
+<td style="text-align: center;">US09</td>
+</tr>
+<tr>
+<td style="text-align: center;">R10</td>
+<td style="text-align: center;">3</td>
+<td>Página de comunidade</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Página web com os requisitos R09 a R12</td>
+<td style="text-align: center;">US10</td>
+</tr>
+<tr>
+<td style="text-align: center;">R11</td>
+<td style="text-align: center;">4</td>
+<td>Criar meta de leitura</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Livro, capítulos, data limite, fórum automático</td>
+<td style="text-align: center;">US11</td>
+</tr>
+<tr>
+<td style="text-align: center;">R12</td>
+<td style="text-align: center;">4</td>
+<td>Manter fórum</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Criar fórum, arquivar o antigo, tópicos e respostas, vinculado ao ciclo</td>
+<td style="text-align: center;">US12</td>
+</tr>
+<tr>
+<td style="text-align: center;">R13</td>
+<td style="text-align: center;">4</td>
+<td>Visualizar metas ativas/encerradas</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Listar progresso, data, status</td>
+<td style="text-align: center;">US13</td>
+</tr>
+<tr>
+<td style="text-align: center;">R14</td>
+<td style="text-align: center;">4</td>
+<td>Moderar fórum</td>
+<td>Funcional</td>
+<td style="text-align: center;">Should</td>
+<td>Editar, excluir, fixar, trancar</td>
+<td style="text-align: center;">US14</td>
+</tr>
+<tr>
+<td style="text-align: center;">R15</td>
+<td style="text-align: center;">5</td>
+<td>Registrar livro como lido</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Status lido, data, páginas/percentual</td>
+<td style="text-align: center;">US15</td>
+</tr>
+<tr>
+<td style="text-align: center;">R16</td>
+<td style="text-align: center;">5</td>
+<td>Registrar progresso diário</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Sessão do dia, páginas/% acumulado</td>
+<td style="text-align: center;">US16</td>
+</tr>
+<tr>
+<td style="text-align: center;">R17</td>
+<td style="text-align: center;">5</td>
+<td>Ofensivas</td>
+<td>Funcional</td>
+<td style="text-align: center;">Should</td>
+<td>Dias consecutivos, calendário, notificações, streak coletivo</td>
+<td style="text-align: center;">US17</td>
+</tr>
+<tr>
+<td style="text-align: center;">R18</td>
+<td style="text-align: center;">5</td>
+<td>Página de leitura</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Abas: leitura do dia e livros já lidos</td>
+<td style="text-align: center;">US18</td>
+</tr>
+<tr>
+<td style="text-align: center;">R19</td>
+<td style="text-align: center;">6</td>
+<td>Insígnias</td>
+<td>Funcional</td>
+<td style="text-align: center;">Could</td>
+<td>Conquistas automáticas/manuais</td>
+<td style="text-align: center;">US19</td>
+</tr>
+<tr>
+<td style="text-align: center;">R20</td>
+<td style="text-align: center;">6</td>
+<td>Recomendações por tema</td>
+<td>Funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Baseada em tags, lidos e avaliações</td>
+<td style="text-align: center;">US20</td>
+</tr>
+<tr>
+<td style="text-align: center;">R21</td>
+<td style="text-align: center;">6</td>
+<td>Notificações e logs</td>
+<td>Não funcional</td>
+<td style="text-align: center;">Should</td>
+<td>Notificar aprovações e novos ciclos, logs de ações</td>
+<td style="text-align: center;">US21</td>
+</tr>
+<tr>
+<td style="text-align: center;">R22</td>
+<td style="text-align: center;">6</td>
+<td>Teste e documentação</td>
+<td>Não funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Roteiro de testes, cobertura, manual</td>
+<td style="text-align: center;">US22</td>
+</tr>
+<tr>
+<td style="text-align: center;">R23</td>
+<td style="text-align: center;">7</td>
+<td>Ajustes finais e apresentação</td>
+<td>Não funcional</td>
+<td style="text-align: center;">Must</td>
+<td>Correções</td>
+<td style="text-align: center;">–</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.top", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
