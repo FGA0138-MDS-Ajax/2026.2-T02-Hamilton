@@ -33,6 +33,244 @@ body {
   width: 760px;
 }
 
+body.profile-page {
+  --bg-surface: #fffefb;
+  --bg-elevated: #f7f3ea;
+  --border: #e4dbc9;
+  --border-strong: #cfc4ad;
+  --text-primary: #1f1a2e;
+  --text-secondary: #3a3352;
+  --text-muted: #5f5873;
+  --purple-300: #6d28d9;
+  --glow: 0 6px 18px rgba(109, 40, 217, 0.25);
+
+  /* cores da capa */
+  --cover-light: #dc6a52;
+  --cover-base: #c95a43;
+  --cover-dark: #a8432f;
+
+  /* largura visível das páginas empilhadas e da capa, de cada lado */
+  --pages-width: 56px;
+  --cover-edge: 16px;
+  --cover-top: 8px;
+
+  /* bordas das páginas empilhadas (esquerda e direita), da mais próxima à mais distante */
+  --pages-stack:
+    6px 0 0 0 #f1ebdc,
+    -6px 0 0 0 #f1ebdc,
+    7px 0 0 0 #cdbf9f,
+    -7px 0 0 0 #cdbf9f,
+    13px 0 0 0 #f8f4e9,
+    -13px 0 0 0 #f8f4e9,
+    14px 0 0 0 #cdbf9f,
+    -14px 0 0 0 #cdbf9f,
+    20px 0 0 0 #f1ebdc,
+    -20px 0 0 0 #f1ebdc,
+    21px 0 0 0 #cdbf9f,
+    -21px 0 0 0 #cdbf9f,
+    27px 0 0 0 #f8f4e9,
+    -27px 0 0 0 #f8f4e9,
+    28px 0 0 0 #cdbf9f,
+    -28px 0 0 0 #cdbf9f,
+    34px 0 0 0 #f1ebdc,
+    -34px 0 0 0 #f1ebdc,
+    35px 0 0 0 #cdbf9f,
+    -35px 0 0 0 #cdbf9f,
+    41px 0 0 0 #f8f4e9,
+    -41px 0 0 0 #f8f4e9,
+    42px 0 0 0 #cdbf9f,
+    -42px 0 0 0 #cdbf9f,
+    48px 0 0 0 #f1ebdc,
+    -48px 0 0 0 #f1ebdc,
+    49px 0 0 0 #cdbf9f,
+    -49px 0 0 0 #cdbf9f,
+    55px 0 0 0 #f8f4e9,
+    -55px 0 0 0 #f8f4e9,
+    56px 0 0 0 #b9a982,
+    -56px 0 0 0 #b9a982;
+}
+
+/* Capa do livro: única, envolve páginas e folha branca */
+.book {
+  position: relative;
+  width: 1480px;
+  max-width: 96vw;
+  padding: var(--cover-top) calc(var(--pages-width) + var(--cover-edge));
+  border-radius: 36px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, var(--cover-light) 0%, var(--cover-base) 55%, var(--cover-dark) 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 28px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Folha branca no topo da pilha de páginas */
+.main-box--book {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-height: 780px;
+  border: none;
+  border-radius: 26px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0 0.25 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--bg-surface);
+  box-shadow:
+    inset 0 0 38px rgba(140, 110, 60, 0.07),
+    var(--pages-stack);
+}
+
+.main-box--book .user-details h1 {
+  text-decoration-thickness: 4px;
+  text-underline-offset: 9px;
+}
+
+.main-box--book .user-details .username {
+  color: var(--text-secondary);
+}
+
+.main-box--book .btn {
+  background: linear-gradient(180deg, #9468e8 0%, #7a4fd0 100%);
+  box-shadow: 0 4px 10px rgba(109, 40, 217, 0.28);
+}
+
+.main-box--book .btn:hover {
+  background: linear-gradient(180deg, #8458dc 0%, #6a3fc0 100%);
+}
+
+.bookmark {
+  position: absolute;
+  top: 0;
+  right: 72px;
+  z-index: 2;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.55));
+}
+
+.bookmark-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 68px;
+  height: 132px;
+  padding-top: 26px;
+  border: none;
+  background: linear-gradient(90deg, #a61b1b 0%, #dc2626 45%, #b91c1c 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  transition:
+    height 0.2s ease,
+    filter 0.15s;
+}
+
+.bookmark-btn i {
+  font-size: 26px;
+}
+
+.bookmark-btn:hover,
+.bookmark-btn:focus-visible {
+  height: 148px;
+  filter: brightness(1.12);
+}
+
+.bookmark-btn:focus-visible {
+  outline: none;
+  background: linear-gradient(90deg, #c22222 0%, #ef4444 45%, #d12a2a 100%);
+}
+
+
+@media (max-width: 900px) {
+  body.profile-page {
+    --pages-width: 24px;
+    --cover-edge: 10px;
+    --cover-top: 6px;
+    --pages-stack:
+      5px 0 0 0 #f1ebdc,
+    -5px 0 0 0 #f1ebdc,
+    6px 0 0 0 #cdbf9f,
+    -6px 0 0 0 #cdbf9f,
+    11px 0 0 0 #f8f4e9,
+    -11px 0 0 0 #f8f4e9,
+    12px 0 0 0 #cdbf9f,
+    -12px 0 0 0 #cdbf9f,
+    17px 0 0 0 #f1ebdc,
+    -17px 0 0 0 #f1ebdc,
+    18px 0 0 0 #cdbf9f,
+    -18px 0 0 0 #cdbf9f,
+    23px 0 0 0 #f8f4e9,
+    -23px 0 0 0 #f8f4e9,
+    24px 0 0 0 #b9a982,
+    -24px 0 0 0 #b9a982;
+  }
+
+  .book {
+    border-radius: 26px;
+  }
+
+  .main-box--book {
+    min-height: 0;
+    padding: 40px 32px 44px;
+    border-radius: 18px;
+  }
+
+  .main-box--book .user-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 32px 28px;
+  }
+
+  .main-box--book .user-card .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  body.profile-page {
+    --pages-width: 9px;
+    --cover-edge: 7px;
+    --cover-top: 5px;
+    --pages-stack:
+      2px 0 0 0 #f1ebdc,
+    -2px 0 0 0 #f1ebdc,
+    3px 0 0 0 #cdbf9f,
+    -3px 0 0 0 #cdbf9f,
+    5px 0 0 0 #f8f4e9,
+    -5px 0 0 0 #f8f4e9,
+    6px 0 0 0 #cdbf9f,
+    -6px 0 0 0 #cdbf9f,
+    8px 0 0 0 #f1ebdc,
+    -8px 0 0 0 #f1ebdc,
+    9px 0 0 0 #b9a982,
+    -9px 0 0 0 #b9a982;
+  }
+}
+
+@media (max-width: 600px) {
+  .bookmark {
+    right: 24px;
+  }
+
+  .bookmark-btn {
+    width: 56px;
+    height: 100px;
+    padding-top: 20px;
+    font-size: 13px;
+  }
+
+  .bookmark-btn:hover,
+  .bookmark-btn:focus-visible {
+    height: 110px;
+  }
+}
+
 .navbar {
   display: flex;
   align-items: center;
@@ -297,7 +535,8 @@ body {
 }
 
 @media (max-width: 600px) {
-  .main-box {
+  .main-box,
+  .main-box--book {
     padding: 24px 20px 28px;
   }
 
