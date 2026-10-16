@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar livros</title>
+    <link rel="stylesheet" href="{% static 'main/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'main/search.css' %}">
+</head>
+
+<body>
+
+    <header class = "page-header">
+        <img src = "logoGato.png" alt = "CoLecture" class = "logo">
+        <span class = "logo-text"> Colecture </span>
+    </header>
+
+    <main class = "page-content">
+        <h1 class = "page-title"> Busque por titulo ou autor... </h1>
+        <div class = "search-bar">
+            <input tupe = "text" id = "searchInput" placeholder="Busca">
+
+            <select id = "genreFilter">
+                <option value="">Todos os gêneros</option>
+                <option value="Fiction">Ficção</option>
+                <option value="Fantasy">Fantasia</option>
+                <option value="Romance">Romance</option>
+                <option value="Science Fiction">Ficção Científica</option>
+                <option value="Computers">Tecnologia</option>
+                <option value="History">História</option>
+      </select>
+
+      <button id = "searchButton"> Buscar </button>
+      </div>
+
+    <p id = "resultsInfo"></p>
+
+    <div id = "bookList"></div>
+    </main>
+
+    <script src = "search.js"></script>
+</body>
+</html>
