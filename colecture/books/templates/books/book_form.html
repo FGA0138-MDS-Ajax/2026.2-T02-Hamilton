@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+    <link rel="stylesheet" href="{% static 'books/css/book_form.css' %}" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <title>Cadastrar livro - CoLecture</title>
+  </head>
+
+  <body>
+    <div class="main-box main-box--narrow">
+      <header class="navbar">
+        <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
+        <a class="back-link" href="{% url 'accounts:profile' %}">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+        </a>
+      </header>
+
+      <main class="book-form">
+        <h1>Cadastrar livro</h1>
+        <p class="intro">
+          Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
+        </p>
+
+        {# Sem "action": o formulário envia para a mesma URL da página. #}
+        <form method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+          {% csrf_token %}
+
+          {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+          {% if form.non_field_errors %}
+            <div class="form-errors" role="alert">
+              {% for error in form.non_field_errors %}
+                <span class="error">{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {# Os campos vêm do formulário (ModelForm do back): rótulos, ajuda e erros são dele. #}
+          {% for field in form.visible_fields %}
+            <div class="field{% if field.errors %} field--error{% endif %}">
+              <label for="{{ field.id_for_label }}">
+                {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+              </label>
+
+              {{ field }}
+
+              {% if field.help_text %}
+                <small class="help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</small>
+              {% endif %}
+
+              {% for error in field.errors %}
+                <span class="error">{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="btn">Cadastrar livro</button>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

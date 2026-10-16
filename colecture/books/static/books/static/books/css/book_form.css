@@ -1,0 +1,254 @@
+/*
+  Página de cadastro de livro (app books).
+
+  Segue o visual das páginas logadas (perfil e edição de perfil): mesmos
+  tokens de main/css/variables.css, mesma moldura (.main-box) e mesmos campos.
+  É um arquivo próprio, para não depender de accounts/css/profile.css, que
+  outra pessoa do grupo está ajustando nesta sprint.
+*/
+
+:root {
+  /* Faz o navegador desenhar select, scroll e seletor de arquivo no tema escuro. */
+  color-scheme: dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-main, "Poppins", sans-serif);
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px 0;
+  background: var(--gradient-bg), var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* Moldura e cabeçalho (iguais ao perfil) */
+.main-box {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  width: 1400px;
+  max-width: 94vw;
+  min-height: 820px;
+  padding: 48px 64px 64px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  box-shadow: var(--glow);
+}
+
+.main-box--narrow {
+  width: 760px;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.back-link:hover {
+  color: var(--purple-300);
+}
+
+.brand:focus-visible,
+.back-link:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 3px;
+}
+
+/* Título e introdução */
+.book-form h1 {
+  margin-bottom: 12px;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.book-form .intro {
+  margin-bottom: 32px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Campos (gerados em loop a partir do formulário) */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.field label {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.required {
+  color: var(--purple-300);
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 17px 24px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 19px;
+  color: var(--text-primary);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.field textarea {
+  min-height: 160px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.field select {
+  cursor: pointer;
+}
+
+/* Campo com erro: borda vermelha (o foco, mais abaixo, tem prioridade). */
+.field--error input,
+.field--error textarea,
+.field--error select {
+  border-color: var(--danger);
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: var(--glow);
+}
+
+/* Seletor de arquivo (só aparece se o formulário tiver um campo de arquivo) */
+.field input[type="file"] {
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.field input[type="file"]::file-selector-button {
+  margin-right: 16px;
+  padding: 8px 16px;
+  background: var(--purple-600);
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.help {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.error {
+  font-size: 16px;
+  color: var(--danger);
+}
+
+.form-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+/* Botão (igual ao do perfil) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 38px;
+  background: var(--purple-500);
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.btn:hover {
+  background: var(--purple-600);
+  box-shadow: var(--glow);
+}
+
+.book-form .btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Telas pequenas */
+@media (max-width: 600px) {
+  .main-box {
+    padding: 24px 20px 28px;
+  }
+
+  .book-form h1 {
+    font-size: 30px;
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    padding: 14px 16px;
+    font-size: 17px;
+  }
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
