@@ -1,9 +1,57 @@
-site_name: Documentação
+# ============================================================
+# Configuração do MkDocs - CoLecture (Grupo Hamilton)
+# Documentação: https://www.mkdocs.org/user-guide/configuration/
+# ============================================================
 
+# Identificação do site
+site_name: CoLecture
+site_description: Documentação do CoLecture, plataforma web de leitura social (MDS 2026.2, UnB)
+site_author: Grupo Hamilton
+repo_url: https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton
+repo_name: 2026.2-T02-Hamilton
+
+# Menu de navegação (a ordem aqui é a ordem exibida no site)
+# Os caminhos são relativos à pasta docs/
 nav:
-  - Instruções mkdocs: "index.md"
+  - Início: index.md
+  - Visão do Produto e do Projeto:
+      - Produto: visao/produto.md
+      - Projeto: visao/projeto.md
+      - Escopo e Backlog: visao/escopo.md
+      - Métricas (GQM): visao/metricas.md
+      - Testes: visao/testes.md
+  - Arquitetura:
+      - Representação Arquitetural: arquitetura/representacao.md
+      - Metas e Restrições: arquitetura/metas-restricoes.md
+      - Visões: arquitetura/visoes.md
   - Atas de Reunião:
-    - Ata 1: "atas-reuniao/ata-reuniao-1.md"
+      - Lista de atas: atas-reuniao/index.md
+      - Ata 1: atas-reuniao/ata-reuniao-1.md
+      - Ata 2: atas-reuniao/ata-reuniao-2.md
+      - Ata 3: atas-reuniao/ata-reuniao-3.md
+  - Como contribuir: contribuir.md
 
+# Tema (Material for MkDocs)
+# Apenas branco, preto e cinza: as cores ficam em stylesheets/extra.css
 theme:
   name: material
+  language: pt-BR
+  palette:
+    scheme: default
+    primary: black
+  features:
+    - navigation.top        # botão "voltar ao topo"
+    - navigation.sections   # agrupa itens do menu lateral
+    - content.code.copy     # botão de copiar nos blocos de código
+
+# CSS extra (paleta preto, branco e cinza)
+extra_css:
+  - stylesheets/extra.css
+
+# Extensões do Markdown
+markdown_extensions:
+  - tables                  # tabelas
+  - admonition              # blocos de destaque (!!! note)
+  - attr_list               # atributos em links e imagens
+  - toc:
+      permalink: true       # âncora em cada título

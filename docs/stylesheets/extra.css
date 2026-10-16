@@ -1,0 +1,124 @@
+/* ==========================================================
+   Paleta do site: somente branco, preto e cinza.
+   Sobrescreve as variáveis de cor do tema Material.
+   ========================================================== */
+
+:root {
+  --cl-black: #111111;
+  --cl-gray-dark: #444444;
+  --cl-gray: #767676;
+  --cl-gray-light: #e5e5e5;
+  --cl-gray-bg: #f5f5f5;
+  --cl-white: #ffffff;
+}
+
+/* Cabeçalho e rodapé em preto */
+.md-header,
+.md-footer,
+.md-footer-meta {
+  background-color: var(--cl-black);
+  color: var(--cl-white);
+}
+
+/* Fundo e texto principais */
+.md-main,
+.md-content {
+  background-color: var(--cl-white);
+}
+
+.md-typeset {
+  color: var(--cl-black);
+}
+
+/* Links: pretos e sublinhados; cinza ao passar o mouse */
+.md-typeset a {
+  color: var(--cl-black);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.md-typeset a:hover {
+  color: var(--cl-gray);
+}
+
+/* Menu lateral */
+.md-nav__link {
+  color: var(--cl-gray-dark);
+}
+
+.md-nav__link--active,
+.md-nav__link:hover {
+  color: var(--cl-black);
+  font-weight: 600;
+}
+
+/* Títulos */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--cl-black);
+  font-weight: 700;
+}
+
+.md-typeset h2 {
+  border-bottom: 1px solid var(--cl-gray-light);
+  padding-bottom: 0.2em;
+}
+
+/* Tabelas: cabeçalho cinza claro e bordas finas */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--cl-gray-light);
+  box-shadow: none;
+  font-size: 0.8rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--cl-gray-bg);
+  color: var(--cl-black);
+  border-bottom: 2px solid var(--cl-black);
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--cl-gray-light);
+}
+
+/* Código */
+.md-typeset code,
+.md-typeset pre > code {
+  background-color: var(--cl-gray-bg);
+  color: var(--cl-black);
+}
+
+/* Citações e blocos de destaque em tons de cinza */
+.md-typeset blockquote {
+  border-left: 4px solid var(--cl-gray);
+  color: var(--cl-gray-dark);
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-color: var(--cl-gray);
+  box-shadow: none;
+}
+
+.md-typeset .admonition > .admonition-title,
+.md-typeset details > summary {
+  background-color: var(--cl-gray-bg);
+}
+
+.md-typeset .admonition > .admonition-title::before,
+.md-typeset details > summary::before {
+  background-color: var(--cl-black);
+}
+
+/* Busca e seleção de texto */
+.md-search-result mark,
+.md-typeset mark {
+  background-color: var(--cl-gray-light);
+  color: var(--cl-black);
+}
+
+::selection {
+  background: var(--cl-black);
+  color: var(--cl-white);
+}

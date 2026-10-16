@@ -1,0 +1,3 @@
+# Dependências para gerar a documentação (branch docs)
+mkdocs>=1.6,<2
+mkdocs-material

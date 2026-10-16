@@ -1,0 +1,7 @@
+# Site gerado pelo "mkdocs build"
+site/
+
+# Ambiente virtual e cache
+.venv
+.cache/
+__pycache__/

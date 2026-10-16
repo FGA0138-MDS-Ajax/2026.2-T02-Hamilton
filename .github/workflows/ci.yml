@@ -1,21 +1,36 @@
+# Pipeline de deploy da documentação
+# A cada push na branch docs, o site é gerado e publicado na branch gh-pages
 name: ci
+
 on:
   push:
     branches:
       - docs
+
+# Permissão de escrita necessária para o "mkdocs gh-deploy" atualizar a gh-pages
 permissions:
   contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      # Baixa o código da branch docs
+      - uses: actions/checkout@v4
+
+      # Instala o Python
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.x
-      - uses: actions/cache@v3
+
+      # Cache do que o MkDocs gera, para acelerar os próximos deploys
+      - uses: actions/cache@v4
         with:
           key: ${{ github.ref }}
           path: .cache
-      - run: pip install mkdocs-material 
+
+      # Instala o MkDocs e o tema Material (requirements.txt)
+      - run: pip install -r requirements.txt
+
+      # Gera o site e publica na branch gh-pages
       - run: mkdocs gh-deploy --force
