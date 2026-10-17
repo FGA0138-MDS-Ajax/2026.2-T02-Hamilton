@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required;
 from .forms import BookForm
 
 
 # Create your views here.
+@login_required
 def register_book(request):
     if request.method == "POST":
         form = BookForm(request.POST)
