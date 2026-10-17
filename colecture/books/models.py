@@ -16,7 +16,7 @@ class Book(models.Model):
         validators=[MinValueValidator(1)], blank=True, null=True
     )
     author = models.CharField(max_length=AUTHOR_MAX_LENGTH, blank=False)
-    publish_date = models.DateField(blank=True, null=True)
+    publish_year = models.PositiveSmallIntegerField(blank=True, null=True)
     publisher = models.CharField(max_length=PUBLISHER_MAX_LENGTH, blank=True)
 
     def __str__(self):
