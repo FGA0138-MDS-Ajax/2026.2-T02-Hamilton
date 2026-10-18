@@ -25,8 +25,6 @@ def register_book(request):
 
 
 # Editar livros
-
-
 @login_required
 def edit_book(request, book_id):
     book = get_object_or_404(Book, pk=book_id)
