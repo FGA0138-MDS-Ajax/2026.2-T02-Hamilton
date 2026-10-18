@@ -66,6 +66,7 @@ class BookForm(forms.ModelForm):
             'author',
             'publish_year',
             'publisher',
+            'icon',
         ]
 
         labels = {
@@ -76,4 +77,11 @@ class BookForm(forms.ModelForm):
             'author' : 'Autor',
             'publish_year' : 'Ano de publicação',
             'publisher' : 'Editora',
+            'icon' : 'Ícone (URL da imagem)',
+        }
+
+        widgets = {
+            'icon': forms.URLInput(attrs={
+                'placeholder': 'Ex.: https://site.com/capa.jpg',
+            }),
         }
