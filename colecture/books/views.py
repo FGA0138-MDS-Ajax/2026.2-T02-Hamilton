@@ -1,9 +1,12 @@
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from .forms import BookForm
 from .models import Book
+
+SEARCH_LIMIT = 50
 
 # Create your views here.
 # Registrar um novo livro
@@ -25,6 +28,8 @@ def register_book(request):
 
 
 # Editar livros
+
+
 @login_required
 def edit_book(request, book_id):
     book = get_object_or_404(Book, pk=book_id)
@@ -57,3 +62,29 @@ def delete_book(request, book_id):
         return redirect('books:register_book')
 
     return render(request, 'books/book_form.html', {'book': book})
+
+
+# Busca de livros no banco (usada pela página main:search)
+@require_GET
+def search_books(request):
+    term = request.GET.get('q', '')
+    genre = request.GET.get('genre', '')
+
+    queryset = Book.objects.search(term, genre)
+    total = queryset.count()
+
+    results = [
+        {
+            'id': book.id,
+            'isbn': book.isbn,
+            'title': book.title,
+            'author': book.author,
+            'genre': book.genre,
+            'pages': book.pages,
+            'year': book.publish_year,
+            'publisher': book.publisher,
+        }
+        for book in queryset[:SEARCH_LIMIT]
+    ]
+
+    return JsonResponse({'total': total, 'results': results})
