@@ -392,3 +392,12 @@ body {
 .hidden {
   display: none;
 }
+
+.link-main, 
+.link-main:visited, 
+.link-main:hover, 
+.link-main:active {
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
