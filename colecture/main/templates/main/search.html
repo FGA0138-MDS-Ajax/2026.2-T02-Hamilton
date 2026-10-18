@@ -1,44 +1,47 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Buscar livros</title>
-    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'main/css/search.css' %}">
-</head>
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+    <link rel="stylesheet" href="{% static 'main/css/search.css' %}" />
+  </head>
 
-<body>
-
-    <header class = "page-header">
-        <img src = "{% static 'main/img/logoGato.png' %}" alt = "CoLecture" class = "logo">
-        <span class = "logo-text"> Colecture </span>
+  <body>
+    <header class="page-header">
+      <a class="link-main" href="{% url 'main:index' %}">
+        <img src="{% static 'main/img/logoGato.png' %}" alt="CoLecture" class="logo" />
+      </a>
+      <a class="link-main" href="{% url 'main:index' %}">
+        <span class="logo-text"> Colecture </span>
+      </a>
     </header>
 
-    <main class = "page-content">
-        <h1 class = "page-title"> Busque por titulo ou autor... </h1>
-        <div class = "search-bar">
-            <input tupe = "text" id = "searchInput" placeholder="Busca">
+    <main class="page-content">
+      <h1 class="page-title">Busque por titulo ou autor...</h1>
+      <div class="search-bar">
+        <input tupe="text" id="searchInput" placeholder="Busca" />
 
-            <select id = "genreFilter">
-                <option value="">Todos os gêneros</option>
-                <option value="Fiction">Ficção</option>
-                <option value="Fantasy">Fantasia</option>
-                <option value="Romance">Romance</option>
-                <option value="Science Fiction">Ficção Científica</option>
-                <option value="Computers">Tecnologia</option>
-                <option value="History">História</option>
-      </select>
+        <select id="genreFilter">
+          <option value="">Todos os gêneros</option>
+          <option value="Fiction">Ficção</option>
+          <option value="Fantasy">Fantasia</option>
+          <option value="Romance">Romance</option>
+          <option value="Science Fiction">Ficção Científica</option>
+          <option value="Computers">Tecnologia</option>
+          <option value="History">História</option>
+        </select>
 
-      <button id = "searchButton"> Buscar </button>
+        <button id="searchButton">Buscar</button>
       </div>
 
-    <p id = "resultsInfo"></p>
+      <p id="resultsInfo"></p>
 
-    <div id = "bookList"></div>
+      <div id="bookList"></div>
     </main>
 
-    <script src = "{% static 'main/js/search.js' %}"></script>
-</body>
+    <script src="{% static 'main/js/search.js' %}"></script>
+  </body>
 </html>
