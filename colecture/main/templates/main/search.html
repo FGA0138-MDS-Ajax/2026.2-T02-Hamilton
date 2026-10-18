@@ -1,17 +1,18 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscar livros</title>
-    <link rel="stylesheet" href="{% static 'main/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'main/search.css' %}">
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'main/css/search.css' %}">
 </head>
 
 <body>
 
     <header class = "page-header">
-        <img src = "logoGato.png" alt = "CoLecture" class = "logo">
+        <img src = "{% static 'main/img/logoGato.png' %}" alt = "CoLecture" class = "logo">
         <span class = "logo-text"> Colecture </span>
     </header>
 
@@ -38,6 +39,6 @@
     <div id = "bookList"></div>
     </main>
 
-    <script src = "search.js"></script>
+    <script src = "{% static 'main/js/search.js' %}"></script>
 </body>
 </html>
