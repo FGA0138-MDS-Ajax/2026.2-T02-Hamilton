@@ -19,19 +19,16 @@
       </a>
     </header>
 
-    <main class="page-content">
+    <main class="page-content" data-search-url="{% url 'books:search' %}">
       <h1 class="page-title">Busque por titulo ou autor...</h1>
       <div class="search-bar">
-        <input tupe="text" id="searchInput" placeholder="Busca" />
+        <input type="text" id="searchInput" placeholder="Busca" />
 
         <select id="genreFilter">
           <option value="">Todos os gêneros</option>
-          <option value="Fiction">Ficção</option>
-          <option value="Fantasy">Fantasia</option>
-          <option value="Romance">Romance</option>
-          <option value="Science Fiction">Ficção Científica</option>
-          <option value="Computers">Tecnologia</option>
-          <option value="History">História</option>
+          {% for genre in genres %}
+          <option value="{{ genre }}">{{ genre }}</option>
+          {% endfor %}
         </select>
 
         <button id="searchButton">Buscar</button>

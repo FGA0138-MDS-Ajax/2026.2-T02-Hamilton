@@ -4,6 +4,7 @@ var genreFilter = document.getElementById("genreFilter");
 var searchButton = document.getElementById("searchButton");
 var resultsInfo = document.getElementById("resultsInfo");
 var bookList = document.getElementById("bookList");
+var searchUrl = document.querySelector("main").dataset.searchUrl;
 
 
 var statusOptions = [
@@ -248,7 +249,7 @@ function createActions(book) {
 
 
 
-function showBooks(books) {
+function showBooks(books, total) {
   bookList.innerHTML = "";
 
   if (books.length === 0) {
@@ -256,20 +257,17 @@ function showBooks(books) {
     return;
   }
 
-  resultsInfo.textContent = books.length + " livro(s) encontrado(s)";
+  if (total > books.length) {
+    resultsInfo.textContent = "Mostrando " + books.length + " de " + total + " livros";
+  } else {
+    resultsInfo.textContent = total + " livro(s) encontrado(s)";
+  }
 
   for (var i = 0; i < books.length; i++) {
     var book = books[i];
 
     var card = document.createElement("div");
     card.className = "book-card";
-
-    var cover = document.createElement("img");
-    cover.className = "book-cover";
-    cover.alt = "Capa de " + book.title;
-    if (book.cover !== "") {
-      cover.src = book.cover;
-    }
 
     // area de texto
     var info = document.createElement("div");
@@ -281,96 +279,72 @@ function showBooks(books) {
 
     var author = document.createElement("p");
     author.className = "book-author";
-    author.textContent = book.author + " (" + book.year + ")";
+    author.textContent = book.year ? book.author + " (" + book.year + ")" : book.author;
+
+    var details = [];
+    if (book.publisher) {
+      details.push(book.publisher);
+    }
+    if (book.pages) {
+      details.push(book.pages + " páginas");
+    }
+    details.push("ISBN " + book.isbn);
 
     var synopsis = document.createElement("p");
     synopsis.className = "book-synopsis";
-    synopsis.textContent = book.synopsis;
-
-    var genre = document.createElement("span");
-    genre.className = "book-genre";
-    genre.textContent = book.genre;
+    synopsis.textContent = details.join(" · ");
 
     info.appendChild(title);
     info.appendChild(author);
     info.appendChild(synopsis);
-    info.appendChild(genre);
+
+    if (book.genre) {
+      var genre = document.createElement("span");
+      genre.className = "book-genre";
+      genre.textContent = book.genre;
+      info.appendChild(genre);
+    }
+
     info.appendChild(createActions(book));
 
-    card.appendChild(cover);
     card.appendChild(info);
     bookList.appendChild(card);
   }
 }
-//API
-function convertBook(item) {
-  var cover = "";
-  if (item.cover_i) {
-    cover = "https://covers.openlibrary.org/b/id/" + item.cover_i + "-M.jpg";
-  }
 
-  var synopsis = "Sem descrição.";
-  if (item.first_sentence) {
-    if (Array.isArray(item.first_sentence)) {
-      synopsis = item.first_sentence[0];
-    } else {
-      synopsis = item.first_sentence;
-    }
-  }
-
-  var title = item.title || "Sem título";
-  var author = item.author_name ? item.author_name.join(", ") : "Autor desconhecido";
-
-  return {
-    id: item.key || (title + "-" + author),
-    title: title,
-    author: author,
-    genre: item.subject ? item.subject[0] : "Sem gênero",
-    year: item.first_publish_year || "?",
-    synopsis: synopsis,
-    cover: cover
-  };
-}
+// Busca no banco de dados do CoLecture (tabela books_book)
+var lastRequest = 0;
 
 function searchBooks() {
   var term = searchInput.value.trim();
   var genre = genreFilter.value;
 
-  if (term === "") {
-    resultsInfo.textContent = "Digite um título ou autor para buscar.";
-    bookList.innerHTML = "";
-    return;
-  }
+  var params = new URLSearchParams({ q: term, genre: genre });
 
-  var query = term;
-  if (genre !== "") {
-    query = query + ' subject:"' + genre + '"';
-  }
-
-  var url = "https://openlibrary.org/search.json?q=" + encodeURIComponent(query) +
-    "&limit=20&fields=key,title,author_name,first_publish_year,subject,cover_i,first_sentence";
+  // evita que uma resposta antiga sobrescreva uma busca mais nova
+  lastRequest++;
+  var thisRequest = lastRequest;
 
   resultsInfo.textContent = "Buscando...";
   bookList.innerHTML = "";
 
-  fetch(url)
+  fetch(searchUrl + "?" + params.toString())
     .then(function (response) {
       if (!response.ok) {
-        throw new Error("A API respondeu com status " + response.status);
+        throw new Error("O servidor respondeu com status " + response.status);
       }
       return response.json();
     })
     .then(function (data) {
-      var items = data.docs || [];
-      var books = [];
-
-      for (var i = 0; i < items.length; i++) {
-        books.push(convertBook(items[i]));
+      if (thisRequest !== lastRequest) {
+        return;
       }
-
-      showBooks(books);
+      showBooks(data.results, data.total);
     })
     .catch(function (error) {
+      if (thisRequest !== lastRequest) {
+        return;
+      }
       console.log("Erro ao buscar:", error);
       resultsInfo.textContent = "Erro ao buscar os livros. Tente novamente em alguns minutos.";
     });
@@ -385,14 +359,12 @@ searchInput.addEventListener("keypress", function (event) {
   }
 });
 
-genreFilter.addEventListener("change", function () {
-  if (searchInput.value.trim() !== "") {
-    searchBooks();
-  }
-});
+genreFilter.addEventListener("change", searchBooks);
 
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape" && modalParts.overlay) {
     closeModal();
   }
 });
+
+searchBooks();
