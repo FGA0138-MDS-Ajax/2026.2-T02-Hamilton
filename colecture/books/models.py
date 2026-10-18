@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, URLValidator
 from django.db import models
 from django.db.models import Q
 
@@ -8,6 +8,7 @@ TITLE_MAX_LENGTH = 200
 GENRE_MAX_LENGTH = 150
 AUTHOR_MAX_LENGTH = 200
 PUBLISHER_MAX_LENGTH = 200
+ICON_MAX_LENGTH = 500
 
 
 class BookQuerySet(models.QuerySet):
@@ -62,6 +63,13 @@ class Book(models.Model):
     author = models.CharField(max_length=AUTHOR_MAX_LENGTH, blank=False)
     publish_year = models.PositiveSmallIntegerField(blank=True, null=True)
     publisher = models.CharField(max_length=PUBLISHER_MAX_LENGTH, blank=True)
+
+    # Endereço (URL http/https) da imagem da capa. Opcional: vazio = sem imagem.
+    icon = models.CharField(
+        max_length=ICON_MAX_LENGTH,
+        blank=True,
+        validators=[URLValidator(schemes=['http', 'https'])],
+    )
 
     def __str__(self):
         return self.title
