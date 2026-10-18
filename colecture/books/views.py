@@ -83,6 +83,7 @@ def search_books(request):
             'pages': book.pages,
             'year': book.publish_year,
             'publisher': book.publisher,
+            'icon': book.icon,
         }
         for book in queryset[:SEARCH_LIMIT]
     ]
