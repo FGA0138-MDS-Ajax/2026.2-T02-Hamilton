@@ -1,4 +1,3 @@
-
 var searchInput = document.getElementById("searchInput");
 var genreFilter = document.getElementById("genreFilter");
 var searchButton = document.getElementById("searchButton");
@@ -249,6 +248,22 @@ function createActions(book) {
 
 
 
+// Cria a imagem da capa a partir do campo icon (URL) do livro
+function createCover(book) {
+  var cover = document.createElement("img");
+  cover.className = "book-cover";
+  cover.src = book.icon;
+  cover.alt = "Capa de " + book.title;
+  cover.loading = "lazy";
+
+  // se a URL estiver quebrada, tira a imagem para nao mostrar um icone feio
+  cover.addEventListener("error", function () {
+    cover.remove();
+  });
+
+  return cover;
+}
+
 function showBooks(books, total) {
   bookList.innerHTML = "";
 
@@ -268,6 +283,11 @@ function showBooks(books, total) {
 
     var card = document.createElement("div");
     card.className = "book-card";
+
+    // imagem do livro: so aparece se o campo icon estiver preenchido
+    if (book.icon) {
+      card.appendChild(createCover(book));
+    }
 
     // area de texto
     var info = document.createElement("div");
