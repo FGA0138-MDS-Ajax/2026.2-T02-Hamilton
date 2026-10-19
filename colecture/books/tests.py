@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model;
 
 from .models import Book;
 from .forms import BookForm;
+from .views import SEARCH_LIMIT;
 
 # Create your tests here.
 class CT02(TestCase):
@@ -31,12 +32,13 @@ class CT02(TestCase):
             'author':author or 'New Author'
         });
 
-    def create_book(self, isbn=None,title=None, author=None, created_by=None):
+    def create_book(self, isbn=None,title=None, author=None, created_by=None, genre=None):
         return Book.objects.create(
             isbn = isbn or '978-3-16-148410-0',
             title = title or 'New Book',
             author = author or 'New Author',
-            created_by = created_by or None
+            created_by = created_by or None,
+            genre=genre or ''
         );
     
     # TESTE DE VALIDAÇÃO DO ISBN
@@ -189,5 +191,106 @@ class CT02(TestCase):
         response1 = self.client.post(url_delete_book);
         self.assertRedirects(response1, reverse('books:register_book'));
         self.assertFalse(Book.objects.filter(isbn=isbn).exists());
+
+    # TESTES DE PESQUISA
+    def test_book_search(self):
+        """
+        Cria dois livros para teste com atributos
+        semelhantes e diferentes.
+        """
+        book1 = self.create_book(
+            isbn='9783161484100',
+            title='Book 1',
+            author='Author 1',
+            genre='Magic'
+        );
+        book2 = self.create_book(
+            isbn='9780132350884',
+            title='Harry Potter',
+            author='J. K. Rowling',
+            genre='Magic'
+        );
+
+        # url de pesquisa
+        search_url = reverse("books:search");
+
+        """
+        verifica se a pesquisa pelo título do
+        primeiro livro (book 1) retorna apenas
+        e corretamente o primeiro livro.
+        """
+        response0 = self.client.get(
+            search_url,
+            data={
+                'q':book1.title,
+            }
+        );
+        self.assertEqual(response0.status_code, 200);
+        response0_results = response0.json().get('results');
+        self.assertIsNotNone(response0_results);
+        self.assertEqual(response0.json().get('total', -1), 1);
+        self.assertTrue(
+            response0_results[0].get('isbn')==book1.isbn and 
+            response0_results[0].get('title')==book1.title and
+            response0_results[0].get('author')==book1.author and
+            response0_results[0].get('genre')==book1.genre and
+            response0_results[0].get('pages')==book1.pages
+        );
+
+        """
+        verifica se a pesquisa por um termo
+        diferente de todos os livros
+        registrados retorna 0 resultados.
+        """
+        response1 = self.client.get(
+            search_url,
+            data={
+                'q':(book1.title+book2.title)[::-1],
+            }
+        );
+        self.assertEqual(response1.status_code, 200);
+        self.assertEqual(response1.json().get('total', -1), 0);
+
+        """
+        verifica se a pesquisa por gênero
+        retorna todos os livros daquele gênero
+        """
+        response3 = self.client.get(
+            search_url,
+            data={
+                'genre':book1.genre
+            }
+        );
+        self.assertEqual(response3.status_code, 200);
+        self.assertEqual(response3.json().get('total', -1), 2);
+
+    def test_max_search(self):
+        for i in range(SEARCH_LIMIT+1):
+            # cria um isbn único para cada livro gerado,
+            unique_isbn = f"978316148{i:04d}0" 
+            
+            Book.objects.create(
+                isbn=unique_isbn,
+                title=f"Test Book {i}",
+                author="Test Author",
+            );
+        
+        search_url = reverse("books:search");
+
+        response = self.client.get(
+            search_url,
+            data={
+                'q':'Test Book'
+            }
+        );
+        results = response.json().get('results');
+
+        self.assertEqual(response.status_code, 200);
+        self.assertIsNotNone(results);
+        self.assertLessEqual(len(results), SEARCH_LIMIT);
+
+        
+
+
 
 
