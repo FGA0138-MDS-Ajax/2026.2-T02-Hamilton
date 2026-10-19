@@ -18,7 +18,13 @@ def register_book(request):
         form = BookForm(request.POST)
 
         if form.is_valid():
-            form.save()
+            # salva o formulário mas não manda o livro para a db
+            book_instance = form.save(commit=False);
+            # manualmente preenche o atributo created_by
+            book_instance.created_by = request.user;
+            # salva para a db
+            book_instance.save();
+
             return redirect('books:register_book')
 
     else:
