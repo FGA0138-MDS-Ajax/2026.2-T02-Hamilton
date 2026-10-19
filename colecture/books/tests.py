@@ -77,6 +77,7 @@ class CT02(TestCase):
         # verifica se o livro foi devidamente registrado na base de dados.
         new_book = Book.objects.filter(isbn=lookup_isbn);
         self.assertTrue(new_book.exists());
+        self.assertEqual(user, new_book[0].created_by);
 
     def test_register_book_INVALID(self):
         isbn_invalido = '978';
