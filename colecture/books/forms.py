@@ -1,5 +1,5 @@
 from django import forms
-from .models import Book
+from .models import Book, BookReview
 import re
 
 
@@ -85,3 +85,37 @@ class BookForm(forms.ModelForm):
                 'placeholder': 'Ex.: https://site.com/capa.jpg',
             }),
         }
+
+# Cadastrar e editar avaliações de livros
+class BookReviewForm(forms.ModelForm):
+
+    class Meta:
+        model = BookReview
+        fields = ["rating", "review"]
+
+        # Define os nomes dos campos exibidos
+        labels = {
+            "rating": "Nota",
+            "review": "Resenha",
+        }
+
+        # Personaliza os campos visuais
+        widgets = {
+            "rating": forms.Select(),
+            "review": forms.Textarea(attrs={
+                "maxlength": 300,
+                "rows": 4,
+                "placeholder": "Escreva sua resenha (opcional)...",
+            }),
+        }
+
+    # Valida se a nota segue intervalos de 0,5 estrelas
+    def clean_rating(self):
+        rating = self.cleaned_data["rating"]
+
+        if rating * 2 != (rating * 2).to_integral_value():
+            raise forms.ValidationError(
+                "Selecione uma nota em intervalos de 0,5."
+            )
+
+        return rating    
