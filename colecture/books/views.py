@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
@@ -25,6 +26,8 @@ def register_book(request):
             # salva para a db
             book_instance.save();
 
+            messages.success(request, 'Livro cadastrado com sucesso!')
+
             return redirect('books:register_book')
 
     else:
@@ -47,6 +50,11 @@ def edit_book(request, book_id):
 
         if form.is_valid():
             form.save()
+
+
+            messages.success(request, 'Livro editado com sucesso!')
+
+
             return redirect('books:edit_book', book_id=book.id)
 
     else:
@@ -65,6 +73,11 @@ def delete_book(request, book_id):
 
     if request.method == 'POST':
         book.delete()
+
+
+        messages.success(request, 'Livro removido com sucesso!')
+
+
         return redirect('books:register_book')
 
     return render(request, 'books/book_form.html', {'book': book})
