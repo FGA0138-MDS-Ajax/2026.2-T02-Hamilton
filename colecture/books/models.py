@@ -24,7 +24,7 @@ class BookQuerySet(models.QuerySet):
 
         for word in (term or '').split():
             queryset = queryset.filter(
-                Q(title__icontains=word) | Q(author__icontains=word)
+                Q(title__icontains=word) | Q(author__icontains=word) | Q(publisher__icontains=word)
             )
 
         genre = (genre or '').strip()
