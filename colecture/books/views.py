@@ -143,7 +143,7 @@ def review_book(request, book_id):
     else:
         form = BookReviewForm(instance=existing_review)
 
-    return render(request, "books/book_review.html", {
+    return render(request, "books/book_review_STUB.html", {
         "book": book,
         "form": form,
     })
