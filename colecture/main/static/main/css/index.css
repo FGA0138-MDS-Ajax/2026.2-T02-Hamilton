@@ -20,10 +20,6 @@ body {
   width: 1700px;
   max-width: 94vw;
   height: 800px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 30px;
-  box-shadow: var(--glow);
   overflow: hidden;
 }
 
