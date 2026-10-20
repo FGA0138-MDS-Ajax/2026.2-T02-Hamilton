@@ -23,10 +23,6 @@ body {
   max-width: 94vw;
   min-height: 820px;
   padding: 48px 64px 64px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 30px;
-  box-shadow: var(--glow);
 }
 
 .main-box--narrow {
@@ -41,6 +37,10 @@ body {
 }
 
 .brand {
+  position: relative;
+  top: -50px;
+  left: -200px;
+  height: 20px;
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
@@ -120,6 +120,7 @@ body {
 }
 
 .user-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 40px;
@@ -127,6 +128,18 @@ body {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 20px;
+}
+
+.logout-form {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.logout-form .btn-outline {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 15px;
 }
 
 .avatar {
@@ -234,6 +247,39 @@ body {
   color: var(--text-secondary);
 }
 
+.bookshelf {
+  min-height: 160px;
+}
+
+/* Lista de livros (usada quando a estante tiver itens) */
+.book-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  list-style: none;
+}
+
+.book-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.book-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.book-author {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
 .hint,
 .empty {
   font-size: 17px;
@@ -304,7 +350,12 @@ body {
   .user-card {
     flex-direction: column;
     align-items: flex-start;
-    padding: 24px 20px;
+    padding: 64px 20px 24px;
+  }
+
+  .logout-form {
+    top: 12px;
+    right: 12px;
   }
 
   .user-card .btn {

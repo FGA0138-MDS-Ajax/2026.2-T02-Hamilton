@@ -13,17 +13,17 @@
     <div class="main-box">
       <header class="navbar">
         <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
-
-        <form method="post" action="{% url 'accounts:logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-outline">
-            <i class="bx bx-log-out" aria-hidden="true"></i> Sair
-          </button>
-        </form>
       </header>
 
       <main class="profile">
         <section class="user-card" aria-labelledby="user-name">
+          <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-outline">
+              <i class="bx bx-log-out" aria-hidden="true"></i> Sair
+            </button>
+          </form>
+
           <div class="avatar" aria-hidden="true">
             {{ user.username|slice:":1"|upper }}
           </div>
@@ -83,6 +83,26 @@
             <p class="empty">Você ainda não participa de nenhuma comunidade.</p>
           </section>
         </div>
+
+        <section class="card bookshelf" aria-labelledby="bookshelf-title">
+          <h2 id="bookshelf-title">
+            <i class="bx bxs-book" aria-hidden="true"></i> Sua estante
+          </h2>
+
+          {# Futuramente a view passará "books" (histórico de leituras) no contexto. #}
+          {% if books %}
+            <ul class="book-list">
+              {% for book in books %}
+                <li class="book-item">
+                  <span class="book-title">{{ book.title }}</span>
+                  <span class="book-author">{{ book.author }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty">Você ainda não registrou nenhum livro.</p>
+          {% endif %}
+        </section>
       </main>
     </div>
   </body>

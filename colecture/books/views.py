@@ -4,8 +4,9 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
-from .forms import BookForm
-from .models import Book
+from .forms import BookForm, BookReviewForm
+from .models import Book, BookReview
+from .forms import BookReviewForm
 
 SEARCH_LIMIT = 50
 
@@ -108,3 +109,41 @@ def search_books(request):
     ]
 
     return JsonResponse({'total': total, 'results': results})
+
+# Cadastrar ou editar a avaliação de um livro
+@login_required
+def review_book(request, book_id):
+    book = get_object_or_404(Book, id=book_id)
+
+    #Busca uma avaliação anterior do usuário para esse livro
+    existing_review = BookReview.objects.filter(
+        book=book,
+        user=request.user
+    ).first()
+
+    #Verifica se o formulário foi enviado
+    if request.method == "POST":
+        form = BookReviewForm(
+            request.POST,
+            instance=existing_review
+        )
+
+        #Valida os dados enviados
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.book = book
+            review.user = request.user
+
+            #Salva a avaliação no banco de dados
+            review.save()
+
+            return redirect(request.path)
+
+    #Exibe o formulário vazio ou preenchido com a avaliação
+    else:
+        form = BookReviewForm(instance=existing_review)
+
+    return render(request, "books/book_review.html", {
+        "book": book,
+        "form": form,
+    })
