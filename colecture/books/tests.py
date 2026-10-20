@@ -2,7 +2,7 @@ from django.test import TestCase, Client;
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 
-from .models import Book;
+from .models import Book, BookReview;
 from .forms import BookForm;
 from .views import SEARCH_LIMIT;
 
@@ -169,7 +169,7 @@ class CT02(TestCase):
         self.assertEqual(response3.status_code, 200);
         self.assertEqual(book.title, title_before);
 
-    # TESTES DE EXCLUSÃOM DE LIVRO
+    # TESTES DE EXCLUSÃO DE LIVRO
     def test_delete_book(self):
         user = get_user_model().objects.create_user(username='New Account');
         author_user = get_user_model().objects.create_user(username='Author User');        
@@ -289,8 +289,93 @@ class CT02(TestCase):
         self.assertIsNotNone(results);
         self.assertLessEqual(len(results), SEARCH_LIMIT);
 
-        
+    # TESTES DE REVIEW
+    def test_review_VALID(self):
+        # cria um livro para teste
+        user = get_user_model().objects.create_user(username="Account 1");
+        book1 = self.create_book();
 
+        self.client.force_login(user);
+
+        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
+
+        response = self.client.post(
+            url_review,
+            data={
+                'rating': '1.0',
+                'review':'Terrible book!'
+            }
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(BookReview.objects.filter(user=user).exists());
+
+        newReview = "Actually, nevermind."
+        response1 = self.client.post(
+            url_review,
+            data={
+                'rating': '1.0',
+                'review':newReview
+            }
+        );
+
+        self.assertEqual(response1.status_code, 302);
+        review = BookReview.objects.get(user=user);
+        self.assertEqual(review.review, newReview);
+        self.assertEqual(review.rating, 1);
+        # valida se o usuário tem apenas 1 review mesmo postando duas.
+        self.assertEqual(len(BookReview.objects.filter(user=user)), 1);
+    
+    def test_review_INVALID(self):
+        # cria um livro para teste
+        user = get_user_model().objects.create_user(username="Account 1");
+        book1 = self.create_book();
+
+        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
+        url_invalid_review = reverse("books:review_book", kwargs={'book_id':book1.id+1});
+
+        # tenta avaliar sem fazer login
+        response = self.client.post(
+            url_review,
+            data={
+                'rating': '1.0',
+                'review':'Terrible book!'
+            }
+        );
+        self.assertRedirects(response, f"{reverse("accounts:login")}?next={url_review}");
+        self.assertFalse(BookReview.objects.filter(review='Terrible book!').exists());
+
+        self.client.force_login(user);
+
+        # tenta avaliar com login mas com informações inválidas
+        invalid_data = [
+            {'rating': 1, 'review':'Terrible book!'},
+            {'rating': 'Good book', 'review':3},
+            {'rating': '9.0'},
+            {
+                'rating': '5.0', 'review':"""
+Hey, does anybody want coffee? Who wants coffee? I just made a fresh pot of coffee. Does anybody want coffee?
+Hey, hey, hey. Who wants coffee? Does anybody want coffee? Who wants coffee?
+"""*3},
+            {},            
+        ]
+        for data in invalid_data:
+            response0 = self.client.post(
+                url_review,
+                data=data
+            );
+            self.assertNotEqual(response0.status_code, 302);
+
+        self.assertNotEqual(
+            self.client.post(
+                url_invalid_review,
+                data={
+                    'rating':'1.0',
+                    'review':'Terrible book!'
+                }
+            ),
+            302
+        );
 
 
 
