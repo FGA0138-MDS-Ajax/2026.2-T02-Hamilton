@@ -269,6 +269,13 @@ function showBooks(books, total) {
 
   if (books.length === 0) {
     resultsInfo.textContent = "Nenhum livro encontrado.";
+
+    var registerLink = document.createElement("a");
+    registerLink.href = "/books/register/";
+    registerLink.className = "register-button";
+    registerLink.textContent = "Cadastrar livro";
+    bookList.appendChild(registerLink);
+
     return;
   }
 
@@ -283,11 +290,16 @@ function showBooks(books, total) {
 
     var card = document.createElement("div");
     card.className = "book-card";
+    var bookUrl = "/books/" + book.id + "/";
 
     // imagem do livro: so aparece se o campo icon estiver preenchido
-    if (book.icon) {
-      card.appendChild(createCover(book));
-    }
+  if (book.icon) {
+    var coverLink = document.createElement("a");
+    coverLink.href = bookUrl;
+    coverLink.className = "book-link";
+    coverLink.appendChild(createCover(book));
+    card.appendChild(coverLink);
+}
 
     // area de texto
     var info = document.createElement("div");
@@ -295,7 +307,13 @@ function showBooks(books, total) {
 
     var title = document.createElement("h3");
     title.className = "book-title";
-    title.textContent = book.title;
+
+    var titleLink = document.createElement("a");
+    titleLink.href = bookUrl;
+    titleLink.className = "book-link";
+    titleLink.textContent = book.title;
+  
+    title.appendChild(titleLink);
 
     var author = document.createElement("p");
     author.className = "book-author";

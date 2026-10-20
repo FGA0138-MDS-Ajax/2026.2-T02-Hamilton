@@ -176,6 +176,15 @@ body {
   margin-top: 12px;
 }
 
+.book-link{
+  text-decoration:none;
+  color: inherit;
+}
+
+.book-link:hover{
+  text-decoration:underline;
+}
+
 .add-button {
   padding: 10px 18px;
   font-family: inherit;
@@ -197,6 +206,22 @@ body {
   background-color: transparent;
   border-color: var(--purple-500);
   color: var(--purple-300);
+}
+
+.register-button{
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  background: transparent;
+  border: 2px solid #6b46c1;
+  color: #fff;
+  text-decoration: none;
+
+}
+
+.register-button:hover{
+  background: rgba(107, 70, 193, 0.2);
 }
 
 .status-menu {
