@@ -297,7 +297,7 @@ class CT02(TestCase):
 
         self.client.force_login(user);
 
-        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
+        url_review = reverse("books:book_detail", kwargs={'book_id':book1.id});
 
         response = self.client.post(
             url_review,
@@ -331,8 +331,8 @@ class CT02(TestCase):
         user = get_user_model().objects.create_user(username="Account 1");
         book1 = self.create_book();
 
-        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
-        url_invalid_review = reverse("books:review_book", kwargs={'book_id':book1.id+1});
+        url_review = reverse("books:book_detail", kwargs={'book_id':book1.id});
+        url_invalid_review = reverse("books:book_detail", kwargs={'book_id':book1.id+1});
 
         # tenta avaliar sem fazer login
         response = self.client.post(
