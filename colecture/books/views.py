@@ -110,6 +110,32 @@ def search_books(request):
 
     return JsonResponse({'total': total, 'results': results})
 
+# Página de detalhes de um livro
+def book_detail(request, book_id):
+    book = Book.objects.filter(pk=book_id).first()
+
+    if book is None:
+        return render(request, "books/book_detail.html",
+                      {"id": book_id, "livro": None}, status=404)
+
+    livro = {
+        "id": book.id,
+        "titulo": book.title,
+        "autor": book.author,
+        "genero": book.genre,
+        "ano": book.publish_year,
+        "paginas": book.pages,
+        "capa": book.icon or "",
+        "sinopse": getattr(book, "synopsis", "") or "",
+        "resenhas": [],
+        "media": 0,
+        "totalAvaliacoes": 0,
+    }
+
+    return render(request, "books/book_detail.html",
+        {"id": book_id, "livro": livro})
+
+
 # Cadastrar ou editar a avaliação de um livro
 @login_required
 def review_book(request, book_id):
