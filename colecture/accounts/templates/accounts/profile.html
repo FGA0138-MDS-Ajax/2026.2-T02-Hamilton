@@ -1,20 +1,15 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!doctype html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
-    <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <title>Perfil - CoLecture</title>
-  </head>
-  <body>
-    <div class="main-box">
-      <header class="navbar">
-        <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
-      </header>
 
+{% block title %}Perfil - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+    <div class="main-box">
       <main class="profile">
         <section class="user-card" aria-labelledby="user-name">
           <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
@@ -105,5 +100,4 @@
         </section>
       </main>
     </div>
-  </body>
-</html>
+{% endblock %}
