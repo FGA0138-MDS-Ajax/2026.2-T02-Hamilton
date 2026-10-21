@@ -124,8 +124,8 @@ body {
 }
  
 .book-cover {
-  width: 70px;
-  height: 100px;
+  width: 100px;
+  height: 150px;
   object-fit: cover;
   border-radius: 4px;
   background-color: var(--bg-elevated);
@@ -152,7 +152,7 @@ body {
 .book-genre {
   display: inline-block;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--purple-300);
   background-color: var(--bg-elevated);
   padding: 3px 8px;
