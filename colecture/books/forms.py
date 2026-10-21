@@ -1,17 +1,16 @@
 from django import forms
 from .models import Book, BookReview
-import re
 
 
 class BookForm(forms.ModelForm):
     publish_year = forms.IntegerField(
-         label="Ano de publicação",
-        required=False, 
+        label="Ano de publicação",
+        required=False,
         widget=forms.NumberInput(attrs={
-            'placeholder':'Ex.: 2025',
+            'placeholder': 'Ex.: 2025',
             'min': 1,
             'max': 9999
-            })
+        })
     )
 
     def clean_isbn(self):
@@ -20,7 +19,6 @@ class BookForm(forms.ModelForm):
         isbn = isbn.replace('-', '').replace(' ', '')
 
         # verifica quantidade de caracteres e se são caracteres válidos
-
         if len(isbn) not in (10, 13):
             raise forms.ValidationError('O ISBN deve ter 10 ou 13 caracteres.')
 
@@ -30,7 +28,7 @@ class BookForm(forms.ModelForm):
         if len(isbn) == 10 and not (isbn[:9].isdigit() and isbn[9] in '0123456789X'):
             raise forms.ValidationError('O ISBN contém caracteres inválidos.')
 
-        # valida o ISB de tamanho 10
+        # valida o ISBN de tamanho 10
         if len(isbn) == 10:
             total = sum(
                 (10 - i) * (10 if char == 'X' else int(char))
@@ -40,7 +38,7 @@ class BookForm(forms.ModelForm):
             if total % 11 != 0:
                 raise forms.ValidationError('ISBN-10 inválido.')
 
-        # valida o ISB de tamanho 13
+        # valida o ISBN de tamanho 13
         if len(isbn) == 13:
             total = 0
 
@@ -71,13 +69,13 @@ class BookForm(forms.ModelForm):
 
         labels = {
             'isbn': 'ISBN',
-            'title' : 'Título',
-            'genre' : 'Gênero',
-            'pages' : 'Número de páginas',
-            'author' : 'Autor',
-            'publish_year' : 'Ano de publicação',
-            'publisher' : 'Editora',
-            'icon' : 'Ícone (URL da imagem)',
+            'title': 'Título',
+            'genre': 'Gênero',
+            'pages': 'Número de páginas',
+            'author': 'Autor',
+            'publish_year': 'Ano de publicação',
+            'publisher': 'Editora',
+            'icon': 'Ícone (URL da imagem)',
         }
 
         widgets = {
@@ -85,6 +83,7 @@ class BookForm(forms.ModelForm):
                 'placeholder': 'Ex.: https://site.com/capa.jpg',
             }),
         }
+
 
 # Cadastrar e editar avaliações de livros
 class BookReviewForm(forms.ModelForm):
@@ -109,13 +108,16 @@ class BookReviewForm(forms.ModelForm):
             }),
         }
 
-    # Valida se a nota segue intervalos de 0,5 estrelas
+    # Valida se a nota está entre 1 e 5 e segue intervalos de 1 estrela
     def clean_rating(self):
         rating = self.cleaned_data["rating"]
 
-        if rating * 2 != (rating * 2).to_integral_value():
+        if rating < 1 or rating > 5:
+            raise forms.ValidationError("A nota deve estar entre 1 e 5.")
+
+        if rating % 1 != 0:
             raise forms.ValidationError(
-                "Selecione uma nota em intervalos de 0,5."
+                "Selecione uma nota em intervalos de 1 estrela."
             )
 
-        return rating    
+        return rating
