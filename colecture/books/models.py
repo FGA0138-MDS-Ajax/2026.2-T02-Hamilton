@@ -7,6 +7,7 @@ from decimal import Decimal
 
 ISBN_MAX_LENGTH = 17
 TITLE_MAX_LENGTH = 200
+SYNOPSIS_MAX_LENGTH = 500;
 GENRE_MAX_LENGTH = 150
 AUTHOR_MAX_LENGTH = 200
 PUBLISHER_MAX_LENGTH = 200
@@ -58,6 +59,7 @@ class Book(models.Model):
 
     isbn = models.CharField(max_length=ISBN_MAX_LENGTH, unique=True, blank=False)
     title = models.CharField(max_length=TITLE_MAX_LENGTH, blank=False)
+    synopsis = models.CharField(max_length=SYNOPSIS_MAX_LENGTH, blank=True);
     genre = models.CharField(max_length=GENRE_MAX_LENGTH, blank=True)
     pages = models.PositiveIntegerField(
         validators=[MinValueValidator(1)], blank=True, null=True

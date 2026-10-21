@@ -10,8 +10,17 @@
     <title>Cadastrar livro - CoLecture</title>
   </head>
 
-  <body>
+  <body>    
     <div class="main-box main-box--narrow">
+      
+      {% if messages %}
+      <ul class="mensagens">
+      {% for message in messages %}
+      <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+      {% endfor %}
+      </ul>
+      {% endif %}
+
       <header class="navbar">
         <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
         <a class="back-link" href="{% url 'accounts:profile' %}">

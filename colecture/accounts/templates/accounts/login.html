@@ -27,27 +27,22 @@
                 <div class="input">
                     <input type="text" placeholder="Usuário" name="username" id="username" required>
                     <i class='bx bxs-user'></i>
-                    {% if messages %}
-                    <ul class="messages">
-                        {% for message in messages %}
-                        <li class="{{ message.tags }}">{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
                     <span class="error"></span>
                 </div>
                 <div class="input">
                     <input type="password" placeholder="Senha" name="password" id="password" minlength="3" required>
                     <i class='bx bxs-lock-alt'></i>
-                    {% if messages %}
+                    <span class="error"></span>
+                </div>
+
+                {% if messages %}
                     <ul class="messages">
                         {% for message in messages %}
                         <li class="{{ message.tags }}">{{ message }}</li>
                         {% endfor %}
                     </ul>
-                    {% endif %}
-                    <span class="error"></span>
-                </div>
+                {% endif %}
+
                 <button type="submit" class="btn">Login</button>
             </form>
         </div>

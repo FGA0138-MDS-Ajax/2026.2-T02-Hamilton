@@ -2,7 +2,7 @@ from django.test import TestCase, Client;
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 
-from .models import Book, BookReview;
+from .models import Book, BookReview, SYNOPSIS_MAX_LENGTH;
 from .forms import BookForm;
 from .views import SEARCH_LIMIT;
 
@@ -11,7 +11,7 @@ class CT02(TestCase):
     def setUp(self):
         self.client = Client();
 
-    def post_register_book(self, isbn=None, title=None):
+    def post_register_book(self, isbn=None, title=None, synopsis=None):
         return self.client.post(
             reverse("books:register_book"),
             {
@@ -20,16 +20,18 @@ class CT02(TestCase):
                 'genre':'Genre 1',
                 'pages':10,
                 'author': 'Author 1',
+                'synopsis': synopsis or 'Valid synopsis',
                 'publisher':'Publisher 1',
             }
         );
 
     # cria um formulário de livro apenas com os campos obrigatórios para teste
-    def create_book_form(self, isbn, title=None, author=None):
+    def create_book_form(self, isbn, title=None, author=None, synopsis=None):
         return BookForm(data={
             'isbn':isbn,
             'title':title or 'New Book',
-            'author':author or 'New Author'
+            'author':author or 'New Author',
+            'synopsis':synopsis,
         });
 
     def create_book(self, isbn=None,title=None, author=None, created_by=None, genre=None):
@@ -83,6 +85,7 @@ class CT02(TestCase):
 
     def test_register_book_INVALID(self):
         isbn_invalido = '978';
+        isbn_valido = '978-8532511010';
 
         user = get_user_model().objects.create_user(username='NewAccount');
         self.client.force_login(user);
@@ -91,6 +94,11 @@ class CT02(TestCase):
         response = self.post_register_book(isbn_invalido);
         self.assertNotEqual(response.status_code, 302);
         self.assertFalse(Book.objects.filter(isbn=isbn_invalido).exists());
+
+        # valida se não é possível regitrar um livro com uma sinopse maior que o limite.
+        response1 = self.post_register_book(isbn=isbn_valido, synopsis="i"*(SYNOPSIS_MAX_LENGTH+1));
+        self.assertNotEqual(response1.status_code, 302);
+        self.assertFalse(Book.objects.filter(isbn=isbn_valido).exists());
 
     def test_register_book_LOGGED_OUT(self):
         user = get_user_model().objects.create_user(username='NewAccount');
@@ -297,7 +305,7 @@ class CT02(TestCase):
 
         self.client.force_login(user);
 
-        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
+        url_review = reverse("books:book_detail", kwargs={'book_id':book1.id});
 
         response = self.client.post(
             url_review,
@@ -331,8 +339,8 @@ class CT02(TestCase):
         user = get_user_model().objects.create_user(username="Account 1");
         book1 = self.create_book();
 
-        url_review = reverse("books:review_book", kwargs={'book_id':book1.id});
-        url_invalid_review = reverse("books:review_book", kwargs={'book_id':book1.id+1});
+        url_review = reverse("books:book_detail", kwargs={'book_id':book1.id});
+        url_invalid_review = reverse("books:book_detail", kwargs={'book_id':book1.id+1});
 
         # tenta avaliar sem fazer login
         response = self.client.post(
