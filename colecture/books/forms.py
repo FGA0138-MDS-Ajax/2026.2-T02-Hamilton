@@ -59,6 +59,7 @@ class BookForm(forms.ModelForm):
         fields = [
             'isbn',
             'title',
+            'synopsis',
             'genre',
             'pages',
             'author',
@@ -70,6 +71,7 @@ class BookForm(forms.ModelForm):
         labels = {
             'isbn': 'ISBN',
             'title': 'Título',
+            'synopsis': 'Sinopse',
             'genre': 'Gênero',
             'pages': 'Número de páginas',
             'author': 'Autor',
