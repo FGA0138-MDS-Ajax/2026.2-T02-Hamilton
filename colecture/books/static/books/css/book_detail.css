@@ -1,0 +1,301 @@
+/* Usa as variaveis de variables.css (carregue ele antes deste arquivo) */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  background: var(--gradient-bg), var(--bg-base);
+  background-attachment: fixed;
+  color: var(--text-primary);
+}
+
+.pagina {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.escondido {
+  display: none;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+h2 {
+  margin-top: 32px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--purple-300);
+  font-size: 1.2rem;
+}
+
+a {
+  color: var(--purple-400);
+}
+
+/* Erro */
+.erro {
+  position: relative;
+  isolation: isolate;
+  text-align: center;
+  padding: 96px 16px;
+  min-height: 560px;
+}
+
+/* Logo grande ao fundo, bem suave */
+.erro::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(480px, 90%);
+  height: min(560px, 100%);
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  background-color: var(--purple-600);
+  opacity: 0.18;
+  -webkit-mask: url("../img/logo.png") center / contain no-repeat;
+  mask: url("../img/logo.png") center / contain no-repeat;
+}
+
+.erro h1 {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+}
+
+.erro p {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.erro-img {
+    display: block;
+    width: 140px;
+    margin: 0 auto 32px; 
+}
+
+.botao-voltar {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--purple-600);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.botao-voltar:hover {
+  box-shadow: var(--glow);
+}
+
+/* Parte 1 */
+.livro-topo {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.capa {
+  width: 200px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  box-shadow: var(--glow);
+}
+
+.livro-dados p {
+  margin: 6px 0;
+  color: var(--text-secondary);
+}
+
+.livro-dados span {
+  color: var(--text-primary);
+}
+
+.estrelas,
+.livro-dados .estrelas {
+  color: var(--streak);
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+#media-texto {
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+#sinopse {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Sinopse dentro do cartao do livro */
+.titulo-sinopse {
+  margin-top: 24px;
+}
+
+/* Duas colunas: resenhas e avaliar */
+.conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.coluna-principal h2,
+.coluna-lateral h2 {
+  margin-top: 0;
+}
+
+.coluna-lateral {
+  position: sticky;
+  top: 24px;
+  padding: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Parte 3 */
+.seletor {
+  margin-bottom: 8px;
+}
+
+.seletor button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--border-strong);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.seletor button:hover {
+  color: var(--purple-300);
+}
+
+.seletor button.ativa {
+  color: var(--streak);
+}
+
+textarea {
+  width: 100%;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: var(--glow);
+}
+
+form > button {
+  margin-top: 8px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+form > button:hover {
+  box-shadow: var(--glow);
+}
+
+.aviso {
+  color: var(--danger);
+  min-height: 1.2em;
+  margin: 4px 0;
+}
+
+/* Parte 2 */
+#vazio {
+  color: var(--text-muted);
+}
+
+.lista {
+  list-style: none;
+  padding: 0;
+}
+
+.resenha {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.resenha p {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.resenha-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.resenha .data {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .conteudo {
+    grid-template-columns: 1fr;
+  }
+
+  .coluna-lateral {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .livro-topo {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .capa {
+    width: 160px;
+    height: 240px;
+  }
+
+  .resenha .data {
+    margin-left: 0;
+  }
+}

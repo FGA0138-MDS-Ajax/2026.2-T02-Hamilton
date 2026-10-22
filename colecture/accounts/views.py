@@ -34,7 +34,10 @@ def login_view(request):
             user = form.get_user();
             login(request, user);
 
-            return redirect("main:index");
+            # pega a URL que o usuário tentava acessar antes do login.
+            next_url = request.POST.get('next') or request.GET.get('next');
+
+            return redirect(next_url or "main:index");
         else:
             # Mensagem de erro ao falhar no login
             messages.error(request, 'Usuário ou senha inválidos. Tente novamente.')

@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livro</title>
+    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'books/css/book_detail.css' %}">
+</head>
+<body data-id="{{ id }}">
+    <main class="pagina">
+      
+    <!--erro de livro inexistente-->
+    <section id="erro" class="erro escondido">
+      <h1>Livro não encontrado</h1>
+      <p>Esse livro não existe ou foi removido.</p>
+      <img class="erro-img" src="{% static 'books/img/mascote.png' %}" alt="Mascote procurando o livro">
+      <a class="botao-voltar" href="/search">Voltar para a pesquisa</a>
+    </section>
+
+    <!-- Parte 1: informacoes do livro -->
+    <section id="livro" class="escondido">
+      <div class="livro-topo">
+        <img id="capa" class="capa" alt="Capa do livro">
+        <div class="livro-dados">
+          <h1 id="titulo"></h1>
+          <p>Autor: <span id="autor"></span></p>
+          <p>Gênero: <span id="genero"></span></p>
+          <p>Publicação: <span id="data"></span></p>
+          <p>Páginas: <span id="paginas"></span></p>
+          <p class="media">
+            <span id="media-estrelas" class="estrelas"></span>
+            <span id="media-texto"></span>
+          </p>
+        </div>
+      </div>
+
+      <h2>Sinopse</h2>
+      <p id="sinopse"></p>
+
+      <!-- Parte 3: avaliar o livro (enviado ao Django via POST para esta mesma URL) -->
+      <h2>Avaliar este livro</h2>
+      {% if user.is_authenticated %}
+      <form id="form-resenha" method="post">
+        {% csrf_token %}
+
+        <!-- Campo "rating" do BookReviewForm: escondido, preenchido pelas estrelas -->
+        <div hidden>{{ form.rating }}</div>
+
+        <div id="seletor" class="seletor" aria-label="Escolha de 1 a 5 estrelas">
+          <button type="button" data-valor="1">★</button>
+          <button type="button" data-valor="2">★</button>
+          <button type="button" data-valor="3">★</button>
+          <button type="button" data-valor="4">★</button>
+          <button type="button" data-valor="5">★</button>
+        </div>
+
+        <!-- Campo "review" do BookReviewForm -->
+        <textarea id="texto-resenha" name="review" rows="4" maxlength="300"
+          placeholder="Escreva sua resenha (opcional)...">{{ form.review.value|default_if_none:"" }}</textarea>
+
+          {% if messages %}
+          <ul class="mensagens">
+          {% for message in messages %}
+          <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+          {% endfor %}
+          </ul>
+          {% endif %}
+
+        <!-- Erros de validacao do servidor (o JS tambem escreve aqui) -->
+        <p id="aviso" class="aviso">{% for campo, erros in form.errors.items %}{% for erro in erros %}{{ erro }} {% endfor %}{% endfor %}</p>
+        <button type="submit">Enviar avaliacao</button>
+      </form>
+      {% else %}
+      <p><a href="{{ login_url }}">Entre na sua conta</a> para avaliar este livro.</p>
+      {% endif %}
+
+      <!-- Parte 2: lista de resenhas -->
+      <h2>Resenhas</h2>
+      <p id="vazio" class="escondido">Este livro ainda nao tem avaliacoes</p>
+      <ul id="lista-resenhas" class="lista"></ul>
+    </section>
+
+  </main>
+
+  {{ livro|json_script:"dados-livro" }}
+  <script src="{% static 'books/js/book_detail.js' %}"></script>
+</body>
+</html>
