@@ -150,30 +150,39 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
 ```text
 2026.2-T02-Hamilton/
 ├── README.md
-├── requirements.txt              # Dependências (Django)
+├── requirements.txt               # Dependências (Django)
 ├── .gitignore
 ├── .prettierrc.json
-└── colecture/                    # Projeto Django
+└── colecture/                     # Projeto Django
     ├── manage.py
-    ├── colecture/                # Configuração do projeto
-    │   ├── settings.py           # Apps instalados, banco SQLite, idioma pt-br
-    │   ├── urls.py               # Rotas principais (URLconf)
+    ├── colecture/                 # Configuração do projeto
+    │   ├── settings.py            # Apps instalados, banco SQLite, idioma pt-br
+    │   ├── urls.py                # Rotas principais (URLconf)
     │   ├── asgi.py
     │   └── wsgi.py
-    ├── main/                     # App da página inicial e estilos compartilhados
+    ├── main/                      # App da página inicial e estilos compartilhados
     │   ├── views.py
     │   ├── urls.py
-    │   ├── templates/main/       # index.html
-    │   └── static/main/          # css/ (index, variables) e img/ (biblioteca.svg)
-    └── accounts/                 # App de contas e perfis (Sprint 1)
-        ├── models.py             # Profile (ofensiva e dados de leitura)
-        ├── forms.py              # LoginForm, RegistrationForm, EditUserForm
-        ├── views.py              # Cadastro, login, logout, perfil e edição
-        ├── urls.py
-        ├── tests.py              # CT01
-        ├── migrations/           # 0001 (Profile), 0002 (admin padrão)
-        ├── templates/accounts/   # login, register, profile e profileEdit
-        └── static/accounts/      # css/ e js/
+    │   ├── templates/main/        # index.html
+    │   └── static/main/           # css/ (index, variables) e img/ (biblioteca.svg)
+    ├── accounts/                  # App de contas e perfis (Sprint 1)
+    │    ├── models.py             # Profile (ofensiva e dados de leitura)
+    │    ├── forms.py              # LoginForm, RegistrationForm, EditUserForm
+    │    ├── views.py              # Cadastro, login, logout, perfil e edição
+    │    ├── urls.py
+    │    ├── tests.py              # CT01 e CT07
+    │    ├── migrations/           
+    │    ├── templates/accounts/   # login, register, profile e profileEdit
+    │    └── static/accounts/      # css/ e js/
+    └── books/                     # App de livros (Sprint 2)
+         ├── models.py             # BookQuerySet (Consultas), Book
+         ├── forms.py              # BookForm, BookReviewForm, 
+         ├── views.py              # Registrar, Editar, Deletar, Buscar, Livro detalhado
+         ├── urls.py
+         ├── tests.py              # CT02
+         ├── migrations/          
+         ├── templates/accounts/   # Livro forms, Livro details
+         └── static/accounts/      # css/ e js/
 ```
 
 ### Rotas
@@ -181,6 +190,11 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
 | Rota | View | Acesso |
 |---|---|---|
 | `/` | Página inicial (redireciona ao perfil se o usuário estiver logado) | Público |
+| `/search/` | Pesquisa de livros | Público |
+| `/books/<int:id>/` | Pagina do livro | Público |
+| `/books/register/` | Cadastro de livros | Público |
+| `/books/<int:id>/edit/` | Editção do livro | Administrador e Usuário criador |
+| `/books/<int:id>/delete/` | Deletar livro | Administrador |
 | `/user/register/` | Cadastro | Público |
 | `/user/login/` | Login | Público |
 | `/user/logout/` | Logout (somente `POST`) | Usuário logado |
