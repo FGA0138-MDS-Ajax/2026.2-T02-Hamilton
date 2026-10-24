@@ -5,6 +5,9 @@
   tokens de main/css/variables.css, mesma moldura (.main-box) e mesmos campos.
   É um arquivo próprio, para não depender de accounts/css/profile.css, que
   outra pessoa do grupo está ajustando nesta sprint.
+
+  O fundo, a fonte e o posicionamento geral da página vêm do
+  main/css/sidebar.css (por isso não há regra de "body" aqui).
 */
 
 :root {
@@ -19,24 +22,15 @@
   font-family: var(--font-main, "Poppins", sans-serif);
 }
 
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 24px 0;
-  background: var(--gradient-bg), var(--bg-base);
-  color: var(--text-primary);
-}
-
 /* Moldura e cabeçalho (iguais ao perfil) */
 .main-box {
   display: flex;
   flex-direction: column;
   gap: 44px;
   width: 1400px;
-  max-width: 94vw;
+  max-width: 100%;
   min-height: 820px;
+  margin: 0 auto;
   padding: 48px 64px 64px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
