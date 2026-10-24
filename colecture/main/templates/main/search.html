@@ -1,26 +1,19 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!doctype html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Buscar livros</title>
-    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
-    <link rel="stylesheet" href="{% static 'main/css/search.css' %}" />
-  </head>
 
-  <body>
-    <header class="page-header">
-      <a class="link-main" href="{% url 'main:index' %}">
-        <img src="{% static 'main/img/logoGato.png' %}" alt="CoLecture" class="logo" />
-      </a>
-      <a class="link-main" href="{% url 'main:index' %}">
-        <span class="logo-text"> Colecture </span>
-      </a>
-    </header>
+{% block title %}Buscar livros - CoLecture{% endblock %}
 
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/search.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <div class="main-box">
+    
     <main class="page-content" data-search-url="{% url 'books:search' %}">
       <h1 class="page-title">Busque por titulo ou autor...</h1>
+
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Busca" />
 
@@ -39,6 +32,7 @@
       <div id="bookList"></div>
     </main>
 
-    <script src="{% static 'main/js/search.js' %}"></script>
-  </body>
-</html>
+  </div>
+
+  <script src="{% static 'main/js/search.js' %}"></script>
+{% endblock %}
