@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidade</title>
+</head>
+<body>
+    {% if community %}
+        <p>Nome: <span id="name">{{ community.name }}</span></p>
+        <p>Descrição: <span id="name">{{ community.description }}</span></p>
+    {% else %}
+        <p>Oops! Não encontramos a comunidade.</p>
+    {% endif %}
+</body>
+</html>
