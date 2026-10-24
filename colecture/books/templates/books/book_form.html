@@ -4,7 +4,6 @@
 {% block title %}Cadastrar livro - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
   <link rel="stylesheet" href="{% static 'books/css/book_form.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 {% endblock %}
@@ -12,11 +11,23 @@
 {% block content %}
   <div class="main-box main-box--narrow">
 
-    <a class="back-link" href="{% url 'accounts:profile' %}">
-      <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
-    </a>
+    {% if messages %}
+    <ul class="mensagens">
+    {% for message in messages %}
+    <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
 
-    <main class="book-form">
+    <header class="navbar">
+      <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
+      <a class="back-link" href="{% url 'accounts:profile' %}">
+        <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+      </a>
+    </header>
+
+    {# section (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
+    <section class="book-form">
       <h1>Cadastrar livro</h1>
       <p class="intro">
         Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
@@ -57,7 +68,6 @@
 
         <button type="submit" class="btn">Cadastrar livro</button>
       </form>
-    </main>
-
+    </section>
   </div>
 {% endblock %}
