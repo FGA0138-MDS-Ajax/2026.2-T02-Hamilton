@@ -5,14 +5,13 @@ from .models import Community_STUB;
 
 # Create your views here.
 def view_community(request, community_id):
-    community = get_object_or_404(Community_STUB, pk=community_id);
+    community = Community_STUB.objects.filter(id=community_id).first();
 
     if community is None:
         return render(request, "communities/community_view.html", {'community':None});
 
     # pegando valores importantes
     user = request.user;
-
 
     # calculando lógica
     user_is_eligible = user.is_superuser or (community.creator == user);
