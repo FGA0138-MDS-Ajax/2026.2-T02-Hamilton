@@ -11,6 +11,10 @@
     {% if community %}
         <p>Nome: <span id="name">{{ community.name }}</span></p>
         <p>Descrição: <span id="name">{{ community.description }}</span></p>
+        <form action="{% url 'communities:join_community' community.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Join</button>
+        </form>
     {% else %}
         <p>Oops! Não encontramos a comunidade.</p>
     {% endif %}
