@@ -76,9 +76,6 @@ def delete_book(request, book_id):
 
         return redirect('books:register_book')
 
-    return render(request, 'books/book_form.html', {'book': book})
-
-
 # Busca de livros no banco (usada pela página main:search)
 @require_GET
 def search_books(request):
