@@ -35,7 +35,7 @@ def register_book(request):
     else:
         form = BookForm()
 
-    return render(request, 'books/book_form.html', {'form': form})
+    return render(request, 'books/book_form.html', {'form': form, 'action':'register'})
 
 
 # Editar livros
@@ -58,7 +58,7 @@ def edit_book(request, book_id):
     else:
         form = BookForm(instance=book)
 
-    return render(request, 'books/book_form.html', {'form': form})
+    return render(request, 'books/book_form.html', {'form': form, 'action':'edit'})
 
 
 # Deletar livro cadastrado

@@ -7,7 +7,14 @@
     <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
     <link rel="stylesheet" href="{% static 'books/css/book_form.css' %}" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <title>Cadastrar livro - CoLecture</title>
+    <title>
+      {% if action == 'register' %}
+        Cadastrar
+      {% else %}
+        Editar
+      {% endif %}
+      livro - CoLecture
+    </title>
   </head>
 
   <body>    
@@ -29,10 +36,14 @@
       </header>
 
       <main class="book-form">
-        <h1>Cadastrar livro</h1>
-        <p class="intro">
-          Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
-        </p>
+        {% if action == 'register' %}
+          <h1>Cadastrar livro</h1>
+          <p class="intro">
+            Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
+          </p>
+        {% else %}
+          <h1>Editar livro</h1>
+        {% endif %}
 
         {# Sem "action": o formulário envia para a mesma URL da página. #}
         <form method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
@@ -67,7 +78,14 @@
             </div>
           {% endfor %}
 
-          <button type="submit" class="btn">Cadastrar livro</button>
+          <button type="submit" class="btn">
+            {% if action == 'register' %}
+              Cadastrar
+            {% else %}
+              Editar
+            {% endif %}
+            livro
+          </button>
         </form>
       </main>
     </div>
