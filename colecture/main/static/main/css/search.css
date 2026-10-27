@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 body {
-    font-family: 'Times New Roman', serif;
+    font-family: 'Poppins', sans-serif;
     background: var(--gradient-bg);
     background-color: var(--bg-base);
     background-attachment: fixed;
@@ -16,7 +16,7 @@ body {
   gap: 10px;
   padding: 10px 24px;
   background: var(--gradient-brand);
-  border-bottom: 1px solid var (--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .logo{
@@ -43,9 +43,10 @@ body {
 }
  
 .page-content {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 30px auto;
   padding: 0 15px;
+  box-sizing: border-box;
 }
  
 .search-bar {
@@ -108,15 +109,23 @@ body {
   color: var(--text-secondary);
   margin-bottom: 15px;
 }
+
+#bookList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  gap: 12px;
+}
  
 .book-card {
   display: flex;
   gap: 15px;
-  background-color: var(--bg-surface);
+  background-color: rgba(10, 8, 18, 0.95);
   padding: 15px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   border-radius: 10px;
   border: 1px solid var(--border);
+  box-sizing: border-box;
+  min-width: 0;
 }
  
 .book-card:hover {
@@ -124,8 +133,8 @@ body {
 }
  
 .book-cover {
-  width: 70px;
-  height: 100px;
+  width: 100px;
+  height: 150px;
   object-fit: cover;
   border-radius: 4px;
   background-color: var(--bg-elevated);
@@ -140,19 +149,20 @@ body {
  
 .book-author {
   margin: 0 0 6px 0;
+  font-size: 18px;
   color: var(--text-secondary);
 }
  
 .book-synopsis {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-secondary);
 }
  
 .book-genre {
   display: inline-block;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--purple-300);
   background-color: var(--bg-elevated);
   padding: 3px 8px;
@@ -424,5 +434,24 @@ body {
 .link-main:active {
     color: inherit !important;
     text-decoration: none !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: url("../img/logo.png") center / contain no-repeat;
+  opacity: 0.10;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
 }
 
