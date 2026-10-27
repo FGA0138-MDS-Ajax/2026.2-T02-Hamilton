@@ -10,7 +10,8 @@
 
 {% block content %}
     <div class="main-box">
-      <main class="profile">
+      {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
+      <div class="profile">
         <section class="user-card" aria-labelledby="user-name">
           <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
@@ -98,6 +99,6 @@
             <p class="empty">Você ainda não registrou nenhum livro.</p>
           {% endif %}
         </section>
-      </main>
+      </div>
     </div>
 {% endblock %}

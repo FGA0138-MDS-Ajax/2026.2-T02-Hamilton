@@ -7,7 +7,7 @@
   <!-- viewport-fit=cover permite usar a área segura do iPhone na barra inferior -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}CoLecture{% endblock %}</title>
-  <link rel="icon" href="{% static 'main/img/logo.png' %}">
+  <link rel="icon" href="{% static 'main/img/logoGato.png' %}">
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
   <link rel="stylesheet" href="{% static 'main/css/sidebar.css' %}">
   {% block extra_head %}{% endblock %}
@@ -33,8 +33,9 @@
 
     <nav class="rail-nav" aria-label="Menu principal">
 
+      {# "Perfil" fica ativo também na edição de perfil, que é uma subpágina dele #}
       <a href="{% url 'accounts:profile' %}"
-        class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}"
+        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' %}active{% endif %}"
         {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}
         data-label="Perfil"
         aria-label="Perfil">
