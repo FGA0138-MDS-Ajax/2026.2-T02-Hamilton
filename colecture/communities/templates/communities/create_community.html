@@ -4,18 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Review - CoLecture</title>
+    <title>Criar Comunidade</title>
 </head>
 <body>
-    <h1>Avaliação de livro</h1>
-    <form action="", method="post">
-        <h2>Avalie "{{ book.title }}"</h2>
+    <form method="POST">
         {% csrf_token %}
 
         {{ form.as_p }}
 
-        <button type="submit">Submit</button>
-        
+        <button type="submit">Criar comunidade</button>
     </form>
 </body>
 </html>

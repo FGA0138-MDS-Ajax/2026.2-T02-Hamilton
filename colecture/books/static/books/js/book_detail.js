@@ -17,19 +17,19 @@ function buscarLivro(id) {
   });
 }
 
-// Ainda nao esta ligado ao banco (falta o models.py de BookReview)
-function enviarResenha(id, nota, texto) {
-  return new Promise(function (resolve, reject) {
-    reject(new Error("Envio de avaliacao ainda nao esta ligado ao banco."));
-  });
-}
-
 // ---------------------------------------------------------
 // FRONT
+// O envio da avaliacao e feito pelo proprio formulario (POST para a
+// mesma URL, tratado pela view book_detail com o BookReviewForm).
 // ---------------------------------------------------------
 const idLivro = document.body.dataset.id;
 
-let notaSelecionada = 0;
+// Campo "rating" do Django (select escondido) e formulario
+const campoNota = document.getElementById("id_rating");
+const formResenha = document.getElementById("form-resenha");
+
+// Ja comeca com a nota que o Django renderizou (avaliacao anterior do usuario)
+let notaSelecionada = campoNota ? Number(campoNota.value) || 0 : 0;
 
 function estrelasTexto(nota) {
   const cheias = Math.round(nota);
@@ -37,6 +37,7 @@ function estrelasTexto(nota) {
 }
 
 function formatarData(dataIso) {
+  if (!dataIso) return "";
   const partes = dataIso.split("-");
   return partes[2] + "/" + partes[1] + "/" + partes[0];
 }
@@ -73,6 +74,7 @@ function mostrarLivro(livro) {
   }
 
   mostrarResenhas(livro.resenhas);
+  pintarSeletor();
 }
 
 function mostrarResenhas(resenhas) {
@@ -107,12 +109,15 @@ function mostrarResenhas(resenhas) {
     cabecalho.appendChild(nome);
     cabecalho.appendChild(estrelas);
     cabecalho.appendChild(data);
-
-    const texto = document.createElement("p");
-    texto.textContent = r.texto;
-
     item.appendChild(cabecalho);
-    item.appendChild(texto);
+
+    // A resenha em texto e opcional
+    if (r.texto) {
+      const texto = document.createElement("p");
+      texto.textContent = r.texto;
+      item.appendChild(texto);
+    }
+
     lista.appendChild(item);
   });
 }
@@ -125,6 +130,25 @@ function carregarPagina() {
       mostrarLivro(livro);
     }
   });
+}
+
+// Grava a nota escolhida no campo "rating" do formulario Django
+function definirNotaNoForm(nota) {
+  if (!campoNota) return;
+
+  if (campoNota.tagName === "SELECT") {
+    // procura a opcao cujo valor numerico e igual a nota (ex.: "4", "4.0" ou "4,0")
+    const opcao = Array.from(campoNota.options).find(function (o) {
+      return o.value !== "" && Number(o.value) === nota;
+    });
+    if (opcao) {
+      campoNota.value = opcao.value;
+    } else {
+      campoNota.add(new Option(nota, nota, true, true));
+    }
+  } else {
+    campoNota.value = nota;
+  }
 }
 
 // Seletor de estrelas clicavel
@@ -143,35 +167,24 @@ function pintarSeletor() {
 document.querySelectorAll("#seletor button").forEach(function (botao) {
   botao.addEventListener("click", function () {
     notaSelecionada = Number(botao.dataset.valor);
+    definirNotaNoForm(notaSelecionada);
     pintarSeletor();
   });
 });
 
-// Enviar avaliacao: atualiza a lista e a media
-document.getElementById("form-resenha").addEventListener("submit", function (evento) {
-  evento.preventDefault();
+// Enviar avaliacao: valida no navegador e deixa o formulario seguir para o Django
+if (formResenha) {
+  formResenha.addEventListener("submit", function (evento) {
+    const aviso = document.getElementById("aviso");
 
-  const texto = document.getElementById("texto-resenha").value.trim();
-  const aviso = document.getElementById("aviso");
-
-  if (notaSelecionada === 0) {
-    aviso.textContent = "Escolha uma nota de 1 a 5 estrelas.";
-    return;
-  }
-  if (texto === "") {
-    aviso.textContent = "Escreva sua resenha.";
-    return;
-  }
-  aviso.textContent = "";
-
-  enviarResenha(idLivro, notaSelecionada, texto).then(function () {
-    document.getElementById("texto-resenha").value = "";
-    notaSelecionada = 0;
-    pintarSeletor();
-    carregarPagina();
-  }).catch(function (erro) {
-    aviso.textContent = "Ainda não é possível enviar avaliações por aqui.";
+    if (notaSelecionada === 0) {
+      evento.preventDefault();
+      aviso.textContent = "Escolha uma nota de 1 a 5 estrelas.";
+      return;
+    }
+    aviso.textContent = "";
+    // sem preventDefault: o navegador faz o POST e a view salva a avaliacao
   });
-});
+}
 
 carregarPagina();
