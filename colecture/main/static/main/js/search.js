@@ -3,7 +3,9 @@ var genreFilter = document.getElementById("genreFilter");
 var searchButton = document.getElementById("searchButton");
 var resultsInfo = document.getElementById("resultsInfo");
 var bookList = document.getElementById("bookList");
-var searchUrl = document.getElementById("searchPage").dataset.searchUrl;
+// Procura pelo atributo (e não pela tag <main>): o sidebar.html já envolve a página em um <main>.
+var searchUrl = document.querySelector("[data-search-url]").dataset.searchUrl;
+
 
 var statusOptions = [
   { value: "reading", label: "Lendo" },
