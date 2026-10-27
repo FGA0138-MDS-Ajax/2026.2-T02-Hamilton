@@ -1,24 +1,20 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!doctype html>
-<html lang="pt-br">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% block title %}Editar Perfil - CoLecture{% endblock %}
+
+{% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
   <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-  <title>Editar Perfil - CoLecture</title>
-</head>
+{% endblock %}
 
-<body>
+{% block content %}
   <div class="main-box main-box--narrow">
-    <header class="navbar">
-      <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
-      <a class="back-link" href="{% url 'accounts:profile' %}">
-        <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
-      </a>
-    </header>
+
+    <a class="back-link" href="{% url 'accounts:profile' %}">
+      <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+    </a>
 
     <section class="edit-form">
       <h1>Editar informações</h1>
@@ -31,7 +27,6 @@
         <button type="submit" class="btn">Salvar</button>
       </form>
     </section>
-  </div>
-</body>
 
-</html>
+  </div>
+{% endblock %}

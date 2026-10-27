@@ -3,7 +3,8 @@ var genreFilter = document.getElementById("genreFilter");
 var searchButton = document.getElementById("searchButton");
 var resultsInfo = document.getElementById("resultsInfo");
 var bookList = document.getElementById("bookList");
-var searchUrl = document.querySelector("main").dataset.searchUrl;
+// Procura pelo atributo (e não pela tag <main>): o sidebar.html já envolve a página em um <main>.
+var searchUrl = document.querySelector("[data-search-url]").dataset.searchUrl;
 
 
 var statusOptions = [
@@ -53,11 +54,11 @@ function getStatusLabel(status) {
   return "";
 }
 
-var modalParts = {};          // guarda os elementos da caixa
-var modalOptionButtons = [];  // botoes Lendo / Lido / Quero ler
-var currentBook = null;       // livro que esta aberto na caixa
-var currentOnSave = null;     // funcao chamada depois de salvar
-var selectedStatus = "";      // opcao marcada na caixa
+var modalParts = {};          
+var modalOptionButtons = []; 
+var currentBook = null;       
+var currentOnSave = null;     
+var selectedStatus = "";      
 
 function refreshModal() {
   for (var i = 0; i < modalOptionButtons.length; i++) {
@@ -73,12 +74,11 @@ function refreshModal() {
   modalParts.saveButton.disabled = (selectedStatus === "");
 }
 
-// Fecha a caixa
+
 function closeModal() {
   modalParts.overlay.classList.remove("open");
 }
 
-// Cria um botao de opcao dentro da caixa
 function addModalOption(option) {
   var button = document.createElement("button");
   button.className = "modal-option";
@@ -93,7 +93,6 @@ function addModalOption(option) {
   modalOptionButtons.push({ button: button, value: option.value });
 }
 
-// Monta a caixa inteira e coloca na pagina
 function buildModal() {
   var overlay = document.createElement("div");
   overlay.className = "modal-overlay";
@@ -101,7 +100,6 @@ function buildModal() {
   var box = document.createElement("div");
   box.className = "modal-box";
 
-  // topo: titulo + botao de fechar
   var header = document.createElement("div");
   header.className = "modal-header";
 
@@ -248,7 +246,6 @@ function createActions(book) {
 
 
 
-// Cria a imagem da capa a partir do campo icon (URL) do livro
 function createCover(book) {
   var cover = document.createElement("img");
   cover.className = "book-cover";
@@ -256,7 +253,6 @@ function createCover(book) {
   cover.alt = "Capa de " + book.title;
   cover.loading = "lazy";
 
-  // se a URL estiver quebrada, tira a imagem para nao mostrar um icone feio
   cover.addEventListener("error", function () {
     cover.remove();
   });
@@ -292,7 +288,6 @@ function showBooks(books, total) {
     card.className = "book-card";
     var bookUrl = "/books/" + book.id + "/";
 
-    // imagem do livro: so aparece se o campo icon estiver preenchido
   if (book.icon) {
     var coverLink = document.createElement("a");
     coverLink.href = bookUrl;
@@ -301,7 +296,6 @@ function showBooks(books, total) {
     card.appendChild(coverLink);
 }
 
-    // area de texto
     var info = document.createElement("div");
     info.className = "book-info";
 
@@ -359,7 +353,6 @@ function searchBooks() {
 
   var params = new URLSearchParams({ q: term, genre: genre });
 
-  // evita que uma resposta antiga sobrescreva uma busca mais nova
   lastRequest++;
   var thisRequest = lastRequest;
 

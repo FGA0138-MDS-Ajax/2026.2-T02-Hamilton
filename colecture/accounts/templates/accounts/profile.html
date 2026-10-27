@@ -1,21 +1,17 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!doctype html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
-    <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <title>Perfil - CoLecture</title>
-  </head>
-  <body>
-    <div class="main-box">
-      <header class="navbar">
-        <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
-      </header>
 
-      <main class="profile">
+{% block title %}Perfil - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+    <div class="main-box">
+      {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
+      <div class="profile">
         <section class="user-card" aria-labelledby="user-name">
           <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
@@ -103,7 +99,6 @@
             <p class="empty">Você ainda não registrou nenhum livro.</p>
           {% endif %}
         </section>
-      </main>
+      </div>
     </div>
-  </body>
-</html>
+{% endblock %}

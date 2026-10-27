@@ -178,8 +178,76 @@ class CT01(TestCase):
             'email':'newacc@gmail.com'
         });
         self.assertEqual(response.status_code, 302);
+        user.refresh_from_db(); # sem isso o assert abaixo olharia o objeto antigo da memória
         self.assertEqual(user.first_name, "Linus");
         self.assertEqual(user.last_name, "Torvalds");
+
+    def test_editar_com_nomes_em_branco_mantem_valores(self):
+        # a página diz para deixar os nomes em branco se não for alterá-los
+        user = get_user_model().objects.create_user(
+            username="NewAccount",
+            password="senha123456",
+            first_name="Linus",
+            last_name="Torvalds",
+            email="newacc@gmail.com"
+        );
+        self.client.force_login(user);
+
+        response = self.client.post(reverse("accounts:editProfile"), {
+            'first_name':'',
+            'last_name':'',
+            'email':'novo@gmail.com'
+        });
+
+        self.assertEqual(response.status_code, 302);
+        user.refresh_from_db();
+        self.assertEqual(user.first_name, "Linus"); # nomes conservados
+        self.assertEqual(user.last_name, "Torvalds");
+        self.assertEqual(user.email, "novo@gmail.com"); # e-mail alterado normalmente
+
+    def test_perfil_carrega_dados_do_usuario(self):
+        user = get_user_model().objects.create_user(
+            username="NewAccount",
+            password="senha123456",
+            first_name="Linus",
+            last_name="Torvalds",
+            email="newacc@gmail.com"
+        );
+        self.client.force_login(user);
+
+        response = self.client.get(reverse("accounts:profile"));
+
+        self.assertEqual(response.status_code, 200);
+        self.assertContains(response, "Linus Torvalds");
+        self.assertContains(response, "@NewAccount");
+        self.assertContains(response, "newacc@gmail.com");
+
+    def test_edicao_vem_preenchida_com_dados_atuais(self):
+        user = get_user_model().objects.create_user(
+            username="NewAccount",
+            password="senha123456",
+            first_name="Linus",
+            last_name="Torvalds",
+            email="newacc@gmail.com"
+        );
+        self.client.force_login(user);
+
+        response = self.client.get(reverse("accounts:editProfile"));
+
+        self.assertEqual(response.status_code, 200);
+        self.assertContains(response, 'value="Linus"');
+        self.assertContains(response, 'value="Torvalds"');
+        self.assertContains(response, 'value="newacc@gmail.com"');
+
+    def test_sidebar_presente_nas_paginas_de_perfil(self):
+        user = get_user_model().objects.create_user(username="NewAccount", password="senha123456");
+        self.client.force_login(user);
+
+        for name in ("accounts:profile", "accounts:editProfile"):
+            response = self.client.get(reverse(name));
+            self.assertContains(response, 'class="rail"');
+            self.assertContains(response, reverse("main:search"));
+            self.assertContains(response, reverse("books:register_book"));
 
 class CT07(TestCase):
     """
