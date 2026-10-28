@@ -448,23 +448,35 @@ function showCommunities(communities, total) {
 }
 
 function searchCommunities() {
-  // TESTE: dados fixos enquanto o backend não fica pronto
+  var term = searchInput.value.trim();
+  var params = new URLSearchParams({ q: term });
 
-  var term = searchInput.value.trim().toLowerCase();
+  lastRequest++;
+  var thisRequest = lastRequest;
 
-  var all = [
-    { id: 1, name: "Clube de Ficção", description: "Livros de ficção científica.", members_count: 12 },
-    { id: 2, name: "Leitores de Clássicos", description: "", members_count: 5 }
-  ];
+  resultsInfo.textContent = "Buscando...";
+  bookList.innerHTML = "";
 
-  var found = [];
-  for (var i = 0; i < all.length; i++) {
-    if (all[i].name.toLowerCase().indexOf(term) !== -1) {
-      found.push(all[i]);
-    }
-  }
-
-  showCommunities(found, found.length);
+  fetch(communitiesUrl + "?" + params.toString())
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error("O servidor respondeu com status " + response.status);
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      if (thisRequest !== lastRequest) {
+        return;
+      }
+      showCommunities(data.results, data.total);
+    })
+    .catch(function (error) {
+      if (thisRequest !== lastRequest) {
+        return;
+      }
+      console.log("Erro ao buscar comunidades:", error);
+      resultsInfo.textContent = "Erro ao buscar as comunidades. Tente novamente em alguns minutos.";
+    });
 }
 
 function runSearch() {
