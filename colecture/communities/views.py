@@ -6,6 +6,9 @@ from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
+from datetime import datetime;
+from django.db.models import Count, Q
+
 
 # Create your views here.
 
@@ -36,6 +39,7 @@ class JoinCommunityView(View, LoginRequiredMixin):
 
         # lista de métodos que irão validar a requisição
         validation = [
+            self.community_not_available,
             self.user_is_member, # já é membro?
             self.user_is_banned, # está banido?
             self.request_is_pending, # já solicitou entrada?
@@ -48,6 +52,10 @@ class JoinCommunityView(View, LoginRequiredMixin):
         # se nenhum método retornar falha, o usuário
         # entra/solicita entrada na comunidade.
         return self.join_community();
+
+    def community_not_available(self):
+        return (self.community.state!=Community.State.ACTIVE and
+        HttpResponseForbidden("This community is not available.")) or None;
 
     def user_is_member(self):
         """
@@ -94,9 +102,82 @@ class JoinCommunityView(View, LoginRequiredMixin):
             Membership.Status.ACTIVE
         );
 
+        if not community_is_private: # será membro agora.
+            # então (re)entrou agora.
+            # isso ajudará a determinar o membro mais velho posteriormente
+            membership.joined_at = datetime.now();
+        
         membership.save();
 
         return self.redirect_to_community();
+
+class LeaveCommunityView(View, LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+
+        self.community = get_object_or_404(Community, pk=kwargs["community_id"]);
+        self.user = request.user;
+        self.active_membership = Membership.objects.filter(
+            user= self.user,
+            community=self.community,
+            status=Membership.Status.ACTIVE
+        ).first();
+        self.is_creator = self.community.creator == self.user;
+        self.is_admin = self.user.is_superuser;
+        self.user_count = Membership.objects.filter(
+            community = self.community,
+            status=Membership.Status.ACTIVE
+        ).count() + 1; # o "+1" é o criador que não tem membership
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # casos de borda (ordem obrigatória)
+        edge_cases = [
+            self.ec_last_member,
+            self.ec_is_creator,
+        ];
+
+        for ec in edge_cases:
+            response = ec();
+            if response!=None:
+                return response;
+        return self.leave_community();
+
+    def ec_last_member(self):
+        if self.user_count-1<=0: # último membro
+            self.community.clean_up_and_delete();
+            return self.return_to_profile();
+
+    def ec_is_creator(self):
+        if self.is_creator: # o criador saiu.
+            self.give_ownership_to_oldest_member(except_user=self.user);
+            return self.return_to_profile();
+
+    def give_ownership_to_oldest_member(self, except_user=None):
+        # pegando todos os membros (menos o que vai sair) por ordem de ingresso.
+        oldest_memberships = Membership.objects.filter(
+            community=self.community,
+            status=Membership.Status.ACTIVE,
+        ).exclude(user=except_user).order_by("joined_at");
+
+        if oldest_memberships.count()<=0:
+            self.community.clean_up_and_delete();
+            return;
+        oldest_membership = oldest_memberships[0];
+        oldest_member = oldest_membership.user;
+        oldest_membership.delete(); # o criador não tem membership
+
+        self.community.creator = oldest_member;
+        self.community.save();
+
+    def return_to_profile(self):
+        return redirect("accounts:profile");
+
+    def leave_community(self):
+        if self.active_membership:
+            self.active_membership.status = Membership.Status.LEFT;
+            self.active_membership.save();
+        return self.return_to_profile();
 
 def view_community(request, community_id):
     community = Community.objects.filter(id=community_id).first();
@@ -173,7 +254,263 @@ def delete_community(request, community_id):
         return HttpResponseForbidden()
 
     if request.method == "POST":
-        community.delete()
+        community.clean_up_and_delete();
         return redirect('communities:create_community')
 
     return HttpResponseForbidden()
+
+def moderator_view(request):
+    return render(request, 'communities/moderator.html')
+
+@login_required
+def edit_community(request, community_id):
+    # 1. Busca a comunidade no banco de dados
+    community = get_object_or_404(Community, id=community_id)
+
+    # 2. Verifica as permissões do usuário
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    # 3. Impede a edição por usuários sem permissão
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # 4. Processa o formulário enviado
+    if request.method == "POST":
+        form = CommunityForm(request.POST, instance=community)
+
+        if form.is_valid():
+            form.save()
+            return redirect(
+                "communities:view_community",
+                community_id=community.id
+            )
+
+    # 5. Exibe o formulário preenchido com os dados atuais
+    else:
+        form = CommunityForm(instance=community)
+
+    return render(
+        request,
+        "communities/edit_community.html",
+        {"form": form, "community": community},
+    )
+
+@login_required
+def edit_member_role(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica quem pode gerenciar os membros
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # Somente aceita alterações enviadas por POST
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # O membro precisa estar ativo
+    if membership.status != Membership.Status.ACTIVE:
+        return HttpResponseForbidden()
+
+    # Recebe e valida o novo cargo
+    new_role = request.POST.get("role")
+
+    allowed_roles = [
+        Membership.Role.MEMBER,
+        Membership.Role.MODERATOR,
+    ]
+
+    if new_role not in allowed_roles:
+        return HttpResponseForbidden()
+
+    # Atualiza somente o cargo
+    membership.role = new_role
+    membership.save(update_fields=["role"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
+
+@login_required
+def manage_membership_request(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+    
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica quem pode gerenciar os membros
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()    
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # Só permite gerenciar solicitações pendentes
+    if membership.status != Membership.Status.PENDING:
+        return HttpResponseForbidden()
+
+    # Recebe a ação enviada pelo formulário
+    decision = request.POST.get("decision")
+
+    if decision == "accept":
+        membership.status = Membership.Status.ACTIVE
+
+    elif decision == "reject":
+        membership.status = Membership.Status.NONE
+
+    else:
+        return HttpResponseForbidden()
+
+    # Salva a alteração no banco
+    membership.save(update_fields=["status"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
+
+@login_required
+def manage_member_ban(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica as permissões
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # Só aceita requisições POST
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # Impede expulsar a si mesmo ou o dono da comunidade
+    if membership.user == request.user:
+        return HttpResponseForbidden()
+
+    if membership.user == community.creator:
+        return HttpResponseForbidden()
+
+    # Recebe a decisão
+    decision = request.POST.get("decision")
+
+    if decision == "ban":
+        # Só expulsa membros ativos
+        if membership.status != Membership.Status.ACTIVE:
+            return HttpResponseForbidden()
+
+        membership.status = Membership.Status.BANNED
+
+    elif decision == "unban":
+        # Só revoga expulsões de membros banidos
+        if membership.status != Membership.Status.BANNED:
+            return HttpResponseForbidden()
+
+        membership.status = Membership.Status.NONE
+
+    else:
+        return HttpResponseForbidden()
+
+    # Salva somente o status
+    membership.save(update_fields=["status"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
+
+
+
+@login_required
+def home_community(request):
+    user = request.user
+
+    # papéis do usuário nas comunidades em que ele é membro ativo
+    roles = dict(
+        Membership.objects.filter(user=user, status=Membership.Status.ACTIVE)
+        .values_list("community_id", "role")
+    )
+
+    communities = (
+        Community.objects
+        .filter(Q(creator=user) | Q(id__in=roles.keys()))
+        .exclude(state=Community.State.ARCHIVED)
+        .order_by("name")
+    )
+
+    # membros ativos por comunidade (sem depender do related_name)
+    counts = dict(
+        Membership.objects
+        .filter(community__in=communities, status=Membership.Status.ACTIVE)
+        .values_list("community")
+        .annotate(n=Count("id"))
+    )
+
+    comunidades = []
+    for c in communities:
+        if c.creator_id == user.id:
+            papel = "Criador"
+        elif roles.get(c.id) == Membership.Role.MODERATOR:
+            papel = "Moderador"
+        else:
+            papel = "Membro"
+        comunidades.append({
+            "pk": c.pk,
+            "nome": c.name,
+            "descricao": c.description,
+            "membros_count": counts.get(c.id, 0) + 1,  # +1 = criador
+            "privada": c.access == Community.Access.PRIVATE,
+            "papel": papel,
+        })
+
+    return render(request, "communities/home_community.html", {"comunidades": comunidades})
