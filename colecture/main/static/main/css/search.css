@@ -44,7 +44,6 @@ body {
 }
  
 .page-content {
-  max-width: 1100px;
   margin: 30px auto;
   padding: 0 15px;
   box-sizing: border-box;
@@ -105,6 +104,39 @@ body {
 .search-bar button:hover {
   background-color: var(--purple-400);
 }
+
+.search-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tab-button {
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab-button:hover {
+  border-color: var(--purple-400);
+}
+
+.tab-button.active {
+  background-color: var(--purple-900);
+  border-color: var(--purple-400);
+  color: var(--purple-100);
+}
+
+a.add-button {
+  display: inline-block;
+  text-decoration: none;
+}
  
 #resultsInfo {
   color: var(--text-secondary);
@@ -113,7 +145,7 @@ body {
 
 #bookList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 12px;
 }
  
@@ -140,6 +172,19 @@ body {
   border-radius: 4px;
   background-color: var(--bg-elevated);
   flex-shrink: 0;
+}
+
+.book-cover {
+  width: 100px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.book-cover-empty {
+  border: 1px dashed var(--border-strong);
 }
  
 .book-title {
@@ -184,7 +229,8 @@ body {
 .book-actions {
   position: relative;
   align-self: flex-end;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .book-link{
@@ -221,6 +267,7 @@ body {
 
 .register-button{
   display: inline-block;
+  justify-self: start;
   margin-top: 12px;
   padding: 10px 18px;
   border-radius: 6px;
@@ -454,5 +501,46 @@ body::before {
 .content {
   position: relative;
   z-index: 1;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.empty-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.empty-message {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+}
+
+.empty-button {
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--purple-600);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.empty-button:hover {
+  border-color: var(--purple-400);
+}
+
+.empty-img {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  margin: 20px auto 0;
 }
 
