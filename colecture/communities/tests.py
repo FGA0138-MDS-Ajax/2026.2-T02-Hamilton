@@ -2,6 +2,7 @@ from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from .models import Community, Membership
+from datetime import datetime;
 # Create your tests here.
 
 class CT03(TestCase):
@@ -227,6 +228,82 @@ class CT03(TestCase):
             )
         );
         self.assertEqual(response3.status_code, 403);
+
+    def test_leave_community(self):
+        # usuários
+        creator_user = get_user_model().objects.create(username="Creator");
+        moderator_user = get_user_model().objects.create(username="Moderator");
+        regular_user = get_user_model().objects.create(username="Regular");
+
+        # comunidade
+        community = Community.objects.create(
+            name="NewCommunity",
+            creator=creator_user
+        );
+        com_id = community.id;
+
+        # memberships
+        mod_member = Membership.objects.create(
+            community=community,
+            user=moderator_user,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+            joined_at=datetime(year=1999, month=12, day=25)
+        );
+        reg_member = Membership.objects.create(
+            community=community,
+            user=regular_user,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+            joined_at=datetime(year=2000, month=10, day=31)
+        );
+
+        leave_url = reverse(
+            'communities:leave_community',
+            kwargs={'community_id':community.id}
+        );
+
+        """
+        Cenário 1: Criador sai.
+        Resposta esperada: Membro mais antigo (o moderador)
+        vira criador da comunidade e sua membership é deletada
+        """
+        self.client.force_login(creator_user);
+        creator_left = self.client.post(leave_url);
+        community.refresh_from_db();
+        self.assertEqual(creator_left.status_code, 302);
+        self.assertEqual(community.creator, moderator_user);
+        self.assertFalse(Membership.objects.filter(
+            community=community,
+            user=moderator_user
+        ).exists());
+
+        """
+        Cenário 2: Regular sai.
+        Resposta esperada: Criador continua o mesmo e 
+        a membership do regular fica com status "LEFT".
+        """
+        self.client.force_login(regular_user);
+        regular_left = self.client.post(leave_url);
+        community.refresh_from_db();
+        self.assertEqual(regular_left.status_code, 302);
+        self.assertEqual(community.creator, moderator_user);
+        self.assertEqual(Membership.objects.filter(
+            community=community,
+            user=regular_user
+        ).first().status, Membership.Status.LEFT);
+
+        """
+        Cenário 3: moderador (que agora é criador) sai.
+        Resposta esperada: A comunidade é deletada por falta de
+        membros.
+        """
+        self.client.force_login(moderator_user);
+        moderator_left = self.client.post(leave_url);
+        self.assertEqual(moderator_left.status_code, 302);
+        self.assertFalse(Community.objects.filter(
+            id=com_id
+        ).exists());
 
 #teste para Deletar comunidade
 class DeleteCommunityTest(TestCase):
