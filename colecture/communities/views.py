@@ -177,3 +177,6 @@ def delete_community(request, community_id):
         return redirect('communities:create_community')
 
     return HttpResponseForbidden()
+
+def moderator_view(request):
+    return render(request, 'communities/moderator.html')

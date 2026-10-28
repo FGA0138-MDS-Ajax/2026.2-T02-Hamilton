@@ -1,0 +1,34 @@
+{% extends 'sidebar.html' %}
+{% load static %}
+
+{% block title %}Painel do Moderador | CoLecture{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'communities/css/moderator.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="moderator-container">
+    <header class="moderator-header">
+        <h1>Painel do Moderador</h1>
+        <p>Gerencie as comunidades, membros e postagens com facilidade.</p>
+    </header>
+
+    <div class="moderator-grid">
+        <section class="moderator-card">
+            <h2>Solicitações de Entrada</h2>
+            <p>Nenhuma solicitação pendente no momento.</p>
+        </section>
+
+        <section class="moderator-card">
+            <h2>Denúncias & Moderação</h2>
+            <p>Nenhuma denúncia registrada.</p>
+        </section>
+
+        <section class="moderator-card">
+            <h2>Membros da Comunidade</h2>
+            <p>Gerencie permissões e funções dos membros.</p>
+        </section>
+    </div>
+</div>
+{% endblock %}

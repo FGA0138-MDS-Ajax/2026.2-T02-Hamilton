@@ -1,7 +1,7 @@
 {% extends "sidebar.html" %}
 {% load static %}
 
-{% block title %}Livro - CoLecture{% endblock %}
+{% block title %}Livro | Detalhes{% endblock %}
 
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
@@ -10,6 +10,19 @@
 {% endblock %}
 
 {% block content %}
+  <!-- Menu de 3 Pontinhos no Canto Superior Direito -->
+  {% if id %}
+  <div class="menu-kebab-container" style="position: relative; float: right; margin: 10px 20px 0 0; z-index: 10;">
+      <button class="kebab-btn" id="kebabBtn" aria-label="Opções" style="background: none; border: none; font-size: 24px; cursor: pointer;">
+          &#8285;
+      </button>
+      <div class="kebab-dropdown" id="kebabDropdown" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 100; border-radius: 4px;">
+          <a href="{% url 'book_edit' id %}" class="dropdown-item" style="display: block; padding: 8px 16px; text-decoration: none; color: #333;">Editar</a>
+          <button type="button" class="dropdown-item delete-text" onclick="openDeleteModal()" style="background: none; border: none; width: 100%; text-align: left; padding: 8px 16px; cursor: pointer; color: #d9534f;">Deletar</button>
+      </div>
+  </div>
+  {% endif %}
+
   <div class="main-box">
     <main class="pagina" data-id="{{ id }}">
 
@@ -65,8 +78,55 @@
     </main>
   </div>
 
+  <!-- Modal de Confirmação de Exclusão -->
+  {% if id %}
+  <div class="modal-overlay" id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+      <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 300px; text-align: center;">
+          <h3>Confirmação de Exclusão</h3>
+          <p>Deseja realmente deletar "<strong>{{ livro.titulo }}</strong>"?</p>
+          <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: space-around;">
+              <form method="POST" action="{% url 'book_delete' id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-danger" style="background: #d9534f; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Deletar</button>
+              </form>
+              <button type="button" class="btn-secondary" onclick="closeDeleteModal()" style="background: #ccc; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Voltar</button>
+          </div>
+      </div>
+  </div>
+  {% endif %}
+
   {{ livro|json_script:"dados-livro" }}
-  {# Mantém compatibilidade com o JS, que lia o id de document.body.dataset.id #}
   <script>document.body.dataset.id = "{{ id }}";</script>
   <script src="{% static 'books/js/book_detail.js' %}"></script>
+
+  <!-- Script do Menu Kebab e do Modal -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const kebabBtn = document.getElementById('kebabBtn');
+        const kebabDropdown = document.getElementById('kebabDropdown');
+
+        if (kebabBtn && kebabDropdown) {
+            kebabBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                kebabDropdown.style.display = kebabDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', () => {
+                kebabDropdown.style.display = 'none';
+            });
+        }
+    });
+
+    function openDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) modal.style.display = 'flex';
+        const kebabDropdown = document.getElementById('kebabDropdown');
+        if (kebabDropdown) kebabDropdown.style.display = 'none';
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) modal.style.display = 'none';
+    }
+  </script>
 {% endblock %}
