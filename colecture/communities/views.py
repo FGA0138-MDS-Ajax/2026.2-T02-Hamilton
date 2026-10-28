@@ -39,6 +39,7 @@ class JoinCommunityView(View, LoginRequiredMixin):
 
         # lista de métodos que irão validar a requisição
         validation = [
+            self.community_not_available,
             self.user_is_member, # já é membro?
             self.user_is_banned, # está banido?
             self.request_is_pending, # já solicitou entrada?
@@ -51,6 +52,10 @@ class JoinCommunityView(View, LoginRequiredMixin):
         # se nenhum método retornar falha, o usuário
         # entra/solicita entrada na comunidade.
         return self.join_community();
+
+    def community_not_available(self):
+        return (self.community.state!=Community.State.ACTIVE and
+        HttpResponseForbidden("This community is not available.")) or None;
 
     def user_is_member(self):
         """
