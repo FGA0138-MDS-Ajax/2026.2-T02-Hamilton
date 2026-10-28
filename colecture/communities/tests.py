@@ -141,7 +141,92 @@ class CT03(TestCase):
             self.assertNotEqual(community.description, invalid_test.get('description'));
             self.assertEqual(community.creator, creator_user);
     
+    def test_join_community(self):
+        # usuários
+        creator_user = get_user_model().objects.create(username="Creator");
+        regular_user = get_user_model().objects.create(username="Regular");
+        banned_user = get_user_model().objects.create(username="Banned");
 
+        # comunidade
+        community_public = Community.objects.create(
+            name="Public Community",
+            creator=creator_user
+        );
+        community_private = Community.objects.create(
+            name="Private Community",
+            creator=creator_user,
+            access=Community.Access.PRIVATE
+        );
+        community_archived = Community.objects.create(
+            name="Archived Community",
+            creator=creator_user,
+            state=Community.State.ARCHIVED
+        );
+
+        # memberships
+        ban_member = Membership.objects.create(
+            community=community_public,
+            user=banned_user,
+            status=Membership.Status.BANNED
+        )
+
+        self.client.force_login(regular_user);
+
+        # entrando em comunidade pública
+        response0 = self.client.post(
+            reverse(
+                "communities:join_community",
+                kwargs={"community_id":community_public.id}
+            )
+        );
+        self.assertEqual(response0.status_code, 302);
+        new_membership = Membership.objects.filter(
+            community=community_public,
+            user=regular_user
+        );
+        self.assertTrue(new_membership.exists());
+        self.assertEqual(new_membership.first().role, Membership.Role.MEMBER);
+        self.assertEqual(new_membership.first().status, Membership.Status.ACTIVE);
+
+        # entrando em comunidade privada
+        response1 = self.client.post(
+            reverse(
+                "communities:join_community",
+                kwargs={"community_id":community_private.id}
+            )
+        );
+        self.assertEqual(response1.status_code, 302);
+        new_membership = Membership.objects.filter(
+            community=community_private,
+            user=regular_user
+        );
+        self.assertTrue(new_membership.exists());
+        self.assertEqual(new_membership.first().role, Membership.Role.NONE);
+        self.assertEqual(new_membership.first().status, Membership.Status.PENDING);
+
+        # entrando em comunidade arquivada
+        response2 = self.client.post(
+            reverse(
+                "communities:join_community",
+                kwargs={"community_id":community_archived.id}
+            )
+        );
+        self.assertEqual(response2.status_code, 403);
+        new_membership = Membership.objects.filter(
+            community=community_archived,
+            user=regular_user
+        );
+        self.assertFalse(new_membership.exists());
+
+        # entrando mesmo banido
+        self.client.force_login(banned_user);
+        response3 = self.client.post(
+            reverse(
+                "communities:join_community",
+                kwargs={"community_id":community_public.id}
+            )
+        );
+        self.assertEqual(response3.status_code, 403);
 
 #teste para Deletar comunidade
 class DeleteCommunityTest(TestCase):
