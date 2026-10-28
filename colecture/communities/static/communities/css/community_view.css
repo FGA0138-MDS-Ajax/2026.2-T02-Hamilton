@@ -1,12 +1,6 @@
-/*
-  Página da comunidade.
-  Usa as variáveis de main/css/variables.css e o layout (sidebar, fundo e
-  área de conteúdo) de main/css/sidebar.css, que o sidebar.html já carrega.
-*/
 
 .community {
-  /* Permite que o layout reaja à largura real da área de conteúdo
-     (com a sidebar aberta ou recolhida), e não só à largura da janela. */
+ 
   container-type: inline-size;
   display: flex;
   flex-direction: column;
@@ -518,4 +512,4 @@
   .community * {
     transition: none !important;
   }
-}
+}

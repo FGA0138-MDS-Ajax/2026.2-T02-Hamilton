@@ -9,14 +9,7 @@
 {% endblock %}
 
 {% block content %}
-  {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
-  {#
-    Variáveis de contexto lidas por esta página (todas opcionais; sem elas a parte correspondente some):
-      community   -> nome, descrição e creator_name (já enviados pela view atual)
-      permissions -> can_edit, can_leave, can_archive (define as opções do menu de três pontinhos)
-      book        -> livro da comunidade (title, author, pk)
-      forum       -> chapter {number, title}, chapters [{number, url, current}], posts [{author, created_at, text}]
-  #}
+  
   <div class="community">
 
     {% if not community %}
@@ -33,7 +26,7 @@
         <div class="community-title">
           <h1 id="community-name">{{ community.name }}</h1>
 
-          {# O livro é um atributo da comunidade #}
+        
           <p class="community-book">
             <i class="bx bxs-book" aria-hidden="true"></i>
             <span class="muted">Livro:</span>
@@ -49,11 +42,10 @@
         {% if not permissions or permissions.can_join %}
           <form class="community-join" method="post" action="{% url 'communities:join_community' community.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn">Entrar</button>
+            <button type="submit" class="btn">Editar</button>
           </form>
         {% endif %}
 
-        {# Menu de três pontinhos: cada opção só aparece para quem tem permissão #}
         {% if permissions.can_edit or permissions.can_leave or permissions.can_archive %}
           <div class="menu" data-menu>
             <button type="button" class="menu-btn" id="communityMenuBtn" aria-haspopup="menu"
@@ -91,7 +83,6 @@
         <section class="card forum" aria-labelledby="forum-title">
           <div class="forum-head">
             <h2 id="forum-title">Fórum</h2>
-            {# Capítulo do livro a que o fórum se refere #}
             <span class="chapter-badge{% if not forum.chapter %} chapter-badge--empty{% endif %}">
               {% if forum.chapter %}
                 Capítulo {{ forum.chapter.number }}{% if forum.chapter.title %} · {{ forum.chapter.title }}{% endif %}
@@ -160,7 +151,6 @@
         </aside>
       </div>
 
-      {# Confirmações (só existem para quem pode executar a ação) #}
       {% if permissions.can_leave %}
         <dialog class="confirm" id="confirm-leave" aria-labelledby="confirm-leave-title">
           <form method="post" action="{% url 'communities:leave_community' community.id %}">

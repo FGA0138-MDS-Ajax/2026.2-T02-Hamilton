@@ -13,7 +13,6 @@
 {% block content %}
   <div class="community-page">
 
-    {# Ícones da página (SVG embutido: não depende de fonte externa) #}
     <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
       <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
       <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
@@ -58,7 +57,6 @@
 
         <div class="form-grid">
 
-          {# Coluna esquerda: nome e descrição #}
           <div class="col">
 
             <div class="field {% if form.name.errors %}field--invalid{% endif %}" data-required="name">
@@ -79,7 +77,6 @@
 
           </div>
 
-          {# Coluna direita: livro e visibilidade #}
           <div class="col">
 
             <div class="field {% if form.book.errors %}field--invalid{% endif %}" data-required="book">
@@ -87,7 +84,6 @@
 
               <div class="book-picker" id="book-picker" data-search-url="{% url 'books:search' %}">
                 <input type="hidden" name="book" id="id_book" value="{{ request.POST.book }}" />
-                {# título e autor só servem para reexibir o livro escolhido se o formulário voltar com erro #}
                 <input type="hidden" name="book_title" id="book-title" value="{{ request.POST.book_title }}" />
                 <input type="hidden" name="book_author" id="book-author" value="{{ request.POST.book_author }}" />
 

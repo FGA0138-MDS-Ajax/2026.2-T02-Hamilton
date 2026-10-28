@@ -20,7 +20,6 @@
         <button class="com-btn" id="btnPrivada" type="button">
           <i class="bx bx-lock-alt"></i> Entrar em comunidade privada
         </button>
-        {# Troque pelo nome da sua URL de criação; ela deve redirecionar para a página da comunidade criada #}
         <a class="com-btn com-btn-primary" href="{% url 'communities:create_community' %}">
           <i class="bx bx-plus"></i> Nova comunidade
         </a>
@@ -49,7 +48,6 @@
 
     <section class="com-grid" id="grid">
       {% for c in comunidades %}
-        {# Troque 'comunidade_detalhe' pela sua URL da página de comunidade #}
         <a class="com-card" href="{% url 'communities:view_community' community_id=c.pk %}"
            data-nome="{{ c.nome|lower }}" data-membros="{{ c.membros_count }}">
           <div class="com-card-top">
@@ -72,7 +70,6 @@
       {% endfor %}
     </section>
 
-    {# Estado vazio: usuário sem comunidades #}
     {% if not comunidades %}
       <div class="com-empty">
         <i class="bx bx-group"></i>
@@ -85,7 +82,6 @@
       </div>
     {% endif %}
 
-    {# Busca sem resultado #}
     <div class="com-empty" id="semResultado" hidden>
       <i class="bx bx-search-alt"></i>
       <h2>Nenhuma comunidade encontrada</h2>
@@ -94,7 +90,6 @@
 
   </div>
 
-  {# Modal: entrar em comunidade privada #}
   <div class="com-overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
     <form class="com-modal" method="post" action="">
       {% csrf_token %}
