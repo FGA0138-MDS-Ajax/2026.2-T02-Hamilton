@@ -10,7 +10,7 @@ urlpatterns = [
     path('<int:community_id>/delete/',views.delete_community, name='delete_community'),
     path('<int:community_id>/join', views.JoinCommunityView.as_view(), name='join_community'),
     path('<int:community_id>/leave', views.LeaveCommunityView.as_view(), name='leave_community'),
-    path('moderador/', views.moderator_view, name='community_moderator'),
+    path('moderator/', views.moderator_view, name='community_moderator'),
     path("<int:community_id>/edit/",views.edit_community,name="edit_community",),
     path('<int:community_id>/members/<int:membership_id>/role/',views.edit_member_role,
         name='edit_member_role',
