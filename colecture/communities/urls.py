@@ -9,4 +9,5 @@ urlpatterns = [
     path('<int:community_id>', views.view_community, name='view_community'),
     path('<int:community_id>/delete/',views.delete_community, name='delete_community'),
     path('<int:community_id>/join', views.JoinCommunityView.as_view(), name='join_community'),
+    path('<int:community_id>/leave', views.LeaveCommunityView.as_view(), name='leave_community'),
 ]

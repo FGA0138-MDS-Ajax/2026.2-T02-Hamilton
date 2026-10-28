@@ -6,6 +6,7 @@ from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
+from datetime import datetime;
 
 # Create your views here.
 
@@ -94,9 +95,82 @@ class JoinCommunityView(View, LoginRequiredMixin):
             Membership.Status.ACTIVE
         );
 
+        if not community_is_private: # será membro agora.
+            # então (re)entrou agora.
+            # isso ajudará a determinar o membro mais velho posteriormente
+            membership.joined_at = datetime.now();
+        
         membership.save();
 
         return self.redirect_to_community();
+
+class LeaveCommunityView(View, LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+
+        self.community = get_object_or_404(Community, pk=kwargs["community_id"]);
+        self.user = request.user;
+        self.active_membership = Membership.objects.filter(
+            user= self.user,
+            community=self.community,
+            status=Membership.Status.ACTIVE
+        ).first();
+        self.is_creator = self.community.creator == self.user;
+        self.is_admin = self.user.is_superuser;
+        self.user_count = Membership.objects.filter(
+            community = self.community,
+            status=Membership.Status.ACTIVE
+        ).count() + 1; # o "+1" é o criador que não tem membership
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # casos de borda (ordem obrigatória)
+        edge_cases = [
+            self.ec_last_member,
+            self.ec_is_creator,
+        ];
+
+        for ec in edge_cases:
+            response = ec();
+            if response!=None:
+                return response;
+        return self.leave_community();
+
+    def ec_last_member(self):
+        if self.user_count-1<=0: # último membro
+            self.community.clean_up_and_delete();
+            return self.return_to_profile();
+
+    def ec_is_creator(self):
+        if self.is_creator: # o criador saiu.
+            self.give_ownership_to_oldest_member(except_user=self.user);
+            return self.return_to_profile();
+
+    def give_ownership_to_oldest_member(self, except_user=None):
+        # pegando todos os membros (menos o que vai sair) por ordem de ingresso.
+        oldest_memberships = Membership.objects.filter(
+            community=self.community,
+            status=Membership.Status.ACTIVE,
+        ).exclude(user=except_user).order_by("joined_at");
+
+        if oldest_memberships.count()<=0:
+            self.community.clean_up_and_delete();
+            return;
+        oldest_membership = oldest_memberships[0];
+        oldest_member = oldest_membership.user;
+        oldest_membership.delete(); # o criador não tem membership
+
+        self.community.creator = oldest_member;
+        self.community.save();
+
+    def return_to_profile(self):
+        return redirect("accounts:profile");
+
+    def leave_community(self):
+        if self.active_membership:
+            self.active_membership.status = Membership.Status.LEFT;
+            self.active_membership.save();
+        return self.return_to_profile();
 
 def view_community(request, community_id):
     community = Community.objects.filter(id=community_id).first();
@@ -173,7 +247,7 @@ def delete_community(request, community_id):
         return HttpResponseForbidden()
 
     if request.method == "POST":
-        community.delete()
+        community.clean_up_and_delete();
         return redirect('communities:create_community')
 
     return HttpResponseForbidden()
