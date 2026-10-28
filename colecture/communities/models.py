@@ -19,6 +19,9 @@ class Community(models.Model):
         ACTIVE = "ACTIVE", "Active";
         ARCHIVED = "ARCHIVED", "Archived";
 
+    def clean_up_and_delete(self):
+        self.delete();
+
     name = models.CharField(
         max_length=COMMUNITY_NAME_LENGTH,
         blank=False,

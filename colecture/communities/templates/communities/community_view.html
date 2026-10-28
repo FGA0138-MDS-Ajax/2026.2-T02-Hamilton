@@ -15,6 +15,10 @@
             {% csrf_token %}
             <button type="submit">Join</button>
         </form>
+        <form action="{% url 'communities:leave_community' community.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Leave</button>
+        </form>
     {% else %}
         <p>Oops! Não encontramos a comunidade.</p>
     {% endif %}
