@@ -17,7 +17,7 @@
           &#8285;
       </button>
       <div class="kebab-dropdown" id="kebabDropdown" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 100; border-radius: 4px;">
-          <a href="{% url 'book_edit' id %}" class="dropdown-item" style="display: block; padding: 8px 16px; text-decoration: none; color: #333;">Editar</a>
+          <a href="{% url 'books:edit_book' id %}" class="dropdown-item" style="display: block; padding: 8px 16px; text-decoration: none; color: #333;">Editar</a>
           <button type="button" class="dropdown-item delete-text" onclick="openDeleteModal()" style="background: none; border: none; width: 100%; text-align: left; padding: 8px 16px; cursor: pointer; color: #d9534f;">Deletar</button>
       </div>
   </div>
@@ -100,7 +100,7 @@
           <h3>Confirmação de Exclusão</h3>
           <p>Deseja realmente deletar "<strong>{{ livro.titulo }}</strong>"?</p>
           <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: space-around;">
-              <form method="POST" action="{% url 'book_delete' id %}">
+              <form method="POST" action="{% url 'books:delete_book' id %}">
                   {% csrf_token %}
                   <button type="submit" class="btn-danger" style="background: #d9534f; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Deletar</button>
               </form>
