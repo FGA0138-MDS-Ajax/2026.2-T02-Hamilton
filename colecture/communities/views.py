@@ -254,3 +254,210 @@ def delete_community(request, community_id):
 
 def moderator_view(request):
     return render(request, 'communities/moderator.html')
+
+@login_required
+def edit_community(request, community_id):
+    # 1. Busca a comunidade no banco de dados
+    community = get_object_or_404(Community, id=community_id)
+
+    # 2. Verifica as permissões do usuário
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    # 3. Impede a edição por usuários sem permissão
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # 4. Processa o formulário enviado
+    if request.method == "POST":
+        form = CommunityForm(request.POST, instance=community)
+
+        if form.is_valid():
+            form.save()
+            return redirect(
+                "communities:view_community",
+                community_id=community.id
+            )
+
+    # 5. Exibe o formulário preenchido com os dados atuais
+    else:
+        form = CommunityForm(instance=community)
+
+    return render(
+        request,
+        "communities/edit_community.html",
+        {"form": form, "community": community},
+    )
+
+@login_required
+def edit_member_role(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica quem pode gerenciar os membros
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # Somente aceita alterações enviadas por POST
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # O membro precisa estar ativo
+    if membership.status != Membership.Status.ACTIVE:
+        return HttpResponseForbidden()
+
+    # Recebe e valida o novo cargo
+    new_role = request.POST.get("role")
+
+    allowed_roles = [
+        Membership.Role.MEMBER,
+        Membership.Role.MODERATOR,
+    ]
+
+    if new_role not in allowed_roles:
+        return HttpResponseForbidden()
+
+    # Atualiza somente o cargo
+    membership.role = new_role
+    membership.save(update_fields=["role"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
+
+@login_required
+def manage_membership_request(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+    
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica quem pode gerenciar os membros
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()    
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # Só permite gerenciar solicitações pendentes
+    if membership.status != Membership.Status.PENDING:
+        return HttpResponseForbidden()
+
+    # Recebe a ação enviada pelo formulário
+    decision = request.POST.get("decision")
+
+    if decision == "accept":
+        membership.status = Membership.Status.ACTIVE
+
+    elif decision == "reject":
+        membership.status = Membership.Status.NONE
+
+    else:
+        return HttpResponseForbidden()
+
+    # Salva a alteração no banco
+    membership.save(update_fields=["status"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
+
+@login_required
+def manage_member_ban(request, community_id, membership_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    membership = get_object_or_404(
+        Membership,
+        id=membership_id,
+        community=community,
+    )
+
+    # Verifica as permissões
+    is_admin = request.user.is_superuser
+    is_owner = community.creator == request.user
+
+    is_moderator = Membership.objects.filter(
+        community=community,
+        user=request.user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+    if not (is_admin or is_owner or is_moderator):
+        return HttpResponseForbidden()
+
+    # Só aceita requisições POST
+    if request.method != "POST":
+        return HttpResponseForbidden()
+
+    # Impede expulsar a si mesmo ou o dono da comunidade
+    if membership.user == request.user:
+        return HttpResponseForbidden()
+
+    if membership.user == community.creator:
+        return HttpResponseForbidden()
+
+    # Recebe a decisão
+    decision = request.POST.get("decision")
+
+    if decision == "ban":
+        # Só expulsa membros ativos
+        if membership.status != Membership.Status.ACTIVE:
+            return HttpResponseForbidden()
+
+        membership.status = Membership.Status.BANNED
+
+    elif decision == "unban":
+        # Só revoga expulsões de membros banidos
+        if membership.status != Membership.Status.BANNED:
+            return HttpResponseForbidden()
+
+        membership.status = Membership.Status.NONE
+
+    else:
+        return HttpResponseForbidden()
+
+    # Salva somente o status
+    membership.save(update_fields=["status"])
+
+    return redirect(
+        "communities:view_community",
+        community_id=community.id,
+    )
