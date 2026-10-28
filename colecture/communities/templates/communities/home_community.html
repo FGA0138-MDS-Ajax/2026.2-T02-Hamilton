@@ -50,7 +50,7 @@
     <section class="com-grid" id="grid">
       {% for c in comunidades %}
         {# Troque 'comunidade_detalhe' pela sua URL da página de comunidade #}
-        <a class="com-card" href=""
+        <a class="com-card" href="{% url 'communities:view_community' community_id=c.pk %}"
            data-nome="{{ c.nome|lower }}" data-membros="{{ c.membros_count }}">
           <div class="com-card-top">
             <div class="com-cover">{{ c.nome|slice:":1"|upper }}</div>
