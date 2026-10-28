@@ -4,6 +4,6 @@ from .models import Community
 class CommunityForm(forms.ModelForm):
     class Meta:
         model = Community
-        fields = ["name","description","access"]
+        fields = ["name","description","access", "state"]
 
 
