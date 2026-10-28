@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
 from datetime import datetime;
+from django.contrib import messages
 from django.db.models import Count, Q
 
 
@@ -215,6 +216,7 @@ def view_community(request, community_id):
 
         return render(request, "communities/community_view.html", {'community':community_info});
 
+
 @login_required
 def create_community(request):
     if request.method == "POST":
@@ -226,16 +228,14 @@ def create_community(request):
             community.icon = ""
             community.save()
 
-            return redirect("communities:create_community")
+            messages.success(request, f'Comunidade "{community.name}" criada com sucesso!')
+            return redirect("communities:home_community")
 
+        messages.error(request, "Não foi possível criar a comunidade. Verifique os campos.")
     else:
         form = CommunityForm()
 
-    return render(
-        request,
-        "communities/create_community.html",
-        {"form": form},
-    )
+    return render(request, "communities/create_community.html", {"form": form})
 
 @login_required
 def delete_community(request, community_id):
