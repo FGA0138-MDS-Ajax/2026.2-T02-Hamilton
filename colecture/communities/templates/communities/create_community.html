@@ -24,8 +24,7 @@
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M20 17v5H6.5A2.5 2.5 0 0 1 4 19.5"/></symbol>
     </svg>
 
-    {# TODO: trocar "#" pela URL da listagem de comunidades #}
-    <a class="back-link" href="#">
+    <a class="back-link" href="{% url 'communities:home_community' %}">
       <svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg> Voltar às comunidades
     </a>
 
@@ -142,8 +141,7 @@
         </div>
 
         <div class="form-actions">
-          {# TODO: trocar "#" pela URL da listagem de comunidades #}
-          <a class="btn-outline" href="#">Cancelar</a>
+          <a class="btn-outline" href="{% url 'communities:home_community' %}">Cancelar</a>
           <button type="submit" class="btn">Criar comunidade</button>
         </div>
       </form>
