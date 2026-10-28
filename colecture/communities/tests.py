@@ -380,3 +380,229 @@ def test_create_community(self):
             creator=self.user
         ).exists()
     )
+
+User = get_user_model()
+
+#teste de visualização da comunidade
+class ViewCommunityTest(TestCase):
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="dono",
+            password="teste123"
+        )
+        self.user = User.objects.create_user(
+            username="usuario",
+            password="teste123"
+        )
+        self.admin = User.objects.create_superuser(
+            username="admin_view_test",
+            email="admin_view_test@example.com",
+            password="teste123"
+        )
+
+        self.community = Community.objects.create(
+            name="Comunidade teste",
+            creator=self.owner,
+            state=Community.State.ACTIVE
+        )
+
+    #usuário comum pode visualizar comunidade ativa
+    def test_user_can_view_active_community(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "communities:view_community",
+                args=[self.community.id]
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    #usuário comum não pode visualizar comunidade arquivada
+    def test_regular_user_cannot_view_archived_community(self):
+        self.community.state = Community.State.ARCHIVED
+        self.community.save()
+
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "communities:view_community",
+                args=[self.community.id]
+            )
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    #dono pode visualizar comunidade arquivada
+    def test_owner_can_view_archived_community(self):
+        self.community.state = Community.State.ARCHIVED
+        self.community.save()
+
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            reverse(
+                "communities:view_community",
+                args=[self.community.id]
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    #administrador pode visualizar comunidade arquivada
+    def test_admin_can_view_archived_community(self):
+        self.community.state = Community.State.ARCHIVED
+        self.community.save()
+
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse(
+                "communities:view_community",
+                args=[self.community.id]
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+
+#teste de expulsão e revogação de expulsão de membros da comunidade
+
+
+class ManageMemberBanTest(TestCase):
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="dono",
+            password="teste123"
+        )
+        self.moderator = User.objects.create_user(
+            username="moderador",
+            password="teste123"
+        )
+        self.user = User.objects.create_user(
+            username="membro",
+            password="teste123"
+        )
+        self.unauthorized = User.objects.create_user(
+            username="comum",
+            password="teste123"
+        )
+
+        self.community = Community.objects.create(
+            name="Comunidade teste",
+            creator=self.owner
+        )
+
+        Membership.objects.create(
+            user=self.moderator,
+            community=self.community,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE
+        )
+
+        self.membership = Membership.objects.create(
+            user=self.user,
+            community=self.community,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE
+        )
+
+        self.url = reverse(
+            "communities:manage_member_ban",
+            args=[self.community.id, self.membership.id]
+        )
+
+    #usuário sem permissão não pode expulsar um membro
+    def test_unauthorized_user_cannot_ban_member(self):
+        self.client.force_login(self.unauthorized)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "ban"}
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        self.membership.refresh_from_db()
+        self.assertEqual(
+            self.membership.status,
+            Membership.Status.ACTIVE
+        )
+
+    #moderador pode expulsar um membro ativo
+    def test_moderator_can_ban_active_member(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "ban"}
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.membership.refresh_from_db()
+        self.assertEqual(
+            self.membership.status,
+            Membership.Status.BANNED
+        )
+
+    #moderador pode revogar a expulsão de um membro banido
+    def test_moderator_can_unban_banned_member(self):
+        self.membership.status = Membership.Status.BANNED
+        self.membership.save()
+
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "unban"}
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.membership.refresh_from_db()
+        self.assertEqual(
+            self.membership.status,
+            Membership.Status.NONE
+        )
+
+    #não pode expulsar membro que não está ativo
+    def test_cannot_ban_member_who_is_not_active(self):
+        self.membership.status = Membership.Status.PENDING
+        self.membership.save()
+
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "ban"}
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        self.membership.refresh_from_db()
+        self.assertEqual(
+            self.membership.status,
+            Membership.Status.PENDING
+        )
+
+    #não pode revogar expulsão de membro que não está banido
+    def test_cannot_unban_member_who_is_not_banned(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "unban"}
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        self.membership.refresh_from_db()
+        self.assertEqual(
+            self.membership.status,
+            Membership.Status.ACTIVE
+        )
