@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
 from datetime import datetime;
+from django.db.models import Count, Q
+
 
 # Create your views here.
 
@@ -461,3 +463,49 @@ def manage_member_ban(request, community_id, membership_id):
         "communities:view_community",
         community_id=community.id,
     )
+
+
+
+@login_required
+def home_community(request):
+    user = request.user
+
+    # papéis do usuário nas comunidades em que ele é membro ativo
+    roles = dict(
+        Membership.objects.filter(user=user, status=Membership.Status.ACTIVE)
+        .values_list("community_id", "role")
+    )
+
+    communities = (
+        Community.objects
+        .filter(Q(creator=user) | Q(id__in=roles.keys()))
+        .exclude(state=Community.State.ARCHIVED)
+        .order_by("name")
+    )
+
+    # membros ativos por comunidade (sem depender do related_name)
+    counts = dict(
+        Membership.objects
+        .filter(community__in=communities, status=Membership.Status.ACTIVE)
+        .values_list("community")
+        .annotate(n=Count("id"))
+    )
+
+    comunidades = []
+    for c in communities:
+        if c.creator_id == user.id:
+            papel = "Criador"
+        elif roles.get(c.id) == Membership.Role.MODERATOR:
+            papel = "Moderador"
+        else:
+            papel = "Membro"
+        comunidades.append({
+            "pk": c.pk,
+            "nome": c.name,
+            "descricao": c.description,
+            "membros_count": counts.get(c.id, 0) + 1,  # +1 = criador
+            "privada": c.access == Community.Access.PRIVATE,
+            "papel": papel,
+        })
+
+    return render(request, "communities/home_community.html", {"comunidades": comunidades})
