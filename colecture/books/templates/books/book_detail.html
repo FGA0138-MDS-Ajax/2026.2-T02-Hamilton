@@ -43,7 +43,10 @@
 
         <!-- Parte 3: avaliar o livro -->
         <h2>Avaliar este livro</h2>
-        <form id="form-resenha">
+        {% if user.is_authenticated %}
+        <form id="form-resenha", method="post">
+          {% csrf_token %}
+          <div hidden>{{ form.rating }}</div>
           <div id="seletor" class="seletor" aria-label="Escolha de 1 a 5 estrelas">
             <button type="button" data-valor="1">★</button>
             <button type="button" data-valor="2">★</button>
@@ -51,10 +54,22 @@
             <button type="button" data-valor="4">★</button>
             <button type="button" data-valor="5">★</button>
           </div>
-          <textarea id="texto-resenha" rows="4" placeholder="Escreva suas impressões sobre o livro..."></textarea>
-          <p id="aviso" class="aviso"></p>
+          <textarea id="texto-resenha" name="review" rows="4" placeholder="Escreva suas impressões sobre o livro..."></textarea>
+
+          {% if messages %}
+          <ul class="mensagens">
+          {% for message in messages %}
+          <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+          {% endfor %}
+          </ul>
+          {% endif %}
+
+          <p id="aviso" class="aviso">{% for campo, erros in form.errors.items %}{% for erro in erros %}{{ erro }} {% endfor %}{% endfor %}</p>
           <button type="submit">Enviar avaliacao</button>
         </form>
+        {% else %}
+        <p><a href="{{ login_url }}">Entre na sua conta</a> para avaliar este livro.</p>
+        {% endif %}
 
         <!-- Parte 2: lista de resenhas -->
         <h2>Resenhas</h2>
