@@ -1,26 +1,198 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comunidade</title>
-    <link rel="stylesheet" href="{% static 'communities/css/community_view.css' %}" />
-</head>
-<body>
-    {% if community %}
-        <p>Nome: <span id="name">{{ community.name }}</span></p>
-        <p>Descrição: <span id="name">{{ community.description }}</span></p>
-        <form action="{% url 'communities:join_community' community.id %}" method="post">
-            {% csrf_token %}
-            <button type="submit">Join</button>
-        </form>
-        <form action="{% url 'communities:leave_community' community.id %}" method="post">
-            {% csrf_token %}
-            <button type="submit">Leave</button>
-        </form>
+
+{% block title %}{% if community %}{{ community.name }}{% else %}Comunidade{% endif %} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/community_view.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
+  {#
+    Variáveis de contexto lidas por esta página (todas opcionais; sem elas a parte correspondente some):
+      community   -> nome, descrição e creator_name (já enviados pela view atual)
+      permissions -> can_edit, can_leave, can_archive (define as opções do menu de três pontinhos)
+      book        -> livro da comunidade (title, author, pk)
+      forum       -> chapter {number, title}, chapters [{number, url, current}], posts [{author, created_at, text}]
+  #}
+  <div class="community">
+
+    {% if not community %}
+      <section class="card not-found">
+        <h1>Comunidade não encontrada</h1>
+        <p class="muted">Essa comunidade não existe ou foi removida.</p>
+        <a class="btn" href="{% url 'main:search' %}">Voltar para a pesquisa</a>
+      </section>
     {% else %}
-        <p>Oops! Não encontramos a comunidade.</p>
+
+      <header class="community-head card">
+        <div class="community-avatar" aria-hidden="true">{{ community.name|slice:":1"|upper }}</div>
+
+        <div class="community-title">
+          <h1 id="community-name">{{ community.name }}</h1>
+
+          {# O livro é um atributo da comunidade #}
+          <p class="community-book">
+            <i class="bx bxs-book" aria-hidden="true"></i>
+            <span class="muted">Livro:</span>
+            {% if book %}
+              <a href="{% url 'books:book_detail' book.pk %}">{{ book.title }}</a>
+              <span class="muted">de {{ book.author }}</span>
+            {% else %}
+              <span class="muted">nenhum livro definido</span>
+            {% endif %}
+          </p>
+        </div>
+
+        {% if not permissions or permissions.can_join %}
+          <form class="community-join" method="post" action="{% url 'communities:join_community' community.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn">Entrar</button>
+          </form>
+        {% endif %}
+
+        {# Menu de três pontinhos: cada opção só aparece para quem tem permissão #}
+        {% if permissions.can_edit or permissions.can_leave or permissions.can_archive %}
+          <div class="menu" data-menu>
+            <button type="button" class="menu-btn" id="communityMenuBtn" aria-haspopup="menu"
+              aria-expanded="false" aria-controls="communityMenu" aria-label="Ações da comunidade">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </button>
+
+            <ul class="menu-list" id="communityMenu" role="menu" aria-labelledby="communityMenuBtn" hidden>
+              {% if permissions.can_edit %}
+                <li role="none">
+                  <a role="menuitem" class="menu-item" href="{% url 'communities:edit_community' community.id %}">Editar</a>
+                </li>
+              {% endif %}
+              {% if permissions.can_leave %}
+                <li role="none">
+                  <button type="button" role="menuitem" class="menu-item menu-item--danger" data-confirm="leave">Sair</button>
+                </li>
+              {% endif %}
+              {% if permissions.can_archive %}
+                <li role="none">
+                  <button type="button" role="menuitem" class="menu-item menu-item--danger" data-confirm="archive">Arquivar</button>
+                </li>
+              {% endif %}
+            </ul>
+          </div>
+        {% endif %}
+      </header>
+
+      <div class="community-body">
+
+        <section class="card forum" aria-labelledby="forum-title">
+          <div class="forum-head">
+            <h2 id="forum-title">Fórum</h2>
+            {# Capítulo do livro a que o fórum se refere #}
+            <span class="chapter-badge{% if not forum.chapter %} chapter-badge--empty{% endif %}">
+              {% if forum.chapter %}
+                Capítulo {{ forum.chapter.number }}{% if forum.chapter.title %} · {{ forum.chapter.title }}{% endif %}
+              {% else %}
+                Capítulo não definido
+              {% endif %}
+            </span>
+          </div>
+
+          {% if forum.chapters %}
+            <nav class="chapter-nav" aria-label="Capítulos do livro">
+              {% for item in forum.chapters %}
+                <a href="{{ item.url }}" class="chapter-link{% if item.current %} is-current{% endif %}"
+                  {% if item.current %}aria-current="true"{% endif %}>{{ item.number }}</a>
+              {% endfor %}
+            </nav>
+          {% endif %}
+
+          {% if forum.posts %}
+            <ol class="post-list">
+              {% for post in forum.posts %}
+                <li class="post">
+                  <div class="post-meta">
+                    <strong>{{ post.author }}</strong>
+                    <time datetime="{{ post.created_at|date:'c' }}">{{ post.created_at|date:"d/m/Y H:i" }}</time>
+                  </div>
+                  <p>{{ post.text|linebreaksbr }}</p>
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <p class="empty">
+              Ainda não há mensagens{% if forum.chapter %} no capítulo {{ forum.chapter.number }}{% endif %}.
+            </p>
+          {% endif %}
+        </section>
+
+        <aside class="side" aria-label="Sobre a comunidade">
+          <section class="card" aria-labelledby="about-title">
+            <h2 id="about-title">Sobre</h2>
+            {% if community.description %}
+              <p class="description">{{ community.description|linebreaksbr }}</p>
+            {% else %}
+              <p class="muted">Esta comunidade ainda não tem descrição.</p>
+            {% endif %}
+          </section>
+
+          <section class="card" aria-labelledby="book-title">
+            <h2 id="book-title">Livro</h2>
+            {% if book %}
+              <a class="book-card" href="{% url 'books:book_detail' book.pk %}">
+                <span class="book-card-title">{{ book.title }}</span>
+                <span class="muted">{{ book.author }}</span>
+              </a>
+            {% else %}
+              <p class="muted">Nenhum livro definido para esta comunidade.</p>
+            {% endif %}
+          </section>
+
+          <section class="card" aria-labelledby="details-title">
+            <h2 id="details-title">Detalhes</h2>
+            <dl class="details">
+              <div><dt>Criada por</dt><dd>{{ community.creator_name }}</dd></div>
+            </dl>
+          </section>
+        </aside>
+      </div>
+
+      {# Confirmações (só existem para quem pode executar a ação) #}
+      {% if permissions.can_leave %}
+        <dialog class="confirm" id="confirm-leave" aria-labelledby="confirm-leave-title">
+          <form method="post" action="{% url 'communities:leave_community' community.id %}">
+            {% csrf_token %}
+            <h2 id="confirm-leave-title">Sair da comunidade?</h2>
+            <p class="muted">Você deixa de participar do fórum de “{{ community.name }}”. Dá para entrar de novo depois.</p>
+            <div class="confirm-actions">
+              <button type="button" class="btn-outline" data-close>Cancelar</button>
+              <button type="submit" class="btn btn--danger">Sair</button>
+            </div>
+          </form>
+        </dialog>
+      {% endif %}
+
+      {% if permissions.can_archive %}
+        <dialog class="confirm" id="confirm-archive" aria-labelledby="confirm-archive-title">
+          <form method="post" action="{% url 'communities:archive_community' community.id %}">
+            {% csrf_token %}
+            <h2 id="confirm-archive-title">Arquivar a comunidade?</h2>
+            <p class="muted">Nada é apagado, mas a comunidade deixa de ficar acessível para os membros.</p>
+            <div class="confirm-actions">
+              <button type="button" class="btn-outline" data-close>Cancelar</button>
+              <button type="submit" class="btn btn--danger">Arquivar</button>
+            </div>
+          </form>
+        </dialog>
+      {% endif %}
+
     {% endif %}
-</body>
-</html>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'communities/js/community_view.js' %}"></script>
+{% endblock %}

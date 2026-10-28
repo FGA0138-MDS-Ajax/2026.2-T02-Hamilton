@@ -5,13 +5,21 @@
   font-family: var(--font-main, "Poppins", sans-serif);
 }
 
-/*
-  O fundo da página, a sidebar e a área de conteúdo vêm do sidebar.css.
-  Não centralize o <body> aqui: isso jogava o conteúdo para baixo da sidebar.
-*/
-
-/* Caixa principal: mesmo acabamento do login/cadastro (borda, raio e brilho). */
 .main-box {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 48px 64px 64px;
+  
+}
+
+.main-box--narrow {
+  max-width: 760px;
+}
+.profileEdit-box{
   display: flex;
   flex-direction: column;
   gap: 44px;
@@ -23,10 +31,6 @@
   border: 1px solid var(--border);
   border-radius: 30px;
   box-shadow: var(--glow);
-}
-
-.main-box--narrow {
-  max-width: 760px;
 }
 
 .navbar {
