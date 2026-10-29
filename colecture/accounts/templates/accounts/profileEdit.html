@@ -19,7 +19,7 @@
     <section class="edit-form">
       <h1>Editar informações</h1>
 
-      <p>Se não for alterar os campos Primeiro nome, e Último nome os deixe em branco</p>
+      <p>Para não alterar nome ou último nome, deixe-os em branco.</p>
 
       <form method="POST" action="{% url 'accounts:editProfile' %}">
         {% csrf_token %}
