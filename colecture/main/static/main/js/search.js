@@ -432,7 +432,7 @@ function showCommunities(communities, total) {
 
     var joinLink = document.createElement("a");
     joinLink.className = "add-button";
-    joinLink.href = "/communities/" + community.id + "/";
+    joinLink.href = community.url;
     joinLink.textContent = "Entrar na comunidade";
 
     actions.appendChild(joinLink);
