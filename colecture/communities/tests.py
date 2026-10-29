@@ -4,6 +4,8 @@ from django.urls import reverse
 from .models import Community, Membership
 from datetime import datetime, timedelta;
 from django.utils import timezone
+from django.core.management import call_command
+from io import StringIO
 # Create your tests here.
 
 class CT03(TestCase):
@@ -1145,3 +1147,90 @@ class MemberRoleEditTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("accounts:login"), response.url)
         self.assert_role(self.target, Membership.Role.MEMBER)
+
+
+# ---------------------------------------------------------------------------
+# Purge de comunidades arquivadas (retenção de 60 dias)
+# ---------------------------------------------------------------------------
+class PurgeArchivedCommunitiesTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username="dono", password="teste123")
+
+    def make_archived(self, name, days_ago):
+        community = Community.objects.create(
+            name=name,
+            creator=self.owner,
+            state=Community.State.ARCHIVED,  # o save() preenche archived_at com "agora"
+        )
+        # update() não passa pelo save(), então a data antiga não é sobrescrita
+        Community.objects.filter(pk=community.pk).update(
+            archived_at=timezone.now() - timedelta(days=days_ago)
+        )
+        return community
+
+    def run_purge(self):
+        out = StringIO()
+        call_command("purge_archived_communities", stdout=out)
+        return out.getvalue()
+
+    # exclui só a arquivada há mais de 60 dias; recente e ativa ficam
+    def test_purge_only_deletes_expired_archived(self):
+        old = self.make_archived("Velha", days_ago=61)
+        recent = self.make_archived("Recente", days_ago=59)
+        active = Community.objects.create(name="Ativa", creator=self.owner)
+
+        self.run_purge()
+
+        self.assertFalse(Community.objects.filter(pk=old.pk).exists())
+        self.assertTrue(Community.objects.filter(pk=recent.pk).exists())
+        self.assertTrue(Community.objects.filter(pk=active.pk).exists())
+
+    # os memberships da comunidade excluída saem em cascata
+    def test_purge_removes_memberships_of_deleted_community(self):
+        old = self.make_archived("Velha", days_ago=90)
+        member = User.objects.create_user(username="membro", password="teste123")
+        Membership.objects.create(
+            user=member,
+            community=old,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+        )
+
+        self.run_purge()
+
+        self.assertFalse(Membership.objects.filter(community_id=old.pk).exists())
+        # o usuário não é apagado junto
+        self.assertTrue(User.objects.filter(pk=member.pk).exists())
+
+    # comunidade desarquivada deixa de ser candidata ao purge
+    def test_unarchived_community_is_not_purged(self):
+        community = self.make_archived("Restaurada", days_ago=90)
+        community.refresh_from_db()
+        community.state = Community.State.ACTIVE
+        community.save()  # o save() zera archived_at
+
+        self.run_purge()
+
+        community.refresh_from_db()
+        self.assertIsNone(community.archived_at)
+        self.assertTrue(Community.objects.filter(pk=community.pk).exists())
+
+    # sem nada vencido, o comando roda sem erro e informa 0
+    def test_purge_with_nothing_to_delete(self):
+        Community.objects.create(name="Ativa", creator=self.owner)
+
+        output = self.run_purge()
+
+        self.assertIn("0 comunidade(s)", output)
+        self.assertEqual(Community.objects.count(), 1)
+
+    # rodar duas vezes seguidas não causa erro nem exclui a mais
+    def test_purge_is_idempotent(self):
+        self.make_archived("Velha", days_ago=61)
+        keep = self.make_archived("Recente", days_ago=10)
+
+        self.run_purge()
+        output = self.run_purge()
+
+        self.assertIn("0 comunidade(s)", output)
+        self.assertTrue(Community.objects.filter(pk=keep.pk).exists())
