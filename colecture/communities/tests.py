@@ -2,7 +2,8 @@ from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from .models import Community, Membership
-from datetime import datetime;
+from datetime import datetime, timedelta;
+from django.utils import timezone
 # Create your tests here.
 
 class CT03(TestCase):
@@ -360,26 +361,34 @@ class DeleteCommunityTest(TestCase):
         )
 
 #Teste de criação de comunidade
+# (antes era uma função solta, fora de qualquer classe, então o Django nunca
+# a executava; o nome esperado também tinha um erro de digitação.)
+class CreateCommunityTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='TESTADOR',
+            password='teste123'
+        )
 
-def test_create_community(self):
-    self.client.force_login(self.user)
+    def test_create_community(self):
+        self.client.force_login(self.user)
 
-    response = self.client.post(
-        reverse('communities:create_community'),
-        {
-            'name':'Comunidade Teste',
-            'description': 'Comunidade para testes',
-            'access': Community.Access.PUBLIC,
-        }
-    )
+        response = self.client.post(
+            reverse('communities:create_community'),
+            {
+                'name':'Comunidade Teste',
+                'description': 'Comunidade para testes',
+                'access': Community.Access.PUBLIC,
+            }
+        )
 
-    self.assertEqual(response.status_code, 302)
-    self.assertTrue(
-        Community.objects.filter(
-            name='Communidade Teste',
-            creator=self.user
-        ).exists()
-    )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Community.objects.filter(
+                name='Comunidade Teste',
+                creator=self.user
+            ).exists()
+        )
 
 User = get_user_model()
 
@@ -606,3 +615,533 @@ class ManageMemberBanTest(TestCase):
             self.membership.status,
             Membership.Status.ACTIVE
         )
+
+
+# ---------------------------------------------------------------------------
+# CT03 - aceitação/rejeição de membros por solicitação (R09, comunidade privada)
+# ---------------------------------------------------------------------------
+class MembershipRequestTest(TestCase):
+    """
+    Fluxo: o leitor solicita entrada em comunidade privada (status PENDING,
+    cargo NONE) e um moderador/criador/administrador aceita ou rejeita pela
+    view manage_membership_request (POST com decision=accept|reject).
+    """
+
+    def setUp(self):
+        self.owner = User.objects.create_user(username="dono", password="teste123")
+        self.moderator = User.objects.create_user(username="moderador", password="teste123")
+        self.member = User.objects.create_user(username="membro", password="teste123")
+        self.applicant = User.objects.create_user(username="solicitante", password="teste123")
+        self.outsider = User.objects.create_user(username="forasteiro", password="teste123")
+        self.admin = User.objects.create_superuser(
+            username="admin_request_test",
+            email="admin_request_test@example.com",
+            password="teste123",
+        )
+
+        self.community = Community.objects.create(
+            name="Comunidade privada",
+            creator=self.owner,
+            access=Community.Access.PRIVATE,
+        )
+        Membership.objects.create(
+            user=self.moderator,
+            community=self.community,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+        )
+        self.member_membership = Membership.objects.create(
+            user=self.member,
+            community=self.community,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+        )
+
+        # joined_at antigo para provar que o aceite o renova
+        self.old_date = timezone.now() - timedelta(days=365)
+        self.pending = Membership.objects.create(
+            user=self.applicant,
+            community=self.community,
+            role=Membership.Role.NONE,
+            status=Membership.Status.PENDING,
+            joined_at=self.old_date,
+        )
+
+        self.url = reverse(
+            "communities:manage_membership_request",
+            args=[self.community.id, self.pending.id],
+        )
+        self.community_url = reverse(
+            "communities:view_community", args=[self.community.id]
+        )
+
+    def decide(self, user, decision="accept", url=None):
+        self.client.force_login(user)
+        data = {} if decision is None else {"decision": decision}
+        return self.client.post(url or self.url, data)
+
+    def assert_still_pending(self):
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.status, Membership.Status.PENDING)
+        self.assertEqual(self.pending.role, Membership.Role.NONE)
+
+    # ---------- aceitar ----------
+
+    # moderador aceita: vira membro ativo com cargo MEMBER
+    def test_moderator_can_accept_request(self):
+        response = self.decide(self.moderator, "accept")
+
+        self.assertRedirects(response, self.community_url, fetch_redirect_response=False)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.status, Membership.Status.ACTIVE)
+        self.assertEqual(self.pending.role, Membership.Role.MEMBER)
+        self.assertGreater(self.pending.joined_at, self.old_date)
+
+    # criador e administrador também podem aceitar
+    def test_owner_and_admin_can_accept_request(self):
+        for user in (self.owner, self.admin):
+            with self.subTest(user=user.username):
+                self.pending.status = Membership.Status.PENDING
+                self.pending.role = Membership.Role.NONE
+                self.pending.save()
+
+                response = self.decide(user, "accept")
+
+                self.assertEqual(response.status_code, 302)
+                self.pending.refresh_from_db()
+                self.assertEqual(self.pending.status, Membership.Status.ACTIVE)
+                self.assertEqual(self.pending.role, Membership.Role.MEMBER)
+
+    # ---------- rejeitar ----------
+
+    # rejeitar não torna o usuário membro, mas mantém a linha (constraint única)
+    def test_moderator_can_reject_request(self):
+        response = self.decide(self.moderator, "reject")
+
+        self.assertRedirects(response, self.community_url, fetch_redirect_response=False)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.status, Membership.Status.NONE)
+        self.assertEqual(self.pending.role, Membership.Role.NONE)
+        self.assertEqual(
+            Membership.objects.filter(
+                user=self.applicant, community=self.community
+            ).count(),
+            1,
+        )
+
+    # quem foi rejeitado pode pedir de novo e volta a PENDING
+    def test_rejected_user_can_request_again(self):
+        self.decide(self.moderator, "reject")
+
+        self.client.force_login(self.applicant)
+        response = self.client.post(
+            reverse("communities:join_community", args=[self.community.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.status, Membership.Status.PENDING)
+
+    # fluxo completo: solicitar pela view de entrada e então aceitar
+    def test_full_flow_request_then_accept(self):
+        newcomer = User.objects.create_user(username="novato", password="teste123")
+
+        self.client.force_login(newcomer)
+        self.client.post(reverse("communities:join_community", args=[self.community.id]))
+        membership = Membership.objects.get(user=newcomer, community=self.community)
+        self.assertEqual(membership.status, Membership.Status.PENDING)
+
+        url = reverse(
+            "communities:manage_membership_request",
+            args=[self.community.id, membership.id],
+        )
+        self.decide(self.moderator, "accept", url=url)
+
+        membership.refresh_from_db()
+        self.assertEqual(membership.status, Membership.Status.ACTIVE)
+        self.assertEqual(membership.role, Membership.Role.MEMBER)
+
+    # ---------- restrição de perfil ----------
+
+    # membro comum, forasteiro e o próprio solicitante não decidem solicitações
+    def test_users_without_permission_cannot_decide(self):
+        for user in (self.member, self.outsider, self.applicant):
+            for decision in ("accept", "reject"):
+                with self.subTest(user=user.username, decision=decision):
+                    response = self.decide(user, decision)
+                    self.assertEqual(response.status_code, 403)
+                    self.assert_still_pending()
+
+    # moderador de OUTRA comunidade não tem poder sobre esta
+    def test_moderator_of_another_community_cannot_decide(self):
+        other = Community.objects.create(name="Outra", creator=self.outsider)
+        Membership.objects.create(
+            user=self.member,
+            community=other,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+        )
+
+        response = self.decide(self.member, "accept")
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_still_pending()
+
+    # moderador banido (cargo antigo, status BANNED) perde o poder
+    def test_banned_moderator_cannot_decide(self):
+        banned = User.objects.create_user(username="mod_banido", password="teste123")
+        Membership.objects.create(
+            user=banned,
+            community=self.community,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.BANNED,
+        )
+
+        response = self.decide(banned, "accept")
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_still_pending()
+
+    # usuário deslogado é mandado para o login e nada muda
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url, {"decision": "accept"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.url)
+        self.assert_still_pending()
+
+    # ---------- entradas inválidas ----------
+
+    # decisão desconhecida ou ausente é recusada
+    def test_invalid_decision_is_rejected(self):
+        for decision in ("approve", "ACCEPT", "ban", "", None):
+            with self.subTest(decision=decision):
+                response = self.decide(self.moderator, decision)
+                self.assertEqual(response.status_code, 403)
+                self.assert_still_pending()
+
+    # só POST altera dados
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_still_pending()
+
+    # o endpoint só trata solicitações PENDING: não serve para remover
+    # membro ativo nem para desbanir
+    def test_only_pending_requests_can_be_decided(self):
+        banned = User.objects.create_user(username="banido", password="teste123")
+        banned_membership = Membership.objects.create(
+            user=banned,
+            community=self.community,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.BANNED,
+        )
+
+        cases = [
+            (self.member_membership, Membership.Status.ACTIVE),
+            (banned_membership, Membership.Status.BANNED),
+        ]
+        for membership, expected_status in cases:
+            for decision in ("accept", "reject"):
+                with self.subTest(status=expected_status, decision=decision):
+                    url = reverse(
+                        "communities:manage_membership_request",
+                        args=[self.community.id, membership.id],
+                    )
+                    response = self.decide(self.moderator, decision, url=url)
+
+                    self.assertEqual(response.status_code, 403)
+                    membership.refresh_from_db()
+                    self.assertEqual(membership.status, expected_status)
+
+    # membership de outra comunidade na URL desta -> 404
+    def test_membership_from_another_community_returns_404(self):
+        other = Community.objects.create(
+            name="Outra privada",
+            creator=self.owner,
+            access=Community.Access.PRIVATE,
+        )
+        other_pending = Membership.objects.create(
+            user=self.outsider,
+            community=other,
+            role=Membership.Role.NONE,
+            status=Membership.Status.PENDING,
+        )
+        url = reverse(
+            "communities:manage_membership_request",
+            args=[self.community.id, other_pending.id],
+        )
+
+        response = self.decide(self.moderator, "accept", url=url)
+
+        self.assertEqual(response.status_code, 404)
+        other_pending.refresh_from_db()
+        self.assertEqual(other_pending.status, Membership.Status.PENDING)
+
+
+# ---------------------------------------------------------------------------
+# CT03 - edição de cargos de membros (R09: promover a moderador / rebaixar)
+# ---------------------------------------------------------------------------
+class MemberRoleEditTest(TestCase):
+    """
+    A view edit_member_role recebe POST com role=MEMBER|MODERATOR.
+    Quem edita: administrador, criador ou moderador ATIVO da comunidade.
+    Alvo: apenas membros ATIVOS.
+    """
+
+    def setUp(self):
+        self.owner = User.objects.create_user(username="dono", password="teste123")
+        self.moderator = User.objects.create_user(username="moderador", password="teste123")
+        self.other_moderator = User.objects.create_user(username="moderador2", password="teste123")
+        self.member = User.objects.create_user(username="membro", password="teste123")
+        self.outsider = User.objects.create_user(username="forasteiro", password="teste123")
+        self.admin = User.objects.create_superuser(
+            username="admin_role_test",
+            email="admin_role_test@example.com",
+            password="teste123",
+        )
+
+        self.community = Community.objects.create(name="Comunidade", creator=self.owner)
+
+        Membership.objects.create(
+            user=self.moderator,
+            community=self.community,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+        )
+        self.mod_target = Membership.objects.create(
+            user=self.other_moderator,
+            community=self.community,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+        )
+        self.target = Membership.objects.create(
+            user=self.member,
+            community=self.community,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+        )
+
+        self.community_url = reverse(
+            "communities:view_community", args=[self.community.id]
+        )
+
+    def url_for(self, membership):
+        return reverse(
+            "communities:edit_member_role",
+            args=[membership.community_id, membership.id],
+        )
+
+    def set_role(self, user, membership, role="MODERATOR"):
+        self.client.force_login(user)
+        data = {} if role is None else {"role": role}
+        return self.client.post(self.url_for(membership), data)
+
+    def assert_role(self, membership, expected_role, expected_status=Membership.Status.ACTIVE):
+        membership.refresh_from_db()
+        self.assertEqual(membership.role, expected_role)
+        self.assertEqual(membership.status, expected_status)
+
+    # ---------- cargo válido ----------
+
+    # moderador promove membro a moderador
+    def test_moderator_can_promote_member(self):
+        response = self.set_role(self.moderator, self.target, Membership.Role.MODERATOR)
+
+        self.assertRedirects(response, self.community_url, fetch_redirect_response=False)
+        self.assert_role(self.target, Membership.Role.MODERATOR)
+
+    # criador e administrador também promovem
+    def test_owner_and_admin_can_promote_member(self):
+        for user in (self.owner, self.admin):
+            with self.subTest(user=user.username):
+                self.target.role = Membership.Role.MEMBER
+                self.target.save()
+
+                response = self.set_role(user, self.target, Membership.Role.MODERATOR)
+
+                self.assertEqual(response.status_code, 302)
+                self.assert_role(self.target, Membership.Role.MODERATOR)
+
+    # rebaixar moderador a membro (por moderador, criador ou admin)
+    def test_can_demote_moderator_to_member(self):
+        for user in (self.moderator, self.owner, self.admin):
+            with self.subTest(user=user.username):
+                self.mod_target.role = Membership.Role.MODERATOR
+                self.mod_target.save()
+
+                response = self.set_role(user, self.mod_target, Membership.Role.MEMBER)
+
+                self.assertEqual(response.status_code, 302)
+                self.assert_role(self.mod_target, Membership.Role.MEMBER)
+
+    # repetir o mesmo cargo é aceito e não muda nada
+    def test_setting_same_role_is_accepted(self):
+        response = self.set_role(self.moderator, self.target, Membership.Role.MEMBER)
+
+        self.assertEqual(response.status_code, 302)
+        self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # só o cargo muda: campos extras (status, user, community) são ignorados
+    def test_only_role_is_changed(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url_for(self.target),
+            {
+                "role": Membership.Role.MODERATOR,
+                "status": Membership.Status.BANNED,
+                "user": self.outsider.id,
+                "community": 9999,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.target.refresh_from_db()
+        self.assertEqual(self.target.role, Membership.Role.MODERATOR)
+        self.assertEqual(self.target.status, Membership.Status.ACTIVE)
+        self.assertEqual(self.target.user, self.member)
+        self.assertEqual(self.target.community, self.community)
+
+    # ---------- cargo inválido ----------
+
+    # nenhum valor fora de MEMBER/MODERATOR é aceito
+    def test_invalid_roles_are_rejected(self):
+        invalid_roles = [
+            Membership.Role.NONE,  # existe no model, mas não é cargo atribuível
+            "OWNER",
+            "CREATOR",
+            "ADMIN",
+            "moderator",           # diferença de caixa
+            " MODERATOR",          # espaço sobrando
+            "",
+            None,                  # campo ausente
+        ]
+        for role in invalid_roles:
+            with self.subTest(role=role):
+                response = self.set_role(self.moderator, self.target, role)
+
+                self.assertEqual(response.status_code, 403)
+                self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # ---------- restrição de perfil ----------
+
+    # membro comum não altera cargos, nem o próprio (escalada de privilégio)
+    def test_regular_member_cannot_edit_roles(self):
+        for membership in (self.target, self.mod_target):
+            with self.subTest(target=membership.user.username):
+                response = self.set_role(self.member, membership, Membership.Role.MODERATOR)
+                self.assertEqual(response.status_code, 403)
+
+        self.assert_role(self.target, Membership.Role.MEMBER)
+        self.assert_role(self.mod_target, Membership.Role.MODERATOR)
+
+    # forasteiro (sem membership) não altera cargos
+    def test_outsider_cannot_edit_roles(self):
+        response = self.set_role(self.outsider, self.target, Membership.Role.MODERATOR)
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # moderador cujo status não é ACTIVE (pendente, saiu, banido) perde o poder
+    def test_non_active_moderator_cannot_edit_roles(self):
+        for status in (
+            Membership.Status.PENDING,
+            Membership.Status.LEFT,
+            Membership.Status.BANNED,
+        ):
+            with self.subTest(status=status):
+                user = User.objects.create_user(username=f"mod_{status}", password="teste123")
+                Membership.objects.create(
+                    user=user,
+                    community=self.community,
+                    role=Membership.Role.MODERATOR,
+                    status=status,
+                )
+
+                response = self.set_role(user, self.target, Membership.Role.MODERATOR)
+
+                self.assertEqual(response.status_code, 403)
+                self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # moderador de outra comunidade não tem poder aqui
+    def test_moderator_of_another_community_cannot_edit_roles(self):
+        other = Community.objects.create(name="Outra", creator=self.outsider)
+        Membership.objects.create(
+            user=self.member,
+            community=other,
+            role=Membership.Role.MODERATOR,
+            status=Membership.Status.ACTIVE,
+        )
+
+        response = self.set_role(self.member, self.target, Membership.Role.MODERATOR)
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # ---------- alvo inválido ----------
+
+    # só membros ativos têm cargo editável
+    def test_cannot_edit_role_of_non_active_members(self):
+        for status in (
+            Membership.Status.PENDING,
+            Membership.Status.LEFT,
+            Membership.Status.BANNED,
+        ):
+            with self.subTest(status=status):
+                user = User.objects.create_user(username=f"alvo_{status}", password="teste123")
+                membership = Membership.objects.create(
+                    user=user,
+                    community=self.community,
+                    role=Membership.Role.NONE,
+                    status=status,
+                )
+
+                response = self.set_role(self.moderator, membership, Membership.Role.MODERATOR)
+
+                self.assertEqual(response.status_code, 403)
+                self.assert_role(membership, Membership.Role.NONE, expected_status=status)
+
+    # membership de outra comunidade na URL desta -> 404
+    def test_membership_from_another_community_returns_404(self):
+        other = Community.objects.create(name="Outra", creator=self.owner)
+        other_membership = Membership.objects.create(
+            user=self.outsider,
+            community=other,
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+        )
+        url = reverse(
+            "communities:edit_member_role",
+            args=[self.community.id, other_membership.id],  # comunidade errada
+        )
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(url, {"role": Membership.Role.MODERATOR})
+
+        self.assertEqual(response.status_code, 404)
+        self.assert_role(other_membership, Membership.Role.MEMBER)
+
+    # ---------- método / autenticação ----------
+
+    # só POST altera dados
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.get(self.url_for(self.target))
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_role(self.target, Membership.Role.MEMBER)
+
+    # deslogado vai para o login e nada muda
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(
+            self.url_for(self.target), {"role": Membership.Role.MODERATOR}
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.url)
+        self.assert_role(self.target, Membership.Role.MEMBER)
