@@ -1,0 +1,38 @@
+.moderator-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.moderator-header {
+    margin-bottom: 2rem;
+}
+
+.moderator-header h1 {
+    font-size: 2rem;
+    color: var(--primary-color, #333);
+    margin-bottom: 0.5rem;
+}
+
+.moderator-header p {
+    color: #666;
+}
+
+.moderator-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.moderator-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.moderator-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #444;
+}

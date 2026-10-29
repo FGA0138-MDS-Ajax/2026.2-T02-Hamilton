@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 body {
-    font-family: 'Times New Roman', serif;
+    font-family: 'Poppins', sans-serif;
     background: var(--gradient-bg);
     background-color: var(--bg-base);
     background-attachment: fixed;
@@ -11,30 +11,13 @@ body {
     min-height: 100vh;
 }
 
-/* Logo grande ao fundo, fixa e bem suave */
-body::before {
-  content: "";
-  position: fixed;
-  top: 55%;
-  left: 50%;
-  width: min(620px, 90vw);
-  height: min(720px, 90vh);
-  transform: translate(-50%, -50%);
-  z-index: -1;
-  pointer-events: none;
-  background-color: var(--purple-600);
-  opacity: 0.12;
-  -webkit-mask: url("../img/logo.png") center / contain no-repeat;
-  mask: url("../img/logo.png") center / contain no-repeat;
-}
-
 .page-header {
   display : flex;
   align-items: center;
   gap: 10px;
   padding: 10px 24px;
   background: var(--gradient-brand);
-  border-bottom: 1px solid var (--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .logo{
@@ -61,9 +44,9 @@ body::before {
 }
  
 .page-content {
-  max-width: 800px;
   margin: 30px auto;
   padding: 0 15px;
+  box-sizing: border-box;
 }
  
 .search-bar {
@@ -121,20 +104,61 @@ body::before {
 .search-bar button:hover {
   background-color: var(--purple-400);
 }
+
+.search-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tab-button {
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab-button:hover {
+  border-color: var(--purple-400);
+}
+
+.tab-button.active {
+  background-color: var(--purple-900);
+  border-color: var(--purple-400);
+  color: var(--purple-100);
+}
+
+a.add-button {
+  display: inline-block;
+  text-decoration: none;
+}
  
 #resultsInfo {
   color: var(--text-secondary);
   margin-bottom: 15px;
 }
+
+#bookList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 12px;
+}
  
 .book-card {
   display: flex;
   gap: 15px;
-  background-color: var(--bg-surface);
+  background-color: rgba(10, 8, 18, 0.95);
   padding: 15px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   border-radius: 10px;
   border: 1px solid var(--border);
+  box-sizing: border-box;
+  min-width: 0;
 }
  
 .book-card:hover {
@@ -149,6 +173,19 @@ body::before {
   background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
+
+.book-cover {
+  width: 100px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.book-cover-empty {
+  border: 1px dashed var(--border-strong);
+}
  
 .book-title {
   margin: 0 0 4px 0;
@@ -158,19 +195,20 @@ body::before {
  
 .book-author {
   margin: 0 0 6px 0;
+  font-size: 18px;
   color: var(--text-secondary);
 }
  
 .book-synopsis {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-secondary);
 }
  
 .book-genre {
   display: inline-block;
   margin-top: 8px;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--purple-300);
   background-color: var(--bg-elevated);
   padding: 3px 8px;
@@ -191,7 +229,8 @@ body::before {
 .book-actions {
   position: relative;
   align-self: flex-end;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .book-link{
@@ -228,6 +267,7 @@ body::before {
 
 .register-button{
   display: inline-block;
+  justify-self: start;
   margin-top: 12px;
   padding: 10px 18px;
   border-radius: 6px;
@@ -442,5 +482,65 @@ body::before {
 .link-main:active {
     color: inherit !important;
     text-decoration: none !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: url("../img/logo.png") center / contain no-repeat;
+  opacity: 0.10;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.empty-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.empty-message {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+}
+
+.empty-button {
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--purple-600);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.empty-button:hover {
+  border-color: var(--purple-400);
+}
+
+.empty-img {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  margin: 20px auto 0;
 }
 

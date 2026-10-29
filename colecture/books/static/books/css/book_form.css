@@ -5,6 +5,9 @@
   tokens de main/css/variables.css, mesma moldura (.main-box) e mesmos campos.
   É um arquivo próprio, para não depender de accounts/css/profile.css, que
   outra pessoa do grupo está ajustando nesta sprint.
+
+  O fundo, a fonte e o posicionamento geral da página vêm do
+  main/css/sidebar.css (por isso não há regra de "body" aqui).
 */
 
 :root {
@@ -19,24 +22,15 @@
   font-family: var(--font-main, "Poppins", sans-serif);
 }
 
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 24px 0;
-  background: var(--gradient-bg), var(--bg-base);
-  color: var(--text-primary);
-}
-
 /* Moldura e cabeçalho (iguais ao perfil) */
 .main-box {
   display: flex;
   flex-direction: column;
   gap: 44px;
   width: 1400px;
-  max-width: 94vw;
+  max-width: 100%;
   min-height: 820px;
+  margin: 0 auto;
   padding: 48px 64px 64px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -251,4 +245,28 @@ body {
   * {
     transition: none !important;
   }
+}
+
+/* Estilização da caixa de seleção de gênero */
+.form-select-custom {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+}
+
+.form-select-custom:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
 }

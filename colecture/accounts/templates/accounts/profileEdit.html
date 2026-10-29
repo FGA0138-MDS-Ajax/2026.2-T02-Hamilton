@@ -1,29 +1,25 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!doctype html>
-<html lang="pt-br">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% block title %}Editar Perfil - CoLecture{% endblock %}
+
+{% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
   <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-  <title>Editar Perfil - CoLecture</title>
-</head>
+{% endblock %}
 
-<body>
-  <div class="main-box main-box--narrow">
-    <header class="navbar">
-      <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
-      <a class="back-link" href="{% url 'accounts:profile' %}">
-        <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
-      </a>
-    </header>
+{% block content %}
+  <div class="main-box--narrow profileEdit-box">
+
+    <a class="back-link" href="{% url 'accounts:profile' %}">
+      <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+    </a>
 
     <section class="edit-form">
       <h1>Editar informações</h1>
 
-      <p>Se não for alterar os campos Primeiro nome, e Último nome os deixe em branco</p>
+      <p>Para não alterar nome ou último nome, deixe-os em branco.</p>
 
       <form method="POST" action="{% url 'accounts:editProfile' %}">
         {% csrf_token %}
@@ -31,7 +27,6 @@
         <button type="submit" class="btn">Salvar</button>
       </form>
     </section>
-  </div>
-</body>
 
-</html>
+  </div>
+{% endblock %}

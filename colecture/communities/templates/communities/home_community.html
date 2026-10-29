@@ -1,0 +1,147 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Minhas comunidades - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <div class="main-box com-page">
+
+    <header class="com-head">
+      <div>
+        <h1>Minhas comunidades</h1>
+        <p class="com-sub">Leia junto com quem divide os mesmos interesses.</p>
+      </div>
+      <div class="com-actions">
+        <button class="com-btn" id="btnPrivada" type="button">
+          <i class="bx bx-lock-alt"></i> Entrar em comunidade privada
+        </button>
+        <a class="com-btn com-btn-primary" href="{% url 'communities:create_community' %}">
+          <i class="bx bx-plus"></i> Nova comunidade
+        </a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <ul class="com-messages">
+        {% for message in messages %}<li class="com-msg-{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if comunidades %}
+      <div class="com-stats">
+        <div class="com-stat"><strong>{{ comunidades|length }}</strong><span>comunidades</span></div>
+        <div class="com-stat"><strong id="totalMembros">0</strong><span>membros no total</span></div>
+      </div>
+
+      <div class="com-toolbar">
+        <label class="com-search">
+          <i class="bx bx-search"></i>
+          <input type="search" id="busca" placeholder="Buscar nas minhas comunidades" aria-label="Buscar nas minhas comunidades">
+        </label>
+      </div>
+    {% endif %}
+
+    <section class="com-grid" id="grid">
+      {% for c in comunidades %}
+        <a class="com-card" href="{% url 'communities:view_community' community_id=c.pk %}"
+           data-nome="{{ c.nome|lower }}" data-membros="{{ c.membros_count }}">
+          <div class="com-card-top">
+            <div class="com-cover">{{ c.nome|slice:":1"|upper }}</div>
+            <div>
+              <h2>{{ c.nome }}</h2>
+              <div class="com-role">{{ c.papel }}</div>
+            </div>
+          </div>
+          <p class="com-desc">{{ c.descricao }}</p>
+          <div class="com-card-foot">
+  <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
+
+      <div class="com-tags">
+        {% if c.is_moderator %}
+          <span class="com-tag com-tag-mod">Moderador</span>
+        {% endif %}
+
+        {% if c.privada %}
+          <span class="com-tag com-tag-closed">Privada</span>
+        {% else %}
+          <span class="com-tag com-tag-open">Aberta</span>
+        {% endif %}
+      </div>
+</div>
+        </a>
+      {% endfor %}
+    </section>
+
+    {% if not comunidades %}
+      <div class="com-empty">
+        <i class="bx bx-group"></i>
+        <h2>Você ainda não participa de nenhuma comunidade</h2>
+        <p>Crie a sua ou entre em uma comunidade privada com um código de convite.</p>
+        <div class="com-actions">
+          <a class="com-btn com-btn-primary" href="">Criar comunidade</a>
+          <button class="com-btn" type="button" data-open-modal>Usar código de convite</button>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="com-empty" id="semResultado" hidden>
+      <i class="bx bx-search-alt"></i>
+      <h2>Nenhuma comunidade encontrada</h2>
+      <p>Tente outro nome ou limpe a busca.</p>
+    </div>
+
+  </div>
+
+  <div class="com-overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
+    <form class="com-modal" method="post" action="">
+      {% csrf_token %}
+      <h2 id="mTitle">Entrar em comunidade privada</h2>
+      <p>Digite o código de convite que o moderador compartilhou com você.</p>
+      <label for="codigo">Código de convite</label>
+      <input id="codigo" name="codigo" type="text" autocomplete="off" placeholder="Ex.: LEIT-4X9Q" required>
+      <div class="com-modal-actions">
+        <button class="com-btn" type="button" id="cancelar">Cancelar</button>
+        <button class="com-btn com-btn-primary" type="submit">Solicitar entrada</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+  (function () {
+    var overlay = document.getElementById('overlay');
+    var codigo = document.getElementById('codigo');
+    function abrir() { overlay.hidden = false; codigo.value = ''; codigo.focus(); }
+    function fechar() { overlay.hidden = true; }
+    document.getElementById('btnPrivada').addEventListener('click', abrir);
+    document.querySelectorAll('[data-open-modal]').forEach(function (b) { b.addEventListener('click', abrir); });
+    document.getElementById('cancelar').addEventListener('click', fechar);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) fechar(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
+
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.com-card'));
+    var total = document.getElementById('totalMembros');
+    if (total) {
+      total.textContent = cards.reduce(function (s, c) { return s + (parseInt(c.dataset.membros, 10) || 0); }, 0)
+        .toLocaleString('pt-BR');
+    }
+    var busca = document.getElementById('busca');
+    var semResultado = document.getElementById('semResultado');
+    if (busca) {
+      busca.addEventListener('input', function () {
+        var f = busca.value.trim().toLowerCase(), visiveis = 0;
+        cards.forEach(function (c) {
+          var ok = c.dataset.nome.indexOf(f) !== -1;
+          c.hidden = !ok;
+          if (ok) visiveis++;
+        });
+        semResultado.hidden = visiveis > 0;
+      });
+    }
+  })();
+  </script>
+{% endblock %}

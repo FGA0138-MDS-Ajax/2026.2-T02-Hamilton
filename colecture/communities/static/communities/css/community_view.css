@@ -1,0 +1,515 @@
+
+.community {
+ 
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: var(--font-main, "Poppins", sans-serif);
+  color: var(--text-primary);
+}
+
+.community h1,
+.community h2,
+.community p,
+.community ul,
+.community ol,
+.community dl,
+.community dd {
+  margin: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.card {
+  padding: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.card h2 {
+  margin-bottom: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ---------- Botões ---------- */
+.btn,
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 26px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.btn {
+  background: var(--purple-500);
+  border: none;
+  color: #fff;
+}
+
+.btn:hover {
+  background: var(--purple-600);
+  box-shadow: var(--glow);
+}
+
+.btn--danger {
+  background: #b42318;
+}
+
+.btn--danger:hover {
+  background: #d92d20;
+  box-shadow: none;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--purple-500);
+  color: var(--purple-300);
+}
+
+.btn-outline:hover {
+  background: var(--purple-500);
+  color: #fff;
+}
+
+.btn:focus-visible,
+.btn-outline:focus-visible,
+.menu-btn:focus-visible,
+.menu-item:focus-visible,
+.chapter-link:focus-visible,
+.book-card:focus-visible,
+.community-book a:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 3px;
+}
+
+/* ---------- Cabeçalho ---------- */
+.community-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "avatar title join menu";
+  align-items: center;
+  column-gap: 20px;
+  padding: 24px 28px;
+}
+
+.community-avatar {
+  grid-area: avatar;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  box-shadow: var(--glow);
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.community-title {
+  grid-area: title;
+  min-width: 0;
+}
+
+.community-title h1 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.community-book {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+.community-book i {
+  font-size: 20px;
+  color: var(--purple-400);
+}
+
+.community-book a {
+  font-weight: 600;
+  color: var(--purple-300);
+  text-decoration: none;
+}
+
+.community-book a:hover {
+  text-decoration: underline;
+}
+
+.community-join {
+  grid-area: join;
+}
+
+/* ---------- Menu de três pontinhos ---------- */
+.menu {
+  grid-area: menu;
+  position: relative;
+}
+
+.menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.menu-btn:hover,
+.menu-btn[aria-expanded="true"] {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 190px;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.menu-list[hidden] {
+  display: none;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--bg-input);
+}
+
+.menu-item--danger {
+  color: var(--danger);
+}
+
+/* ---------- Corpo: fórum + lateral ---------- */
+.community-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.forum {
+  min-height: 320px;
+}
+
+.forum-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.forum-head h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.chapter-badge {
+  padding: 5px 14px;
+  background: var(--purple-900);
+  border: 1px solid var(--purple-700);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--purple-100);
+}
+
+.chapter-badge--empty {
+  background: transparent;
+  border-color: var(--border-strong);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.chapter-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+}
+
+.chapter-link {
+  flex-shrink: 0;
+  min-width: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.chapter-link:hover {
+  color: var(--text-primary);
+  border-color: var(--purple-500);
+}
+
+.chapter-link.is-current {
+  background: var(--purple-500);
+  border-color: var(--purple-500);
+  color: #fff;
+}
+
+.empty {
+  padding: 36px 8px;
+  text-align: center;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.post {
+  padding: 16px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.post-meta time {
+  color: var(--text-muted);
+}
+
+.post p {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Lateral ---------- */
+.description {
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.book-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+
+.book-card:hover {
+  border-color: var(--purple-500);
+}
+
+.book-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.details dt {
+  color: var(--text-muted);
+}
+
+.details dd {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Confirmação (sair / arquivar) ---------- */
+.confirm {
+  /* O sidebar.css zera a margem de tudo (* { margin: 0 }), o que desfaz o
+     margin: auto que centraliza o <dialog>. */
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  padding: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  color: var(--text-primary);
+  font-family: var(--font-main, "Poppins", sans-serif);
+}
+
+.confirm::backdrop {
+  background: rgba(5, 4, 10, 0.7);
+}
+
+.confirm h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.confirm p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ---------- Não encontrada ---------- */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.not-found h1 {
+  font-size: 28px;
+}
+
+/* ---------- Responsivo (pela largura da área de conteúdo) ---------- */
+
+/* Desktop e tablet largo: fórum na coluna principal, informações na lateral */
+@container (min-width: 700px) {
+  .community-body {
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 32cqw, 340px);
+  }
+}
+
+/* Estreito (celular, tablet em pé): o menu continua no canto, o botão de entrar desce */
+@container (max-width: 560px) {
+  .community-head {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "avatar title menu"
+      "join join join";
+    column-gap: 14px;
+    padding: 18px;
+    align-items: start;
+  }
+
+  .community-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .community-title h1 {
+    font-size: 22px;
+  }
+
+  .community-join {
+    margin-top: 16px;
+  }
+
+  .community-join .btn {
+    width: 100%;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-actions .btn,
+  .confirm-actions .btn-outline {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .community * {
+    transition: none !important;
+  }
+}

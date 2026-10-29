@@ -3,7 +3,13 @@ var genreFilter = document.getElementById("genreFilter");
 var searchButton = document.getElementById("searchButton");
 var resultsInfo = document.getElementById("resultsInfo");
 var bookList = document.getElementById("bookList");
-var searchUrl = document.querySelector("main").dataset.searchUrl;
+// Procura pelo atributo (e não pela tag <main>): o sidebar.html já envolve a página em um <main>.
+var searchUrl = document.querySelector("[data-search-url]").dataset.searchUrl;
+var communitiesUrl = document.querySelector("[data-communities-url]").dataset.communitiesUrl;
+var tabBooks = document.getElementById("tabBooks");
+var tabCommunities = document.getElementById("tabCommunities");
+var currentTab = "books";
+var emptyImg = document.querySelector("[data-empty-img]").dataset.emptyImg;
 
 
 var statusOptions = [
@@ -53,11 +59,11 @@ function getStatusLabel(status) {
   return "";
 }
 
-var modalParts = {};          // guarda os elementos da caixa
-var modalOptionButtons = [];  // botoes Lendo / Lido / Quero ler
-var currentBook = null;       // livro que esta aberto na caixa
-var currentOnSave = null;     // funcao chamada depois de salvar
-var selectedStatus = "";      // opcao marcada na caixa
+var modalParts = {};          
+var modalOptionButtons = []; 
+var currentBook = null;       
+var currentOnSave = null;     
+var selectedStatus = "";      
 
 function refreshModal() {
   for (var i = 0; i < modalOptionButtons.length; i++) {
@@ -73,12 +79,11 @@ function refreshModal() {
   modalParts.saveButton.disabled = (selectedStatus === "");
 }
 
-// Fecha a caixa
+
 function closeModal() {
   modalParts.overlay.classList.remove("open");
 }
 
-// Cria um botao de opcao dentro da caixa
 function addModalOption(option) {
   var button = document.createElement("button");
   button.className = "modal-option";
@@ -93,7 +98,6 @@ function addModalOption(option) {
   modalOptionButtons.push({ button: button, value: option.value });
 }
 
-// Monta a caixa inteira e coloca na pagina
 function buildModal() {
   var overlay = document.createElement("div");
   overlay.className = "modal-overlay";
@@ -101,7 +105,6 @@ function buildModal() {
   var box = document.createElement("div");
   box.className = "modal-box";
 
-  // topo: titulo + botao de fechar
   var header = document.createElement("div");
   header.className = "modal-header";
 
@@ -248,7 +251,6 @@ function createActions(book) {
 
 
 
-// Cria a imagem da capa a partir do campo icon (URL) do livro
 function createCover(book) {
   var cover = document.createElement("img");
   cover.className = "book-cover";
@@ -256,7 +258,6 @@ function createCover(book) {
   cover.alt = "Capa de " + book.title;
   cover.loading = "lazy";
 
-  // se a URL estiver quebrada, tira a imagem para nao mostrar um icone feio
   cover.addEventListener("error", function () {
     cover.remove();
   });
@@ -292,16 +293,18 @@ function showBooks(books, total) {
     card.className = "book-card";
     var bookUrl = "/books/" + book.id + "/";
 
-    // imagem do livro: so aparece se o campo icon estiver preenchido
   if (book.icon) {
-    var coverLink = document.createElement("a");
-    coverLink.href = bookUrl;
-    coverLink.className = "book-link";
-    coverLink.appendChild(createCover(book));
-    card.appendChild(coverLink);
-}
+      var coverLink = document.createElement("a");
+      coverLink.href = bookUrl;
+      coverLink.className = "book-link";
+      coverLink.appendChild(createCover(book));
+      card.appendChild(coverLink);
+  } else {
+      var noCover = document.createElement("div");
+      noCover.className = "book-cover book-cover-empty";
+      card.appendChild(noCover);
+  }
 
-    // area de texto
     var info = document.createElement("div");
     info.className = "book-info";
 
@@ -353,13 +356,164 @@ function showBooks(books, total) {
 // Busca no banco de dados do CoLecture (tabela books_book)
 var lastRequest = 0;
 
+function showEmptyState(titleText, messageText) {
+  var box = document.createElement("div");
+  box.className = "empty-state";
+
+  var title = document.createElement("h2");
+  title.className = "empty-title";
+  title.textContent = titleText;
+
+  var message = document.createElement("p");
+  message.className = "empty-message";
+  message.textContent = messageText;
+
+  var backButton = document.createElement("button");
+  backButton.type = "button";
+  backButton.className = "empty-button";
+  backButton.textContent = "Limpar busca";
+  backButton.addEventListener("click", function () {
+    searchInput.value = "";
+    runSearch();
+  });
+
+  var image = document.createElement("img");
+  image.className = "empty-img";
+  image.src = emptyImg;
+  image.alt = "Mascote procurando comunidades";
+
+  box.appendChild(title);
+  box.appendChild(message);
+  box.appendChild(backButton);
+  box.appendChild(image);
+
+  bookList.appendChild(box);
+}
+
+function showCommunities(communities, total) {
+  bookList.innerHTML = "";
+
+  //colocar pagina do gato com lupa para dar o aviso
+  if (communities.length === 0) {
+    resultsInfo.textContent = "";
+    showEmptyState("Comunidade não encontrada", "Nenhuma comunidade pública bate com a sua busca.");
+    return;
+  }
+
+  if (total > communities.length) {
+    resultsInfo.textContent = "Mostrando " + communities.length + " de " + total + " comunidades";
+  } else {
+    resultsInfo.textContent = total + " comunidade(s) encontrada(s)";
+  }
+
+  for (var i = 0; i < communities.length; i++) {
+    var community = communities[i];
+
+    var card = document.createElement("div");
+    card.className = "book-card";
+
+    var info = document.createElement("div");
+    info.className = "book-info";
+
+    var title = document.createElement("h3");
+    title.className = "book-title";
+    title.textContent = community.name;
+
+    var description = document.createElement("p");
+    description.className = "book-synopsis";
+    description.textContent = community.description || "Sem descrição.";
+
+    var members = document.createElement("span");
+    members.className = "book-genre";
+    members.textContent = community.members_count + " membro(s)";
+
+    var actions = document.createElement("div");
+    actions.className = "book-actions";
+
+    var joinLink = document.createElement("a");
+    joinLink.className = "add-button";
+    joinLink.href = community.url;
+    joinLink.textContent = "Entrar na comunidade";
+
+    actions.appendChild(joinLink);
+
+    info.appendChild(title);
+    info.appendChild(description);
+    info.appendChild(members);
+    info.appendChild(actions);
+
+    card.appendChild(info);
+    bookList.appendChild(card);
+  }
+}
+
+function searchCommunities() {
+  var term = searchInput.value.trim();
+  var params = new URLSearchParams({ q: term });
+
+  lastRequest++;
+  var thisRequest = lastRequest;
+
+  resultsInfo.textContent = "Buscando...";
+  bookList.innerHTML = "";
+
+  fetch(communitiesUrl + "?" + params.toString())
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error("O servidor respondeu com status " + response.status);
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      if (thisRequest !== lastRequest) {
+        return;
+      }
+      showCommunities(data.results, data.total);
+    })
+    .catch(function (error) {
+      if (thisRequest !== lastRequest) {
+        return;
+      }
+      console.log("Erro ao buscar comunidades:", error);
+      resultsInfo.textContent = "Erro ao buscar as comunidades. Tente novamente em alguns minutos.";
+    });
+}
+
+function runSearch() {
+  if (currentTab === "communities") {
+    searchCommunities();
+  } else {
+    searchBooks();
+  }
+}
+
+function setTab(tab) {
+  currentTab = tab;
+
+  if (tab === "communities") {
+    tabCommunities.classList.add("active");
+    tabBooks.classList.remove("active");
+    genreFilter.classList.add("hidden");
+    searchInput.placeholder = "Buscar comunidades...";
+  } else {
+    tabBooks.classList.add("active");
+    tabCommunities.classList.remove("active");
+    genreFilter.classList.remove("hidden");
+    searchInput.placeholder = "Buscar livros...";
+  }
+
+  runSearch();
+}
+
+tabBooks.addEventListener("click", function () { setTab("books"); });
+tabCommunities.addEventListener("click", function () { setTab("communities"); });
+
 function searchBooks() {
   var term = searchInput.value.trim();
   var genre = genreFilter.value;
 
   var params = new URLSearchParams({ q: term, genre: genre });
 
-  // evita que uma resposta antiga sobrescreva uma busca mais nova
   lastRequest++;
   var thisRequest = lastRequest;
 
@@ -388,16 +542,16 @@ function searchBooks() {
     });
 }
 
-searchButton.addEventListener("click", searchBooks);
+searchButton.addEventListener("click", runSearch);
 
 
 searchInput.addEventListener("keypress", function (event) {
   if (event.key === "Enter") {
-    searchBooks();
+    runSearch();
   }
 });
 
-genreFilter.addEventListener("change", searchBooks);
+genreFilter.addEventListener("change", runSearch);
 
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape" && modalParts.overlay) {
@@ -405,4 +559,4 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
-searchBooks();
+runSearch();

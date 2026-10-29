@@ -3,7 +3,7 @@ from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 
 from .models import Book, BookReview, SYNOPSIS_MAX_LENGTH;
-from .forms import BookForm;
+from .forms import BookForm, GENRE_CHOICES;
 from .views import SEARCH_LIMIT;
 
 # Create your tests here.
@@ -17,7 +17,7 @@ class CT02(TestCase):
             {
                 'isbn':isbn or '978-8532511010',
                 'title':title or 'Book 1',
-                'genre':'Genre 1',
+                'genre':GENRE_CHOICES[1][0],
                 'pages':10,
                 'author': 'Author 1',
                 'synopsis': synopsis or 'Valid synopsis',
@@ -32,6 +32,7 @@ class CT02(TestCase):
             'title':title or 'New Book',
             'author':author or 'New Author',
             'synopsis':synopsis,
+            'genre':GENRE_CHOICES[1][0]
         });
 
     def create_book(self, isbn=None,title=None, author=None, created_by=None, genre=None):
@@ -40,7 +41,7 @@ class CT02(TestCase):
             title = title or 'New Book',
             author = author or 'New Author',
             created_by = created_by or None,
-            genre=genre or ''
+            genre=genre or GENRE_CHOICES[1][0]
         );
     
     # TESTE DE VALIDAÇÃO DO ISBN
@@ -117,6 +118,7 @@ class CT02(TestCase):
     def test_edit_book(self):
 
         new_data = {
+            'genre':GENRE_CHOICES[1][0],
             'isbn' : '978-3-16-148410-0',
             'title' : 'New York',
             'author' : 'Old Author',

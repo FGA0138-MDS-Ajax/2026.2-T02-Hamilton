@@ -1,64 +1,73 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livro</title>
-    <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'books/css/book_detail.css' %}">
-</head>
-<body data-id="{{ id }}">
-    <main class="pagina">
-      
-    <!--erro de livro inexistente-->
-    <section id="erro" class="erro escondido">
-      <h1>Livro não encontrado</h1>
-      <p>Esse livro não existe ou foi removido.</p>
-      <img class="erro-img" src="{% static 'books/img/mascote.png' %}" alt="Mascote procurando o livro">
-      <a class="botao-voltar" href="/search">Voltar para a pesquisa</a>
-    </section>
 
-    <!-- Parte 1: informacoes do livro -->
-    <section id="livro" class="escondido">
-      <div class="livro-topo">
-        <img id="capa" class="capa" alt="Capa do livro">
-        <div class="livro-dados">
-          <h1 id="titulo"></h1>
-          <p>Autor: <span id="autor"></span></p>
-          <p>Gênero: <span id="genero"></span></p>
-          <p>Publicação: <span id="data"></span></p>
-          <p>Páginas: <span id="paginas"></span></p>
-          <p class="media">
-            <span id="media-estrelas" class="estrelas"></span>
-            <span id="media-texto"></span>
-          </p>
-        </div>
+{% block title %}Livro | Detalhes{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+  <link rel="stylesheet" href="{% static 'books/css/book_detail.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <!-- Menu de 3 Pontinhos no Canto Superior Direito -->
+  {% if id %}
+  <div class="menu-kebab-container" style="position: relative; float: right; margin: 10px 20px 0 0; z-index: 10;">
+      <button class="kebab-btn" id="kebabBtn" aria-label="Opções" style="background: none; border: none; font-size: 24px; cursor: pointer;">
+          &#8285;
+      </button>
+      <div class="kebab-dropdown" id="kebabDropdown" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 100; border-radius: 4px;">
+          <a href="{% url 'books:edit_book' id %}" class="dropdown-item" style="display: block; padding: 8px 16px; text-decoration: none; color: #333;">Editar</a>
+          <button type="button" class="dropdown-item delete-text" onclick="openDeleteModal()" style="background: none; border: none; width: 100%; text-align: left; padding: 8px 16px; cursor: pointer; color: #d9534f;">Deletar</button>
       </div>
+  </div>
+  {% endif %}
 
-      <h2>Sinopse</h2>
-      <p id="sinopse"></p>
+  <div class="main-box">
+    <main class="pagina" data-id="{{ id }}">
 
-      <!-- Parte 3: avaliar o livro (enviado ao Django via POST para esta mesma URL) -->
-      <h2>Avaliar este livro</h2>
-      {% if user.is_authenticated %}
-      <form id="form-resenha" method="post">
-        {% csrf_token %}
+      <!--erro de livro inexistente-->
+      <section id="erro" class="erro escondido">
+        <h1>Livro não encontrado</h1>
+        <p>Esse livro não existe ou foi removido.</p>
+        <a class="botao-voltar" href="/search">Voltar para a pesquisa</a>
+        <img class="erro-img" src="{% static 'books/img/mascote.png' %}" alt="Mascote procurando o livro">
+      </section>
 
-        <!-- Campo "rating" do BookReviewForm: escondido, preenchido pelas estrelas -->
-        <div hidden>{{ form.rating }}</div>
-
-        <div id="seletor" class="seletor" aria-label="Escolha de 1 a 5 estrelas">
-          <button type="button" data-valor="1">★</button>
-          <button type="button" data-valor="2">★</button>
-          <button type="button" data-valor="3">★</button>
-          <button type="button" data-valor="4">★</button>
-          <button type="button" data-valor="5">★</button>
+      <!-- Parte 1: informacoes do livro -->
+      <section id="livro" class="escondido">
+        <div class="livro-topo">
+          <img id="capa" class="capa" alt="Capa do livro">
+          <div class="livro-dados">
+            <h1 id="titulo"></h1>
+            <p>Autor: <span id="autor"></span></p>
+            <p>Gênero: <span id="genero"></span></p>
+            <p>Publicação: <span id="data"></span></p>
+            <p>Páginas: <span id="paginas"></span></p>
+            <p class="media">
+              <span id="media-estrelas" class="estrelas"></span>
+              <span id="media-texto"></span>
+            </p>
+          </div>
         </div>
 
-        <!-- Campo "review" do BookReviewForm -->
-        <textarea id="texto-resenha" name="review" rows="4" maxlength="300"
-          placeholder="Escreva sua resenha (opcional)...">{{ form.review.value|default_if_none:"" }}</textarea>
+        <h2>Sinopse</h2>
+        <p id="sinopse"></p>
+
+        <!-- Parte 3: avaliar o livro -->
+        <h2>Avaliar este livro</h2>
+        {% if user.is_authenticated %}
+        <form id="form-resenha", method="post">
+          {% csrf_token %}
+          <div hidden>{{ form.rating }}</div>
+          <div id="seletor" class="seletor" aria-label="Escolha de 1 a 5 estrelas">
+            <button type="button" data-valor="1">★</button>
+            <button type="button" data-valor="2">★</button>
+            <button type="button" data-valor="3">★</button>
+            <button type="button" data-valor="4">★</button>
+            <button type="button" data-valor="5">★</button>
+          </div>
+          <textarea id="texto-resenha" name="review" rows="4" placeholder="Escreva suas impressões sobre o livro..."></textarea>
 
           {% if messages %}
           <ul class="mensagens">
@@ -68,23 +77,71 @@
           </ul>
           {% endif %}
 
-        <!-- Erros de validacao do servidor (o JS tambem escreve aqui) -->
-        <p id="aviso" class="aviso">{% for campo, erros in form.errors.items %}{% for erro in erros %}{{ erro }} {% endfor %}{% endfor %}</p>
-        <button type="submit">Enviar avaliacao</button>
-      </form>
-      {% else %}
-      <p><a href="{{ login_url }}">Entre na sua conta</a> para avaliar este livro.</p>
-      {% endif %}
+          <p id="aviso" class="aviso">{% for campo, erros in form.errors.items %}{% for erro in erros %}{{ erro }} {% endfor %}{% endfor %}</p>
+          <button type="submit">Enviar avaliacao</button>
+        </form>
+        {% else %}
+        <p><a href="{{ login_url }}">Entre na sua conta</a> para avaliar este livro.</p>
+        {% endif %}
 
-      <!-- Parte 2: lista de resenhas -->
-      <h2>Resenhas</h2>
-      <p id="vazio" class="escondido">Este livro ainda nao tem avaliacoes</p>
-      <ul id="lista-resenhas" class="lista"></ul>
-    </section>
+        <!-- Parte 2: lista de resenhas -->
+        <h2>Resenhas</h2>
+        <p id="vazio" class="escondido">Este livro ainda nao tem avaliacoes</p>
+        <ul id="lista-resenhas" class="lista"></ul>
+      </section>
 
-  </main>
+    </main>
+  </div>
+
+  <!-- Modal de Confirmação de Exclusão -->
+  {% if id %}
+  <div class="modal-overlay" id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+      <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 300px; text-align: center;">
+          <h3>Confirmação de Exclusão</h3>
+          <p>Deseja realmente deletar "<strong>{{ livro.titulo }}</strong>"?</p>
+          <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: space-around;">
+              <form method="POST" action="{% url 'books:delete_book' id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-danger" style="background: #d9534f; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Deletar</button>
+              </form>
+              <button type="button" class="btn-secondary" onclick="closeDeleteModal()" style="background: #ccc; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Voltar</button>
+          </div>
+      </div>
+  </div>
+  {% endif %}
 
   {{ livro|json_script:"dados-livro" }}
+  <script>document.body.dataset.id = "{{ id }}";</script>
   <script src="{% static 'books/js/book_detail.js' %}"></script>
-</body>
-</html>
+
+  <!-- Script do Menu Kebab e do Modal -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const kebabBtn = document.getElementById('kebabBtn');
+        const kebabDropdown = document.getElementById('kebabDropdown');
+
+        if (kebabBtn && kebabDropdown) {
+            kebabBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                kebabDropdown.style.display = kebabDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', () => {
+                kebabDropdown.style.display = 'none';
+            });
+        }
+    });
+
+    function openDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) modal.style.display = 'flex';
+        const kebabDropdown = document.getElementById('kebabDropdown');
+        if (kebabDropdown) kebabDropdown.style.display = 'none';
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) modal.style.display = 'none';
+    }
+  </script>
+{% endblock %}

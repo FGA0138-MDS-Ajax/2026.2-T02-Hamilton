@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover permite usar a área segura do iPhone na barra inferior -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}CoLecture{% endblock %}</title>
+  <link rel="icon" href="{% static 'main/img/logoGato.png' %}">
+  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+  <link rel="stylesheet" href="{% static 'main/css/sidebar.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+  <!--  LATERAL DE ÍCONES (vira barra inferior no celular)  -->
+  <aside class="rail" id="rail">
+    <button class="rail-toggle" id="railToggle" aria-label="Recolher menu" aria-expanded="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+      <span class="label">Recolher</span>
+    </button>
+
+    <a href="{% url 'main:index' %}" class="rail-brand" aria-label="CoLecture - início">
+      <img src="{% static 'main/img/logoGato.png' %}" alt="">
+      <span>CoLecture</span>
+    </a>
+
+
+    <nav class="rail-nav" aria-label="Menu principal">
+
+      {# "Perfil" fica ativo também na edição de perfil, que é uma subpágina dele #}
+      <a href="{% url 'accounts:profile' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' %}active{% endif %}"
+        {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}
+        data-label="Perfil"
+        aria-label="Perfil">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
+        </svg>
+        <span class="label">Perfil</span>
+      </a>
+
+      <a href="{% url 'main:search' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'search' %}active{% endif %}" 
+        {% if request.resolver_match.url_name == 'search' %}aria-current="page" {% endif %} 
+        data-label="Pesquisa"
+        aria-label="Pesquisa">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <span class="label">Pesquisa</span>
+      </a>
+
+      <a href="{% url 'communities:home_community' %}" class="nav-item" data-label="Comunidade" aria-label="Comunidade">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+        <span class="label">Comunidade</span>
+      </a>
+
+      <a href="{% url 'books:register_book' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'register_book' %}active{% endif %}"
+          {% if request.resolver_match.url_name == 'register_book' %}aria-current="page"{% endif %}
+          data-label="Cadastrar livro"
+          aria-label="Cadastrar livro">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+        <span class="label">Cadastrar livro</span>
+      </a>
+
+    </nav>
+
+  </aside>
+
+  <!-- ============ CONTEÚDO (cada página preenche aqui) ============ -->
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{% static 'main/js/sidebar-icones.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

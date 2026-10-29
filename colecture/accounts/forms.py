@@ -116,6 +116,14 @@ class EditUserForm(forms.ModelForm):
         model = get_user_model()
         fields = ['first_name', 'last_name', 'email']
 
+    # A página de edição avisa: "se não for alterar os campos de nome, deixe em
+    # branco". Por isso, um nome em branco mantém o valor atual em vez de apagá-lo.
+    def clean_first_name(self):
+        return self.cleaned_data.get("first_name") or self.instance.first_name
+
+    def clean_last_name(self):
+        return self.cleaned_data.get("last_name") or self.instance.last_name
+
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
 
