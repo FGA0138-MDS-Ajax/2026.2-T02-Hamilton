@@ -39,12 +39,10 @@
           </p>
         </div>
 
-        {% if permissions.is_pending %}
-          <span class="muted">Solicitação enviada</span>
-        {% elif permissions.can_join %}
-          <form class="community-join" method="post" action="{% url 'communities:join_community' community.id %}">
+        {% if not permissions or permissions.can_join %}
+          <form class="community-join" method="post" action="{% url 'communities:community_moderator' %}">
             {% csrf_token %}
-            <button type="submit" class="btn">{% if community.is_private %}Solicitar entrada{% else %}Entrar{% endif %}</button>
+            <button type="submit" class="btn">Gerenciar Comunidade</button>
           </form>
         {% endif %}
 
