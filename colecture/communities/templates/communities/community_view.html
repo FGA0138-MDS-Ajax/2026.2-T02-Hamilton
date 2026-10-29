@@ -40,9 +40,9 @@
         </div>
 
         {% if not permissions or permissions.can_join %}
-          <form class="community-join" method="post" action="{% url 'communities:join_community' community.id %}">
+          <form class="community-join" method="post" action="{% url 'communities:community_moderator' %}">
             {% csrf_token %}
-            <button type="submit" class="btn">Editar</button>
+            <button type="submit" class="btn">Gerenciar Comunidade</button>
           </form>
         {% endif %}
 
