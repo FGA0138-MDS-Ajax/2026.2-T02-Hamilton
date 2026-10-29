@@ -1,19 +1,156 @@
+{% extends "sidebar.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Comunidade</title>
-</head>
-<body>
 
-    <h1>Editar {{ community.name }}</h1>
-    <form action="" method="post">
+{% block title %}Editar Comunidade - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+  {# Reaproveita o mesmo CSS e JS da página de criação (seletor de livro, campos, visibilidade) #}
+  <link rel="stylesheet" href="{% static 'communities/css/create_community.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <script src="{% static 'communities/js/create_community.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="community-page">
+
+    {# Ícones da página (SVG embutido: não depende de fonte externa) #}
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+      <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M20 17v5H6.5A2.5 2.5 0 0 1 4 19.5"/></symbol>
+    </svg>
+
+    <a class="back-link" href="{% url 'communities:home_community' %}">
+      <svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg> Voltar às comunidades
+    </a>
+
+    <section>
+      <h1>Editar {{ community.name }}</h1>
+      <p class="form-intro">Atualize as informações da comunidade. Os campos marcados com * são obrigatórios.</p>
+
+      {% if messages %}
+        <div class="alerts" role="status">
+          {% for message in messages %}
+            <div class="alert alert--{% if 'error' in message.tags %}error{% elif 'success' in message.tags %}success{% else %}info{% endif %}">
+              <svg class="icon" aria-hidden="true"><use href="#{% if 'success' in message.tags %}i-check{% else %}i-error{% endif %}"></use></svg>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="alerts" role="alert">
+          {% for error in form.non_field_errors %}
+            <div class="alert alert--error">
+              <svg class="icon" aria-hidden="true"><use href="#i-error"></use></svg><span>{{ error }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="POST" id="community-form" novalidate>
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Salvar Alterações</button>
-    </form>
-    
-</body>
-</html>
+
+        <div class="form-grid">
+
+          {# Coluna esquerda: nome e descrição #}
+          <div class="col">
+
+            <div class="field {% if form.name.errors %}field--invalid{% endif %}" data-required="name">
+              <label for="{{ form.name.id_for_label }}">Nome da comunidade *</label>
+              {{ form.name }}
+              {% for error in form.name.errors %}
+                <p class="field-error" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-error"></use></svg> {{ error }}</p>
+              {% endfor %}
+            </div>
+
+            <div class="field field--grow {% if form.description.errors %}field--invalid{% endif %}" data-required="description">
+              <label for="{{ form.description.id_for_label }}">Descrição *</label>
+              {{ form.description }}
+              {% for error in form.description.errors %}
+                <p class="field-error" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-error"></use></svg> {{ error }}</p>
+              {% endfor %}
+            </div>
+
+          </div>
+
+          {# Coluna direita: livro e visibilidade #}
+          <div class="col">
+
+            <div class="field {% if form.book.errors %}field--invalid{% endif %}" data-required="book">
+              <label for="book-search">Livro *</label>
+
+              <div class="book-picker" id="book-picker" data-search-url="{% url 'books:search' %}">
+                {# Pré-preenchido com o livro atual; se o formulário voltar com erro, mantém o que foi enviado #}
+                <input type="hidden" name="book" id="id_book" value="{% if request.POST.book %}{{ request.POST.book }}{% else %}{{ community.book.pk }}{% endif %}" />
+                {# título e autor só servem para exibir o livro escolhido #}
+                <input type="hidden" name="book_title" id="book-title" value="{% if request.POST.book_title %}{{ request.POST.book_title }}{% else %}{{ community.book.title }}{% endif %}" />
+                <input type="hidden" name="book_author" id="book-author" value="{% if request.POST.book_author %}{{ request.POST.book_author }}{% else %}{{ community.book.author }}{% endif %}" />
+
+                <div class="book-selected" id="book-selected" hidden>
+                  <svg class="icon icon--lg" aria-hidden="true"><use href="#i-book"></use></svg>
+                  <span class="book-selected-text">
+                    <strong id="book-selected-title"></strong>
+                    <small id="book-selected-author"></small>
+                  </span>
+                  <button type="button" class="book-change" id="book-change">Trocar</button>
+                </div>
+
+                <div class="book-search-box" id="book-search-box">
+                  <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+                  <input type="search" id="book-search" placeholder="Pesquisar livro por título ou autor"
+                         autocomplete="off" role="combobox" aria-expanded="false" aria-controls="book-results" />
+                </div>
+
+                <ul class="book-results" id="book-results" role="listbox" hidden></ul>
+              </div>
+
+              {% for error in form.book.errors %}
+                <p class="field-error" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-error"></use></svg> {{ error }}</p>
+              {% endfor %}
+            </div>
+
+            {# Visibilidade: usa o valor enviado (se houver) ou o valor atual da comunidade #}
+            {% with current_access=form.access.value|default:community.access %}
+            <fieldset class="field visibility {% if form.access.errors %}field--invalid{% endif %}">
+              <legend>Visibilidade *</legend>
+              <div class="visibility-options">
+                <label class="visibility-option" for="vis-public">
+                  <input type="radio" name="access" id="vis-public" value="PUBLIC" {% if current_access != 'PRIVATE' %}checked{% endif %} />
+                  <span class="visibility-body">
+                    <svg class="icon icon--lg" aria-hidden="true"><use href="#i-globe"></use></svg>
+                    <span><strong>Pública</strong><small>Qualquer leitor pode entrar.</small></span>
+                  </span>
+                </label>
+                <label class="visibility-option" for="vis-private">
+                  <input type="radio" name="access" id="vis-private" value="PRIVATE" {% if current_access == 'PRIVATE' %}checked{% endif %} />
+                  <span class="visibility-body">
+                    <svg class="icon icon--lg" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    <span><strong>Privada</strong><small>Entrada somente com aprovação de um moderador.</small></span>
+                  </span>
+                </label>
+              </div>
+              {% for error in form.access.errors %}
+                <p class="field-error" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-error"></use></svg> {{ error }}</p>
+              {% endfor %}
+            </fieldset>
+            {% endwith %}
+
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a class="btn-outline" href="{% url 'communities:home_community' %}">Cancelar</a>
+          <button type="submit" class="btn">Salvar alterações</button>
+        </div>
+      </form>
+    </section>
+
+  </div>
+{% endblock %}

@@ -288,6 +288,18 @@
     font-size: 1.1rem
 }
 
+.com-tags {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.com-tag-mod {
+    color: var(--purple-300);
+    border: 1px solid var(--purple-500);
+    background: rgba(139, 92, 246, 0.12);
+}
+
 .com-tag {
     padding: 3px 10px;
     border-radius: 99px;

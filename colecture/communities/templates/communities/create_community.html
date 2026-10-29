@@ -79,8 +79,8 @@
 
           <div class="col">
 
-            <div class="field {% if form.book.errors %}field--invalid{% endif %}" data-required="book">
-              <label for="book-search">Livro *</label>
+            <div class="field {% if form.book.errors %}field--invalid{% endif %}">
+                <label for="book-search">Livro</label>
 
               <div class="book-picker" id="book-picker" data-search-url="{% url 'books:search' %}">
                 <input type="hidden" name="book" id="id_book" value="{{ request.POST.book }}" />

@@ -59,13 +59,20 @@
           </div>
           <p class="com-desc">{{ c.descricao }}</p>
           <div class="com-card-foot">
-            <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
-            {% if c.privada %}
-              <span class="com-tag com-tag-closed">Privada</span>
-            {% else %}
-              <span class="com-tag com-tag-open">Aberta</span>
-            {% endif %}
-          </div>
+  <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
+
+      <div class="com-tags">
+        {% if c.is_moderator %}
+          <span class="com-tag com-tag-mod">Moderador</span>
+        {% endif %}
+
+        {% if c.privada %}
+          <span class="com-tag com-tag-closed">Privada</span>
+        {% else %}
+          <span class="com-tag com-tag-open">Aberta</span>
+        {% endif %}
+      </div>
+</div>
         </a>
       {% endfor %}
     </section>
