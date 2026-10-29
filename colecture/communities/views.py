@@ -1,14 +1,16 @@
 from django.shortcuts import get_object_or_404, render, redirect;
 from django.contrib.auth import get_user_model;
 from django.contrib.auth.mixins import LoginRequiredMixin;
-from django.http import HttpResponseForbidden;
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse;
 from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
-from datetime import datetime;
+from django.utils import timezone;
+from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.urls import reverse
 
 
 # Create your views here.
@@ -18,9 +20,14 @@ JoinCommunityView é uma CBV (class based view) para
 manter a legibilidade dado que é uma view
 multi-fatorada
 """
-class JoinCommunityView(View, LoginRequiredMixin):
+class JoinCommunityView(LoginRequiredMixin, View):
     # este método é chamado primeiro
     def dispatch(self, request, *args, **kwargs):
+        # este dispatch consulta request.user antes de o LoginRequiredMixin
+        # agir, então a checagem de login precisa vir primeiro.
+        if not request.user.is_authenticated:
+            return self.handle_no_permission();
+
         community_id = kwargs['community_id'];
 
         # mantém a comunidade e usuário para os
@@ -106,14 +113,16 @@ class JoinCommunityView(View, LoginRequiredMixin):
         if not community_is_private: # será membro agora.
             # então (re)entrou agora.
             # isso ajudará a determinar o membro mais velho posteriormente
-            membership.joined_at = datetime.now();
+            membership.joined_at = timezone.now();
         
         membership.save();
 
         return self.redirect_to_community();
 
-class LeaveCommunityView(View, LoginRequiredMixin):
+class LeaveCommunityView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission();
 
         self.community = get_object_or_404(Community, pk=kwargs["community_id"]);
         self.user = request.user;
@@ -132,6 +141,12 @@ class LeaveCommunityView(View, LoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        # só quem faz parte da comunidade pode sair dela. Sem esta checagem,
+        # qualquer usuário logado apagaria uma comunidade que só tem o criador
+        # (ver ec_last_member).
+        if not (self.is_creator or self.active_membership):
+            return HttpResponseForbidden();
+
         # casos de borda (ordem obrigatória)
         edge_cases = [
             self.ec_last_member,
@@ -180,41 +195,72 @@ class LeaveCommunityView(View, LoginRequiredMixin):
             self.active_membership.save();
         return self.return_to_profile();
 
+def _can_manage(user, community):
+    """Administrador, criador ou moderador ativo da comunidade."""
+    if user.is_superuser or community.creator_id == user.id:
+        return True
+    return Membership.objects.filter(
+        community=community,
+        user=user,
+        role=Membership.Role.MODERATOR,
+        status=Membership.Status.ACTIVE,
+    ).exists()
+
+
+@login_required
 def view_community(request, community_id):
-    community = Community.objects.filter(id=community_id).first();
+    community = Community.objects.select_related("creator", "book").filter(id=community_id).first()
 
     if community is None:
-        return render(request, "communities/community_view.html", {'community':None});
+        return render(request, "communities/community_view.html", {'community': None}, status=404)
+
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
 
     # pegando valores importantes
-    user = request.user;
-    membership = Membership.objects.filter(
-        user=user,
-        community=community
-    ).first();
-    # usuário está banido?
-    is_banned = membership and membership.status == Membership.Status.BANNED;
+    user = request.user
+    membership = Membership.objects.filter(user=user, community=community).first()
+    status = membership.status if membership else None
 
-    # calculando lógica
-    user_is_eligible = user.is_superuser or (community.creator == user);
-    community_is_archived = community.state == Community.State.ARCHIVED;
+    is_banned = status == Membership.Status.BANNED
+    is_pending = status == Membership.Status.PENDING
+    is_active_member = status == Membership.Status.ACTIVE
+    is_creator = community.creator_id == user.id
+    can_manage = _can_manage(user, community)
+    community_is_archived = community.state == Community.State.ARCHIVED
 
-    if not user_is_eligible: # não é admin nem dono
+    if not can_manage:  # não é admin, dono nem moderador
         if is_banned:
-            return HttpResponseForbidden("You've been banned from this community.");
+            return HttpResponseForbidden("You've been banned from this community.")
         elif community_is_archived:
-            return HttpResponseForbidden("This community is archived.");
+            return HttpResponseForbidden("This community is archived.")
 
-    if request.method == "GET":
-        community_info = {
-            'id':community.id,
-            'name':community.name,
-            'description':community.description,
-            'creator_name':community.creator.username,
-            'creator_id':community.creator.id
-        };
+    # o que o template pode mostrar para este usuário
+    permissions = {
+        "can_join": not (
+            community_is_archived or user.is_superuser or is_creator
+            or is_active_member or is_pending or is_banned
+        ),
+        "is_pending": is_pending,
+        "can_edit": can_manage,
+        "can_leave": is_creator or is_active_member,
+        "can_archive": can_manage and not community_is_archived,
+    }
 
-        return render(request, "communities/community_view.html", {'community':community_info});
+    community_info = {
+        'id': community.id,
+        'name': community.name,
+        'description': community.description,
+        'creator_name': community.creator.username,
+        'creator_id': community.creator.id,
+        'is_private': community.access == Community.Access.PRIVATE,
+    }
+
+    return render(request, "communities/community_view.html", {
+        'community': community_info,
+        'book': community.book,
+        'permissions': permissions,
+    })
 
 
 @login_required
@@ -255,10 +301,11 @@ def delete_community(request, community_id):
 
     if request.method == "POST":
         community.clean_up_and_delete();
-        return redirect('communities:create_community')
+        return redirect('communities:home_community')
 
     return HttpResponseForbidden()
 
+@login_required
 def moderator_view(request):
     return render(request, 'communities/moderator.html')
 
@@ -390,16 +437,21 @@ def manage_membership_request(request, community_id, membership_id):
     decision = request.POST.get("decision")
 
     if decision == "accept":
+        # aceitar = virar membro de fato: ativa, define o cargo e renova o
+        # joined_at (usado para achar o membro mais antigo quando o criador sai)
         membership.status = Membership.Status.ACTIVE
+        membership.role = Membership.Role.MEMBER
+        membership.joined_at = timezone.now()
 
     elif decision == "reject":
         membership.status = Membership.Status.NONE
+        membership.role = Membership.Role.NONE
 
     else:
         return HttpResponseForbidden()
 
     # Salva a alteração no banco
-    membership.save(update_fields=["status"])
+    membership.save(update_fields=["status", "role", "joined_at"])
 
     return redirect(
         "communities:view_community",
@@ -469,6 +521,62 @@ def manage_member_ban(request, community_id, membership_id):
         community_id=community.id,
     )
 
+
+
+@login_required
+def archive_community(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    if not _can_manage(request.user, community):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    # o save() do model preenche archived_at (contagem dos 60 dias)
+    community.state = Community.State.ARCHIVED
+    community.save()
+
+    messages.success(request, f'Comunidade "{community.name}" arquivada.')
+    return redirect("communities:home_community")
+
+
+SEARCH_LIMIT = 50
+
+@require_GET
+def search_communities(request):
+    """Busca de comunidades públicas e ativas (usada por main/search.js)."""
+    term = request.GET.get("q", "").strip()
+
+    queryset = Community.objects.filter(
+        access=Community.Access.PUBLIC,
+        state=Community.State.ACTIVE,
+    )
+    for word in term.split():
+        queryset = queryset.filter(
+            Q(name__icontains=word) | Q(description__icontains=word)
+        )
+
+    queryset = queryset.annotate(
+        active_members=Count(
+            "memberships",
+            filter=Q(memberships__status=Membership.Status.ACTIVE),
+        )
+    ).order_by("name")
+
+    total = queryset.count()
+    results = [
+        {
+            "id": c.id,
+            "name": c.name,
+            "description": c.description,
+            "members_count": c.active_members + 1,  # +1 = criador (sem membership)
+            "url": reverse("communities:view_community", kwargs={"community_id": c.id}),
+        }
+        for c in queryset[:SEARCH_LIMIT]
+    ]
+
+    return JsonResponse({"total": total, "results": results})
 
 
 @login_required
