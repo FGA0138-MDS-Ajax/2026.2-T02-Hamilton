@@ -7,6 +7,8 @@ from django.utils import timezone;
 COMMUNITY_NAME_LENGTH = 100;
 COMMUNITY_DESC_LENGTH = 5000;
 COMMUNITY_ICON_LENGTH = 500;
+# dias que uma comunidade arquivada fica no banco antes de ser excluída
+ARCHIVE_RETENTION_DAYS = 60;
 
 # Create your models here.
 
@@ -54,6 +56,26 @@ class Community(models.Model):
         default=State.ACTIVE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    # Livro atual da comunidade. Opcional: se o livro for excluído, a
+    # comunidade continua existindo (decisão da reunião da Sprint 3).
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="communities",
+    )
+    # Quando foi arquivada (apoia a regra dos 60 dias). Preenchido pelo save().
+    archived_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        # mantém archived_at coerente com o estado, qualquer que seja o
+        # caminho usado para arquivar (view de arquivar ou formulário de edição)
+        if self.state == self.State.ARCHIVED and self.archived_at is None:
+            self.archived_at = timezone.now()
+        elif self.state == self.State.ACTIVE:
+            self.archived_at = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name;
