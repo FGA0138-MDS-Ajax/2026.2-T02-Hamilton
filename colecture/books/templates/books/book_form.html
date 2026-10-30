@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-  <div class="main-box main-box--narrow">
+  <div class="main-box">
 
     {% if messages %}
     <ul class="mensagens">
@@ -48,8 +48,10 @@
         {% endif %}
 
         {# Os campos vêm do formulário (ModelForm do back): rótulos, ajuda e erros são dele. #}
+        {# O .form-grid só distribui os campos em colunas; cada campo ganha a classe field--<nome> #}
+        <div class="form-grid">
         {% for field in form.visible_fields %}
-          <div class="field{% if field.errors %} field--error{% endif %}">
+          <div class="field field--{{ field.name }}{% if field.errors %} field--error{% endif %}">
             <label for="{{ field.id_for_label }}">
               {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
             </label>
@@ -65,6 +67,7 @@
             {% endfor %}
           </div>
         {% endfor %}
+        </div>
 
         <button type="submit" class="btn">Cadastrar livro</button>
       </form>
