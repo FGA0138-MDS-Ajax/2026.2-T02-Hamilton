@@ -23,4 +23,6 @@ urlpatterns = [
     path('user/', include('accounts.urls', namespace='accounts')),
     path('books/', include('books.urls', namespace='books')),
     path('communities/', include('communities.urls', namespace='communities')),
+    path('goals/', include('goals.urls', namespace='goals')),
+    path('forums/', include('forums.urls', namespace='forums')),
 ]
