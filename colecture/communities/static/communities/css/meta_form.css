@@ -1,0 +1,317 @@
+/*
+  Página de criar/editar meta (app goals).
+
+  CSS próprio, todo dentro de .goal-page para não afetar outras páginas.
+  Depende só de main/css/variables.css (cores) e de main/css/sidebar.css
+  (fundo e menu lateral, que chegam pelo sidebar.html).
+
+  Os toasts (<ul class="mensagens">) usam o mesmo modelo da página
+  "Cadastrar livro"; o estilo deles NÃO é definido aqui de propósito.
+*/
+
+:root {
+  /* Faz o navegador desenhar select, calendário e scroll no tema escuro. */
+  color-scheme: dark;
+}
+
+.goal-page,
+.goal-page :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+.goal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 56px 56px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  box-shadow: var(--glow);
+  color: var(--text-primary);
+  font-family: var(--font-main, "Poppins", sans-serif);
+}
+
+.goal-page :where(h1, p, form) {
+  margin: 0;
+  padding: 0;
+}
+
+.goal-page :where(input, select, textarea, button) {
+  font-family: inherit;
+}
+
+/* Voltar */
+.goal-page .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.goal-page .back-link:hover {
+  color: var(--purple-300);
+}
+
+/* Título e introdução */
+.goal-page h1 {
+  margin-bottom: 12px;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.goal-page .intro {
+  margin-bottom: 32px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.goal-page .intro strong {
+  color: var(--text-primary);
+}
+
+/* Botões */
+.goal-page .btn,
+.goal-page .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 38px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.goal-page .btn {
+  background: var(--purple-500);
+  border: none;
+  color: #fff;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.goal-page .btn:hover {
+  background: var(--purple-600);
+  box-shadow: var(--glow);
+}
+
+.goal-page .btn-outline {
+  background: transparent;
+  border: 2px solid var(--purple-500);
+  color: var(--purple-300);
+  transition: background 0.15s, color 0.15s;
+}
+
+.goal-page .btn-outline:hover {
+  background: var(--purple-500);
+  color: #fff;
+}
+
+.goal-page .btn:focus-visible,
+.goal-page .btn-outline:focus-visible,
+.goal-page .back-link:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 3px;
+}
+
+/* Campos (gerados em loop a partir do form) */
+.goal-page .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 24px;
+}
+
+.goal-page .field label {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.goal-page .required {
+  color: var(--purple-300);
+}
+
+.goal-page .field input,
+.goal-page .field textarea,
+.goal-page .field select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 17px 24px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 19px;
+  color: var(--text-primary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.goal-page .field input::placeholder,
+.goal-page .field textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.goal-page .field textarea {
+  min-height: 140px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.goal-page .field select {
+  cursor: pointer;
+}
+
+.goal-page .field input[type="date"] {
+  min-height: 62px;
+}
+
+/* Campo com erro: borda vermelha (o foco, logo abaixo, tem prioridade). */
+.goal-page .field--error input,
+.goal-page .field--error textarea,
+.goal-page .field--error select {
+  border-color: var(--danger);
+}
+
+.goal-page .field input:focus,
+.goal-page .field textarea:focus,
+.goal-page .field select:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: var(--glow);
+}
+
+.goal-page .help {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.goal-page .error {
+  font-size: 16px;
+  color: var(--danger);
+}
+
+.goal-page .form-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+/* Ações */
+.goal-page .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+/* Aviso exibido no lugar do formulário (comunidade sem livro) */
+.goal-page .notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  background: var(--bg-input);
+  border: 1px solid var(--warning);
+  border-left-width: 4px;
+  border-radius: 12px;
+}
+
+.goal-page .notice > i {
+  flex-shrink: 0;
+  font-size: 32px;
+  color: var(--warning);
+}
+
+.goal-page .notice-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.goal-page .notice-body strong {
+  font-size: 19px;
+}
+
+.goal-page .notice-body p {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Tablet */
+@media (max-width: 1000px) {
+  .goal-page {
+    gap: 28px;
+    padding: 36px 28px 40px;
+  }
+
+  .goal-page h1 {
+    font-size: 30px;
+  }
+}
+
+/* Celular */
+@media (max-width: 600px) {
+  .goal-page {
+    gap: 24px;
+    padding: 20px 16px 24px;
+    border-radius: 20px;
+  }
+
+  .goal-page h1 {
+    font-size: 28px;
+  }
+
+  .goal-page .intro {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+
+  .goal-page .field input,
+  .goal-page .field textarea,
+  .goal-page .field select {
+    padding: 14px 16px;
+    font-size: 17px;
+  }
+
+  .goal-page .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .goal-page .form-actions .btn,
+  .goal-page .form-actions .btn-outline {
+    width: 100%;
+  }
+
+  .goal-page .notice {
+    flex-direction: column;
+    padding: 18px;
+  }
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  .goal-page * {
+    transition: none !important;
+  }
+}
