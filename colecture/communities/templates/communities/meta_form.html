@@ -1,0 +1,99 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% comment %}
+  Página (front) de criar e editar meta. O MESMO template atende as duas telas.
+
+  O que a view precisa mandar no contexto:
+    community  -> a comunidade (usa .id, .name e .book; .book vazio = sem livro)
+    form       -> o formulário (ModelForm). Só é usado quando a comunidade tem livro;
+                  sem livro pode ser None.
+    is_edit    -> True na edição, False/ausente na criação.
+  Avisos (toasts): a view usa messages.success(...) / messages.error(...),
+  igual à página "Cadastrar livro".
+  Os campos são desenhados em loop a partir do form (rótulo, ajuda e erros são do form).
+{% endcomment %}
+
+{% block title %}{% if is_edit %}Editar meta{% else %}Criar meta{% endif %} - CoLecture{% endblock %}
+
+{% block extra_head %}
+ <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <div class="goal-page">
+
+    {# Toasts de sucesso e de erro: mesmo modelo da página "Cadastrar livro" (books/book_form.html) #}
+    {% if messages %}
+    <ul class="mensagens">
+    {% for message in messages %}
+    <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+    <a class="back-link" href="{% url 'communities:view_community' community.id %}">
+      <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar à comunidade
+    </a>
+
+    <section class="goal-form" aria-labelledby="goal-title">
+      <h1 id="goal-title">{% if is_edit %}Editar meta{% else %}Criar meta{% endif %}</h1>
+      <p class="intro">
+        Comunidade: <strong>{{ community.name }}</strong>{% if community.book %} · Livro: <strong>{{ community.book.title }}</strong>{% endif %}.
+        {% if community.book %}Campos marcados com * são obrigatórios.{% endif %}
+      </p>
+
+      {% if not community.book %}
+        {# Sem livro definido: o aviso aparece NO LUGAR do formulário #}
+        <div class="notice" role="alert">
+          <i class="bx bx-error-circle" aria-hidden="true"></i>
+          <div class="notice-body">
+            <strong>Esta comunidade ainda não tem um livro definido.</strong>
+            <p>Defina o livro da comunidade para poder {% if is_edit %}editar{% else %}criar{% endif %} metas.</p>
+            <a class="btn-outline" href="{% url 'communities:edit_community' community.id %}">Definir livro</a>
+          </div>
+        </div>
+      {% else %}
+        {# Sem "action": o formulário envia para a mesma URL da página. #}
+        <form method="post" id="goal-form" novalidate>
+          {% csrf_token %}
+
+          {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+          {% if form.non_field_errors %}
+            <div class="form-errors" role="alert">
+              {% for error in form.non_field_errors %}
+                <span class="error">{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% for field in form.visible_fields %}
+            <div class="field{% if field.errors %} field--error{% endif %}">
+              <label for="{{ field.id_for_label }}">
+                {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+              </label>
+
+              {{ field }}
+
+              {% if field.help_text %}
+                <small class="help">{{ field.help_text }}</small>
+              {% endif %}
+
+              {% for error in field.errors %}
+                <span class="error">{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endfor %}
+
+          <div class="form-actions">
+            <a class="btn-outline" href="{% url 'communities:view_community' community.id %}">Cancelar</a>
+            <button type="submit" class="btn">{% if is_edit %}Atualizar{% else %}Criar meta{% endif %}</button>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+
+  </div>
+{% endblock %}
