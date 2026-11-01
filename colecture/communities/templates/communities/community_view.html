@@ -48,11 +48,9 @@
           </form>
         {% endif %}
 
+       
         {% if permissions.can_edit %}
-          <form class="community-join" method="post" action="{% url 'communities:community_moderator' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn">Gerenciar Comunidade</button>
-          </form>
+          <a class="btn community-join" href="{% url 'communities:community_moderator' community.id %}">Gerenciar Comunidade</a>
         {% endif %}
 
         {% if permissions.can_edit or permissions.can_leave or permissions.can_archive %}
