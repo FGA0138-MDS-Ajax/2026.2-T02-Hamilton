@@ -11,7 +11,8 @@ from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.urls import reverse
-
+from django.urls import NoReverseMatch
+from django.utils.http import url_has_allowed_host_and_scheme
 
 # Create your views here.
 
@@ -622,3 +623,61 @@ def home_community(request):
         })
 
     return render(request, "communities/home_community.html", {"comunidades": comunidades})
+
+
+def _back(request, community):
+    """Volta para a página de origem (campo 'next') ou, se não houver, para a comunidade."""
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return redirect(nxt)
+    return redirect("communities:view_community", community_id=community.id)
+
+
+@login_required
+def moderator_view(request, community_id):
+    community = get_object_or_404(
+        Community.objects.select_related("creator"), id=community_id
+    )
+
+    # só administrador, criador ou moderador ativo
+    if not _can_manage(request.user, community):
+        return HttpResponseForbidden()
+
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+
+    is_private = community.access == Community.Access.PRIVATE
+
+    # solicitações só existem (e só aparecem) em comunidade privada
+    pending = []
+    if is_private:
+        pending = (
+            Membership.objects
+            .filter(community=community, status=Membership.Status.PENDING)
+            .select_related("user")
+            .order_by("joined_at")
+        )
+
+    # moderadores primeiro ("MODERATOR" > "MEMBER" na ordem alfabética)
+    members = (
+        Membership.objects
+        .filter(community=community, status=Membership.Status.ACTIVE)
+        .select_related("user")
+        .order_by("-role", "user__username")
+    )
+
+    # A tela de criar meta é da Sprint 4. Enquanto a rota 'create_goal' não
+    # existir, o botão aparece desativado em vez de quebrar a página.
+    try:
+        new_goal_url = reverse("communities:create_goal", args=[community.id])
+    except NoReverseMatch:
+        new_goal_url = None
+
+    return render(request, "communities/moderator.html", {
+        "community": community,
+        "is_private": is_private,
+        "pending": pending,
+        "members": members,
+        "members_count": members.count() + 1,  # +1 = criador (sem membership)
+        "new_goal_url": new_goal_url,
+    })

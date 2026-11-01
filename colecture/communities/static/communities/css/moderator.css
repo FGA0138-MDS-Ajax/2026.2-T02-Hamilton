@@ -1,38 +1,345 @@
-.moderator-container {
-    padding: 2rem;
-    max-width: 1200px;
+.mod-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 1000px;
     margin: 0 auto;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-primary);
 }
 
-.moderator-header {
-    margin-bottom: 2rem;
+.mod-page * {
+    box-sizing: border-box;
 }
 
-.moderator-header h1 {
-    font-size: 2rem;
-    color: var(--primary-color, #333);
-    margin-bottom: 0.5rem;
+.mod-page h1,
+.mod-page h2,
+.mod-page p,
+.mod-page ul {
+    margin: 0;
+    padding: 0;
 }
 
-.moderator-header p {
-    color: #666;
+.mod-page ul {
+    list-style: none;
 }
 
-.moderator-grid {
+.mod-back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color .15s;
+}
+
+.mod-back:hover {
+    color: var(--purple-300);
+}
+
+/* Cabeçalho */
+.mod-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.mod-head-text {
+    min-width: 0;
+    flex: 1 1 260px;
+}
+
+.mod-head h1 {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mod-sub {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: .9rem;
+}
+
+/* Cartões */
+.mod-card {
+    padding: 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.mod-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.mod-card h2 i {
+    font-size: 1.4rem;
+    color: var(--purple-400);
+}
+
+/* Área de notificação (solicitações) */
+.mod-notify {
+    border-color: var(--purple-500);
+    background: var(--bg-elevated);
+    box-shadow: var(--glow);
+}
+
+.mod-count {
+    min-width: 24px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--badge);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Linhas (solicitações e membros) */
+.mod-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mod-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.mod-avatar {
+    flex-shrink: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--gradient-brand);
+    font-weight: 700;
+    color: #fff;
 }
 
-.moderator-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+/* min-width: 0 é o que permite o corte com "..." dentro do flex */
+.mod-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.moderator-card h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: #444;
+/* F19: nomes longos cortados com "..." */
+.mod-name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.mod-meta {
+    font-size: .8rem;
+    color: var(--text-muted);
+}
+
+.mod-tag {
+    padding: 2px 10px;
+    border: 1px solid var(--purple-500);
+    border-radius: 99px;
+    background: rgba(139, 92, 246, .12);
+    color: var(--purple-300);
+    font-size: .75rem;
+    font-weight: 500;
+}
+
+.mod-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.mod-actions form {
+    margin: 0;
+}
+
+.mod-empty {
+    padding: 12px 4px;
+    color: var(--text-muted);
+}
+
+/* Botões */
+.mod-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font: 500 .88rem 'Poppins', sans-serif;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color .15s, filter .15s, transform .1s;
+}
+
+.mod-btn:hover {
+    border-color: var(--purple-400);
+}
+
+.mod-btn:active {
+    transform: scale(.98);
+}
+
+.mod-btn:focus-visible {
+    outline: 2px solid var(--purple-300);
+    outline-offset: 2px;
+}
+
+.mod-btn i {
+    font-size: 1.1rem;
+}
+
+.mod-btn-primary {
+    background: var(--gradient-brand);
+    border-color: transparent;
+    font-weight: 600;
+    box-shadow: var(--glow);
+}
+
+.mod-btn-primary:hover {
+    border-color: transparent;
+    filter: brightness(1.1);
+}
+
+.mod-btn-primary.is-disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    box-shadow: none;
+    filter: none;
+}
+
+.mod-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.mod-btn-success {
+    color: var(--success);
+    border-color: rgba(52, 211, 153, .4);
+    background: rgba(52, 211, 153, .08);
+}
+
+.mod-btn-success:hover {
+    border-color: var(--success);
+}
+
+.mod-btn-danger {
+    color: var(--danger);
+    border-color: rgba(248, 113, 113, .4);
+    background: rgba(248, 113, 113, .08);
+}
+
+.mod-btn-danger:hover {
+    border-color: var(--danger);
+}
+
+/* Diálogo de banimento */
+.mod-dialog {
+    margin: auto;
+    /* o sidebar.css zera a margem e descentralizaria o <dialog> */
+    width: min(420px, calc(100vw - 32px));
+    padding: 26px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    color: var(--text-primary);
+    font-family: 'Poppins', sans-serif;
+}
+
+.mod-dialog::backdrop {
+    background: rgba(5, 4, 10, .7);
+}
+
+.mod-dialog h2 {
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.mod-dialog .mod-name {
+    display: inline-block;
+    vertical-align: bottom;
+    max-width: 14ch;
+}
+
+.mod-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+/* Mobile: cabeçalho e linhas empilham, botões ocupam a largura */
+@media (max-width: 640px) {
+    .mod-card {
+        padding: 16px;
+    }
+
+    .mod-head .mod-btn {
+        width: 100%;
+    }
+
+    .mod-row {
+        flex-wrap: wrap;
+    }
+
+    .mod-actions {
+        flex: 1 1 100%;
+    }
+
+    .mod-actions form,
+    .mod-actions>.mod-btn {
+        flex: 1;
+    }
+
+    .mod-actions .mod-btn {
+        width: 100%;
+    }
+
+    .mod-dialog-actions {
+        flex-direction: column-reverse;
+    }
+
+    .mod-dialog-actions .mod-btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod-page * {
+        transition: none !important;
+    }
 }

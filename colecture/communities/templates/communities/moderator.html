@@ -1,34 +1,157 @@
-{% extends 'sidebar.html' %}
+{% extends "sidebar.html" %}
 {% load static %}
 
-{% block title %}Painel do Moderador | CoLecture{% endblock %}
+{% block title %}Gerenciar {{ community.name }} - CoLecture{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'communities/css/moderator.css' %}">
+  <link rel="stylesheet" href="{% static 'communities/css/moderator.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
-<div class="moderator-container">
-    <header class="moderator-header">
-        <h1>Painel do Moderador</h1>
-        <p>Gerencie as comunidades, membros e postagens com facilidade.</p>
+  <div class="main-box mod-page">
+
+    <a class="mod-back" href="{% url 'communities:view_community' community.id %}">
+      <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar à comunidade
+    </a>
+
+    <header class="mod-head">
+      <div class="mod-head-text">
+        <h1 title="{{ community.name }}">Gerenciar {{ community.name }}</h1>
+        <p class="mod-sub">
+          {{ members_count }} membro{{ members_count|pluralize }} ·
+          {% if is_private %}Comunidade privada{% else %}Comunidade pública{% endif %}
+        </p>
+      </div>
+
+      {% if new_goal_url %}
+        <a class="mod-btn mod-btn-primary" href="{{ new_goal_url }}">
+          <i class="bx bx-plus" aria-hidden="true"></i> Nova meta
+        </a>
+      {% else %}
+        <span class="mod-btn mod-btn-primary is-disabled" aria-disabled="true" title="Disponível em breve">
+          <i class="bx bx-plus" aria-hidden="true"></i> Nova meta
+        </span>
+      {% endif %}
     </header>
 
-    <div class="moderator-grid">
-        <section class="moderator-card">
-            <h2>Solicitações de Entrada</h2>
-            <p>Nenhuma solicitação pendente no momento.</p>
-        </section>
+    {# F16: notificações de entrada, só em comunidade privada #}
+    {% if is_private %}
+      <section class="mod-card mod-notify" aria-labelledby="req-title">
+        <h2 id="req-title">
+          <i class="bx bxs-bell" aria-hidden="true"></i> Solicitações de entrada
+          {% if pending %}<span class="mod-count">{{ pending|length }}</span>{% endif %}
+        </h2>
 
-        <section class="moderator-card">
-            <h2>Denúncias & Moderação</h2>
-            <p>Nenhuma denúncia registrada.</p>
-        </section>
+        {% if pending %}
+          <ul class="mod-list">
+            {% for p in pending %}
+              <li class="mod-row">
+                <div class="mod-avatar" aria-hidden="true">{{ p.user.username|slice:":1"|upper }}</div>
+                <div class="mod-info">
+                  <strong class="mod-name" title="{{ p.user.username }}">{{ p.user.username }}</strong>
+                  <span class="mod-meta">Pediu para entrar</span>
+                </div>
+                <div class="mod-actions">
+                  <form method="post" action="{% url 'communities:manage_membership_request' community.id p.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="hidden" name="decision" value="accept">
+                    <button type="submit" class="mod-btn mod-btn-success">
+                      <i class="bx bx-check" aria-hidden="true"></i> Aceitar
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'communities:manage_membership_request' community.id p.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <input type="hidden" name="decision" value="reject">
+                    <button type="submit" class="mod-btn mod-btn-ghost">
+                      <i class="bx bx-x" aria-hidden="true"></i> Recusar
+                    </button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="mod-empty">Nenhuma solicitação pendente no momento.</p>
+        {% endif %}
+      </section>
+    {% endif %}
 
-        <section class="moderator-card">
-            <h2>Membros da Comunidade</h2>
-            <p>Gerencie permissões e funções dos membros.</p>
-        </section>
-    </div>
-</div>
+    {# F17: listagem de membros #}
+    <section class="mod-card" aria-labelledby="members-title">
+      <h2 id="members-title"><i class="bx bxs-group" aria-hidden="true"></i> Membros</h2>
+
+      <ul class="mod-list">
+        <li class="mod-row">
+          <div class="mod-avatar" aria-hidden="true">{{ community.creator.username|slice:":1"|upper }}</div>
+          <div class="mod-info">
+            <strong class="mod-name" title="{{ community.creator.username }}">{{ community.creator.username }}</strong>
+            <span class="mod-meta">Criador</span>
+          </div>
+        </li>
+
+        {% for m in members %}
+          <li class="mod-row">
+            <div class="mod-avatar" aria-hidden="true">{{ m.user.username|slice:":1"|upper }}</div>
+            <div class="mod-info">
+              <strong class="mod-name" title="{{ m.user.username }}">{{ m.user.username }}</strong>
+              <span class="mod-meta">
+                {% if m.role == 'MODERATOR' %}<span class="mod-tag">Moderador</span>{% else %}Membro{% endif %}
+              </span>
+            </div>
+
+            {# ninguém age sobre si mesmo #}
+            {% if m.user_id != request.user.id %}
+              <div class="mod-actions">
+                <form method="post" action="{% url 'communities:edit_member_role' community.id m.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.path }}">
+                  {% if m.role == 'MODERATOR' %}
+                    <input type="hidden" name="role" value="MEMBER">
+                    <button type="submit" class="mod-btn mod-btn-ghost">
+                      <i class="bx bx-down-arrow-alt" aria-hidden="true"></i> Rebaixar
+                    </button>
+                  {% else %}
+                    <input type="hidden" name="role" value="MODERATOR">
+                    <button type="submit" class="mod-btn mod-btn-ghost">
+                      <i class="bx bx-up-arrow-alt" aria-hidden="true"></i> Promover
+                    </button>
+                  {% endif %}
+                </form>
+
+                <button type="button" class="mod-btn mod-btn-danger"
+                        data-ban
+                        data-name="{{ m.user.username }}"
+                        data-action="{% url 'communities:manage_member_ban' community.id m.id %}">
+                  <i class="bx bx-block" aria-hidden="true"></i> Banir
+                </button>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {# confirmação de banimento #}
+    <dialog class="mod-dialog" id="ban-dialog" aria-labelledby="ban-title">
+      <form method="post" id="ban-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="hidden" name="decision" value="ban">
+        <h2 id="ban-title">Banir membro?</h2>
+        <p class="mod-sub"><strong id="ban-name" class="mod-name"></strong> perde o acesso à comunidade.</p>
+        <div class="mod-dialog-actions">
+          <button type="button" class="mod-btn mod-btn-ghost" data-close>Cancelar</button>
+          <button type="submit" class="mod-btn mod-btn-danger">Banir</button>
+        </div>
+      </form>
+    </dialog>
+
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'communities/js/moderator.js' %}"></script>
 {% endblock %}
