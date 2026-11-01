@@ -4,4 +4,6 @@ from . import views;
 
 app_name = "forums"
 
-urlpatterns = []
+urlpatterns = [
+    path("<int:forum_id>", views.ViewForum.as_view(), name="view_forum"),
+]
