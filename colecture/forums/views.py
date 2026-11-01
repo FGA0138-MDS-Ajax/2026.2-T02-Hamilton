@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect;
 from django.views import View;
 from django.contrib.auth.mixins import LoginRequiredMixin;
-from .models import Forum;
+from .models import Forum, Message;
+from .forms import MessageForm;
 from communities.services import MembershipService;
 from goals.services import GoalService;
 
@@ -44,12 +45,29 @@ class ViewForum(View, LoginRequiredMixin):
             );
         return False;
 
+    def post(self, request, *args, **kwargs):
+        form = MessageForm(request.POST);
+
+        if form.is_valid():
+            message_instance = form.save(commit=False);
+
+            message_instance.forum = self.forum;
+            message_instance.author = self.user;
+
+            message_instance.save();
+
+            # temporário, quando o front puder receber o json
+            # para atualizar sem dar reload eu atualizo aqui.
+            return redirect("forums:view_forum", forum_id = self.forum.id);
+            
+
     def get(self, request, *args, **kwargs):
         return render(
             request, 
             "forums/forum_view.html", 
             {
                 'forum':self.forum,
-                'messages':self.forum.messages
+                'messages':self.forum.messages,
+                'form':MessageForm()
             }
         );
