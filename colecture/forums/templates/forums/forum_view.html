@@ -9,6 +9,12 @@
 
     <h1>{{ forum.name }}</h1>
 
+    <form action="{% url 'forums:view_forum' forum.id %}" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Enviar Mensagem</button>
+    </form>
+    <hr>
     {% for message in messages.all %}
         <p>{{ message.content }}</p>
     {% endfor %}
