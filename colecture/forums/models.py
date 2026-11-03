@@ -28,7 +28,8 @@ class Forum(models.Model):
         "goals.Goal",
         on_delete=models.CASCADE,
         null=True,
-        blank=True
+        blank=True,
+        related_name="forum"
     );
 
     state = models.CharField(
