@@ -13,6 +13,7 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from django.urls import NoReverseMatch
 from django.utils.http import url_has_allowed_host_and_scheme
+from goals.services import GoalService
 
 # Create your views here.
 
@@ -167,6 +168,8 @@ class LeaveCommunityView(LoginRequiredMixin, View):
 
     def ec_is_creator(self):
         if self.is_creator: # o criador saiu.
+            # o criador não tem Membership, então nenhum signal dispara: desativa aqui
+            GoalService.deactivate_for_community_exit(self.user, self.community);
             self.give_ownership_to_oldest_member(except_user=self.user);
             return self.return_to_profile();
 
