@@ -20,6 +20,7 @@ class BookForm(forms.ModelForm):
     # 2. Insira o campo genre personalizado aqui dentro
     genre = forms.ChoiceField(
         choices=GENRE_CHOICES,
+        required=False,
         widget=forms.Select(attrs={'class': 'form-select-custom'}),
         label='Gênero'
     )
