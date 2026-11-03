@@ -6,6 +6,8 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+  <script src="{% static 'main/js/toast.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -25,12 +27,6 @@
         </a>
       </div>
     </header>
-
-    {% if messages %}
-      <ul class="com-messages">
-        {% for message in messages %}<li class="com-msg-{{ message.tags }}">{{ message }}</li>{% endfor %}
-      </ul>
-    {% endif %}
 
     {% if comunidades %}
       <div class="com-stats">
@@ -59,20 +55,20 @@
           </div>
           <p class="com-desc">{{ c.descricao }}</p>
           <div class="com-card-foot">
-  <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
+            <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
 
-      <div class="com-tags">
-        {% if c.is_moderator %}
-          <span class="com-tag com-tag-mod">Moderador</span>
-        {% endif %}
+            <div class="com-tags">
+              {% if c.is_moderator %}
+                <span class="com-tag com-tag-mod">Moderador</span>
+              {% endif %}
 
-        {% if c.privada %}
-          <span class="com-tag com-tag-closed">Privada</span>
-        {% else %}
-          <span class="com-tag com-tag-open">Aberta</span>
-        {% endif %}
-      </div>
-</div>
+              {% if c.privada %}
+                <span class="com-tag com-tag-closed">Privada</span>
+              {% else %}
+                <span class="com-tag com-tag-open">Aberta</span>
+              {% endif %}
+            </div>
+          </div>
         </a>
       {% endfor %}
     </section>
@@ -110,6 +106,19 @@
       </div>
     </form>
   </div>
+
+  {% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      {% for message in messages %}
+        showToast(
+          '{% if "error" in message.tags %}error{% elif "success" in message.tags %}success{% else %}info{% endif %}',
+          '{{ message|escapejs }}'
+        );
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
 
   <script>
   (function () {
