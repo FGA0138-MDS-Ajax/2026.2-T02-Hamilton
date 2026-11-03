@@ -1,4 +1,3 @@
-{% extends "sidebar.html" %}
 {% load static %}
 
 <!DOCTYPE html>
@@ -20,6 +19,10 @@
     <hr>
     {% for message in messages.all %}
         <p>{{ message.content }}</p>
+        <form action="{% url 'forums:delete_message' message.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Deletar</button>
+        </form>
     {% endfor %}
     
 </body>
