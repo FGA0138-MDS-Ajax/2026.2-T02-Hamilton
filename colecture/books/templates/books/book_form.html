@@ -6,18 +6,12 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'books/css/book_form.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+  <script src="{% static 'main/js/toast.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
-  <div class="main-box main-box--narrow">
-
-    {% if messages %}
-    <ul class="mensagens">
-    {% for message in messages %}
-    <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
-    {% endfor %}
-    </ul>
-    {% endif %}
+  <div class="main-box">
 
     <header class="navbar">
       <a class="brand" href="{% url 'main:index' %}">CoLecture</a>
@@ -48,8 +42,10 @@
         {% endif %}
 
         {# Os campos vêm do formulário (ModelForm do back): rótulos, ajuda e erros são dele. #}
+        {# O .form-grid só distribui os campos em colunas; cada campo ganha a classe field--<nome> #}
+        <div class="form-grid">
         {% for field in form.visible_fields %}
-          <div class="field{% if field.errors %} field--error{% endif %}">
+          <div class="field field--{{ field.name }}{% if field.errors %} field--error{% endif %}">
             <label for="{{ field.id_for_label }}">
               {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
             </label>
@@ -65,9 +61,23 @@
             {% endfor %}
           </div>
         {% endfor %}
+        </div>
 
         <button type="submit" class="btn">Cadastrar livro</button>
       </form>
     </section>
   </div>
+
+  {% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      {% for message in messages %}
+        showToast(
+          '{% if "error" in message.tags %}error{% elif "success" in message.tags %}success{% else %}info{% endif %}',
+          '{{ message|escapejs }}'
+        );
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
 {% endblock %}
