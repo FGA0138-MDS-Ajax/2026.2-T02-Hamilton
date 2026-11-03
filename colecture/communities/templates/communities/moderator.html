@@ -24,15 +24,9 @@
         </p>
       </div>
 
-      {% if new_goal_url %}
-        <a class="mod-btn mod-btn-primary" href="{{ new_goal_url }}">
-          <i class="bx bx-plus" aria-hidden="true"></i> Nova meta
-        </a>
-      {% else %}
-        <span class="mod-btn mod-btn-primary is-disabled" aria-disabled="true" title="Disponível em breve">
-          <i class="bx bx-plus" aria-hidden="true"></i> Nova meta
-        </span>
-      {% endif %}
+      <a class="mod-btn mod-btn-primary" href="{% url 'goals:create_community_goal' community.id %}">
+        <i class="bx bx-plus" aria-hidden="true"></i> Nova meta
+      </a>
     </header>
 
     {# F16: notificações de entrada, só em comunidade privada #}
