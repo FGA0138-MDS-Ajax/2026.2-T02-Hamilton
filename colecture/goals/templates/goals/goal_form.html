@@ -1,0 +1,15 @@
+{% extends "sidebar.html" %}
+
+{% block title %}{% if is_edit %}Editar meta{% else %}Criar meta{% endif %} - CoLecture{% endblock %}
+
+{% block content %}
+  <h1>{% if is_edit %}Editar meta{% else %}Criar meta{% endif %}</h1>
+
+  {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Salvar</button>
+  </form>
+{% endblock %}
