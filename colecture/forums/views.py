@@ -3,8 +3,9 @@ from django.http import HttpResponseForbidden, HttpResponse;
 from django.views import View;
 from django.contrib.auth.mixins import LoginRequiredMixin;
 from .models import Forum, Message;
-from .forms import MessageForm;
+from .forms import MessageForm, ForumForm;
 from communities.services import MembershipService;
+from .services import ForumService;
 from goals.services import GoalService;
 
 # Create your views here.
@@ -48,7 +49,8 @@ class ViewForum(View, LoginRequiredMixin):
 
     def post(self, request, *args, **kwargs):
         form = MessageForm(request.POST);
-
+        if self.forum.state!=Forum.State.ACTIVE:
+            return HttpResponseForbidden("The forum is inactive!");
         if form.is_valid():
             message_instance = form.save(commit=False);
 
@@ -84,6 +86,9 @@ def delete_message(request, message_id):
         if not community:
             return HttpResponseForbidden("Could not find community that hosts this forum.");
 
+        if forum.state!=Forum.State.ACTIVE:
+            return HttpResponseForbidden("The forum is inactive!");
+
         # valida se o usuário pode deletar essa mensagem.
         is_eligible = user.is_superuser or (
             message.author == user) or (
@@ -98,4 +103,24 @@ def delete_message(request, message_id):
 
     return HttpResponse("Only POST method allowed.")
 
-    
+def edit_forum(request, forum_id):
+
+    forum = get_object_or_404(Forum, id=forum_id);
+    user = request.user;
+
+    # valida se o usuário pode editar esse fórum.
+    is_eligible = ForumService.user_can_edit(user, forum);
+
+    if not is_eligible:
+        return HttpResponseForbidden("You cannot edit this forum.");
+
+    if request.method == "POST":
+        form = ForumForm(data=request.POST, instance=forum);
+
+        if form.is_valid():
+            form.save();
+            return redirect("forums:edit_forum", forum_id=forum_id);
+    else:
+        form = ForumForm(instance=forum);
+
+    return render(request, "forums/edit_forum.html", {'form':form, 'forum':forum});
