@@ -54,7 +54,7 @@
         </div>
       {% endif %}
 
-      <form method="POST" id="community-form" novalidate>
+      <form action="{% url 'communities:edit_community' community.id %}" method="POST" id="community-form" novalidate>
         {% csrf_token %}
 
         <div class="form-grid">
