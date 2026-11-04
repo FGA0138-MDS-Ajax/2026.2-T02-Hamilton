@@ -74,6 +74,11 @@ class ForumMessages(TestCase):
         cls.client = Client();
 
         # criando contas
+        cls.admin_acc = AccountService.create_account(
+            get_user_model().objects.create_superuser(
+                username='Admin'
+            )
+        );
         cls.com_owner = AccountService.create_account(
             get_user_model().objects.create(
                 username='CommunityOwner'
@@ -82,6 +87,11 @@ class ForumMessages(TestCase):
         cls.participant = AccountService.create_account(
             get_user_model().objects.create(
                 username='Participant'
+            )
+        );
+        cls.goal_participant = AccountService.create_account(
+            get_user_model().objects.create(
+                username='G Participant'
             )
         );
         cls.outsider = AccountService.create_account(
@@ -110,10 +120,21 @@ class ForumMessages(TestCase):
             cls.participant,
             cls.community,
         );
+        MembershipService.enter_community(
+            cls.goal_participant,
+            cls.community,
+        );
 
         cls.community_forum = cls.community.forum;
         cls.goal_forum = cls.community_goal.forum;
 
+        cls.part_message = Message.objects.create(
+            forum=cls.community_forum,
+            author=cls.participant,
+            content='Super different message'
+        );
+
+    # ===== ENVIANDO MENSAGENS =====
     def test_participant_message_community(self):
         # apenas membros de uma comunidade podem
         # enviar mensagens no fórum principal dela.
@@ -142,7 +163,11 @@ class ForumMessages(TestCase):
                 content=message_sent
             ).exists()
         );
+    
     def test_outsider_message_community(self):
+        # estrangeiros não podem mandar mensagens
+        # no fórum
+
         # login na conta do estrangeiro
         self.client.force_login(self.outsider);
 
@@ -166,5 +191,135 @@ class ForumMessages(TestCase):
                 author=self.outsider,
                 forum=self.community_forum,
                 content=message_sent
+            ).exists()
+        );
+
+    # ===== DELETANDO MENSAGENS =====
+    def test_mod_deleting_messages(self):
+        # moderadores e criador da comunidade podem
+        # deletar as mensagens mesmo sem ter criado-as.
+
+        # login com o criador da comunidade
+        self.client.force_login(self.com_owner);
+
+        old_message = self.part_message;
+        old_author = old_message.author;
+        old_forum = old_message.forum;
+
+        response = self.client.post(
+            reverse(
+                "forums:delete_message", 
+                kwargs={'message_id':old_message.id}
+            ),
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(
+            Message.objects.filter(
+                author=old_author,
+                forum=old_forum
+            ).exists()
+        );
+
+    def test_admin_deleting_messages(self):
+        # admins podem deletar mensagens mesmo
+        # sem participar da comunidade
+
+        # login com o admin
+        self.client.force_login(self.admin_acc);
+
+        old_message = self.part_message;
+        old_author = old_message.author;
+        old_forum = old_message.forum;
+
+        response = self.client.post(
+            reverse(
+                "forums:delete_message", 
+                kwargs={'message_id':old_message.id}
+            ),
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(
+            Message.objects.filter(
+                author=old_author,
+                forum=old_forum
+            ).exists()
+        );
+
+    def test_outsider_deleting_messages(self):
+        # estrangeiros não podem deletar mensagens
+
+        # login com o estrangeiro
+        self.client.force_login(self.outsider);
+
+        old_message = self.part_message;
+        old_author = old_message.author;
+        old_forum = old_message.forum;
+
+        response = self.client.post(
+            reverse(
+                "forums:delete_message", 
+                kwargs={'message_id':old_message.id}
+            ),
+        );
+
+        self.assertEqual(response.status_code, 403);
+        self.assertTrue(
+            Message.objects.filter(
+                author=old_author,
+                forum=old_forum
+            ).exists()
+        );
+     
+    def test_message_owner_deleting_messages(self):
+        # dono da mensagem pode deletá-la
+
+        # login com o dono
+        self.client.force_login(self.participant);
+
+        old_message = self.part_message;
+        old_author = old_message.author;
+        old_forum = old_message.forum;
+
+        response = self.client.post(
+            reverse(
+                "forums:delete_message", 
+                kwargs={'message_id':old_message.id}
+            ),
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(
+            Message.objects.filter(
+                author=old_author,
+                forum=old_forum
+            ).exists()
+        );
+    
+    def test_message_viewer_deleting_messages(self):
+        # visualizador (não moderador) e não dono
+        # não pode deletar a mensagem
+
+        # login com o visualizador (goal participant
+        # não é dono da mensagem)
+        self.client.force_login(self.goal_participant);
+
+        old_message = self.part_message;
+        old_author = old_message.author;
+        old_forum = old_message.forum;
+
+        response = self.client.post(
+            reverse(
+                "forums:delete_message", 
+                kwargs={'message_id':old_message.id}
+            ),
+        );
+
+        self.assertEqual(response.status_code, 403);
+        self.assertTrue(
+            Message.objects.filter(
+                author=old_author,
+                forum=old_forum
             ).exists()
         );
