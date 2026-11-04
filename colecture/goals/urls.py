@@ -11,4 +11,5 @@ urlpatterns = [
     path("<int:goal_id>/edit/", views.edit_goal, name="edit_goal"),
     path("<int:goal_id>/join/", views.join_goal, name="join_goal"),
     path("<int:goal_id>/leave/", views.leave_goal, name="leave_goal"),
+    path("reading-sessions/register/",views.register_reading_session,name="register_reading_session"),
 ]

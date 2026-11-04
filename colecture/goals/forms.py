@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Goal
+from .models import Goal, ReadingSession
 
 
 class GoalForm(forms.ModelForm):
@@ -33,3 +33,8 @@ class GoalForm(forms.ModelForm):
         if deadline and "deadline" in self.changed_data and deadline <= timezone.now():
             raise forms.ValidationError("O prazo deve estar no futuro.")
         return deadline
+
+class ReadingSessionForm(forms.ModelForm):
+    class Meta:
+        model = ReadingSession
+        fields = ["book","page_start","page_end","minute_count","date"]

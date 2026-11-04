@@ -9,7 +9,7 @@ from accounts.models import Profile
 from communities.models import Community
 from communities.services import MembershipService
 
-from .forms import GoalForm
+from .forms import GoalForm, ReadingSessionForm
 from .models import Goal
 from .services import GoalService
 
@@ -108,3 +108,24 @@ def leave_goal(request, goal_id):
     if GoalService.leave(request.user, goal) == 0:
         messages.error(request, "Você não participa desta meta.")
     return redirect("goals:view_goal", goal_id=goal.id)
+
+@login_required
+def register_reading_session(request):
+    if request.method == "POST":
+        form = ReadingSessionForm(request.POST)
+
+        if form.is_valid():
+            reading_session = form.save(commit=False)
+            reading_session.user = request.user
+            reading_session.save()
+
+            return redirect("goals:register_reading_session")
+
+    else:
+        form = ReadingSessionForm()
+
+    return render(
+        request,
+        "goals/register_reading_session.html",
+        {"form": form}
+    )
