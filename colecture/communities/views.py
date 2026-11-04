@@ -6,7 +6,7 @@ from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
-from .services import CommunityService;
+from .services import CommunityService, MembershipService;
 from django.utils import timezone;
 from django.views.decorators.http import require_GET
 from django.contrib import messages
@@ -97,26 +97,20 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
     def join_community(self):
         community_is_private = self.community.access == Community.Access.PRIVATE;
-        membership = self.membership or Membership();
 
-        membership.user = self.user;
-        membership.community =self.community;
-        membership.role = (
-            Membership.Role.NONE if community_is_private else
-            Membership.Role.MEMBER
+        MembershipService.enter_community(
+            self.user,
+            self.community,
+            role = (
+                Membership.Role.NONE if community_is_private else
+                Membership.Role.MEMBER
+            ),
+            status = (
+                Membership.Status.PENDING if community_is_private else 
+                Membership.Status.ACTIVE
+            ),
+            joined_at=timezone.now() if not community_is_private else None
         );
-
-        membership.status = (
-            Membership.Status.PENDING if community_is_private else 
-            Membership.Status.ACTIVE
-        );
-
-        if not community_is_private: # será membro agora.
-            # então (re)entrou agora.
-            # isso ajudará a determinar o membro mais velho posteriormente
-            membership.joined_at = timezone.now();
-        
-        membership.save();
 
         return self.redirect_to_community();
 

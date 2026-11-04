@@ -3,13 +3,14 @@ from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from .models import Community, Membership
+from .services import CommunityService
 from datetime import datetime, timedelta;
 from django.utils import timezone
 from django.core.management import call_command
 from io import StringIO
 
 from goals.services import GoalService;
-from communities.services import CommunityService;
+from communities.services import CommunityService, MembershipService;
 from accounts.services import AccountService;
 # Create your tests here.
 
@@ -32,12 +33,12 @@ class CT03(TestCase):
         );
 
         # memberships
-        mod_member = Membership.objects.create(
+        mod_member = MembershipService.enter_community(
             user=moderator_user,
             community=community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE
-        )
+        );
 
         url_edit_community = reverse(
             "communities:edit_community", 
@@ -95,13 +96,13 @@ class CT03(TestCase):
         );
 
         # memberships
-        mod_member = Membership.objects.create(
+        mod_member = MembershipService.enter_community(
             user=moderator_user,
             community=community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE
         );
-        reg_member = Membership.objects.create(
+        reg_member = MembershipService.enter_community(
             user=regular_user,
             community=community,
             role=Membership.Role.MEMBER,
@@ -171,11 +172,11 @@ class CT03(TestCase):
         );
 
         # memberships
-        ban_member = Membership.objects.create(
-            community=community_public,
+        ban_member = MembershipService.enter_community(
             user=banned_user,
+            community=community_public,
             status=Membership.Status.BANNED
-        )
+        );
 
         self.client.force_login(regular_user);
 
@@ -249,14 +250,14 @@ class CT03(TestCase):
         com_id = community.id;
 
         # memberships
-        mod_member = Membership.objects.create(
+        mod_member = MembershipService.enter_community(
             community=community,
             user=moderator_user,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE,
             joined_at=datetime(year=1999, month=12, day=25)
         );
-        reg_member = Membership.objects.create(
+        reg_member = MembershipService.enter_community(
             community=community,
             user=regular_user,
             role=Membership.Role.MEMBER,
@@ -511,14 +512,14 @@ class ManageMemberBanTest(TestCase):
             creator=self.owner
         )
 
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.moderator,
             community=self.community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE
         )
 
-        self.membership = Membership.objects.create(
+        self.membership = MembershipService.enter_community(
             user=self.user,
             community=self.community,
             role=Membership.Role.MEMBER,
@@ -649,13 +650,13 @@ class MembershipRequestTest(TestCase):
             creator=self.owner,
             access=Community.Access.PRIVATE,
         )
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.moderator,
             community=self.community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE,
         )
-        self.member_membership = Membership.objects.create(
+        self.member_membership = MembershipService.enter_community(
             user=self.member,
             community=self.community,
             role=Membership.Role.MEMBER,
@@ -664,7 +665,7 @@ class MembershipRequestTest(TestCase):
 
         # joined_at antigo para provar que o aceite o renova
         self.old_date = timezone.now() - timedelta(days=365)
-        self.pending = Membership.objects.create(
+        self.pending = MembershipService.enter_community(
             user=self.applicant,
             community=self.community,
             role=Membership.Role.NONE,
@@ -780,7 +781,7 @@ class MembershipRequestTest(TestCase):
     # moderador de OUTRA comunidade não tem poder sobre esta
     def test_moderator_of_another_community_cannot_decide(self):
         other = Community.objects.create(name="Outra", creator=self.outsider)
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.member,
             community=other,
             role=Membership.Role.MODERATOR,
@@ -795,7 +796,7 @@ class MembershipRequestTest(TestCase):
     # moderador banido (cargo antigo, status BANNED) perde o poder
     def test_banned_moderator_cannot_decide(self):
         banned = User.objects.create_user(username="mod_banido", password="teste123")
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=banned,
             community=self.community,
             role=Membership.Role.MODERATOR,
@@ -838,7 +839,7 @@ class MembershipRequestTest(TestCase):
     # membro ativo nem para desbanir
     def test_only_pending_requests_can_be_decided(self):
         banned = User.objects.create_user(username="banido", password="teste123")
-        banned_membership = Membership.objects.create(
+        banned_membership = MembershipService.enter_community(
             user=banned,
             community=self.community,
             role=Membership.Role.MEMBER,
@@ -869,7 +870,7 @@ class MembershipRequestTest(TestCase):
             creator=self.owner,
             access=Community.Access.PRIVATE,
         )
-        other_pending = Membership.objects.create(
+        other_pending = MembershipService.enter_community(
             user=self.outsider,
             community=other,
             role=Membership.Role.NONE,
@@ -911,19 +912,19 @@ class MemberRoleEditTest(TestCase):
 
         self.community = Community.objects.create(name="Comunidade", creator=self.owner)
 
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.moderator,
             community=self.community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE,
         )
-        self.mod_target = Membership.objects.create(
+        self.mod_target = MembershipService.enter_community(
             user=self.other_moderator,
             community=self.community,
             role=Membership.Role.MODERATOR,
             status=Membership.Status.ACTIVE,
         )
-        self.target = Membership.objects.create(
+        self.target = MembershipService.enter_community(
             user=self.member,
             community=self.community,
             role=Membership.Role.MEMBER,
@@ -1060,7 +1061,7 @@ class MemberRoleEditTest(TestCase):
         ):
             with self.subTest(status=status):
                 user = User.objects.create_user(username=f"mod_{status}", password="teste123")
-                Membership.objects.create(
+                MembershipService.enter_community(
                     user=user,
                     community=self.community,
                     role=Membership.Role.MODERATOR,
@@ -1075,7 +1076,7 @@ class MemberRoleEditTest(TestCase):
     # moderador de outra comunidade não tem poder aqui
     def test_moderator_of_another_community_cannot_edit_roles(self):
         other = Community.objects.create(name="Outra", creator=self.outsider)
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.member,
             community=other,
             role=Membership.Role.MODERATOR,
@@ -1098,7 +1099,7 @@ class MemberRoleEditTest(TestCase):
         ):
             with self.subTest(status=status):
                 user = User.objects.create_user(username=f"alvo_{status}", password="teste123")
-                membership = Membership.objects.create(
+                membership = MembershipService.enter_community(
                     user=user,
                     community=self.community,
                     role=Membership.Role.NONE,
@@ -1113,7 +1114,7 @@ class MemberRoleEditTest(TestCase):
     # membership de outra comunidade na URL desta -> 404
     def test_membership_from_another_community_returns_404(self):
         other = Community.objects.create(name="Outra", creator=self.owner)
-        other_membership = Membership.objects.create(
+        other_membership = MembershipService.enter_community(
             user=self.outsider,
             community=other,
             role=Membership.Role.MEMBER,
@@ -1192,7 +1193,7 @@ class PurgeArchivedCommunitiesTest(TestCase):
     def test_purge_removes_memberships_of_deleted_community(self):
         old = self.make_archived("Velha", days_ago=90)
         member = User.objects.create_user(username="membro", password="teste123")
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=member,
             community=old,
             role=Membership.Role.MEMBER,
@@ -1260,7 +1261,7 @@ class CT_CommunityGoalsPage(TestCase):
             Community.objects.create(name="Comm", creator=self.creator),
             self.creator
         );
-        Membership.objects.create(
+        MembershipService.enter_community(
             user=self.member, community=self.community,
             role=Membership.Role.MEMBER, status=Membership.Status.ACTIVE)
         self.url = reverse("communities:view_community", kwargs={"community_id": self.community.id})

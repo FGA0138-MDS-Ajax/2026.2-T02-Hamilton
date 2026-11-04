@@ -1,3 +1,5 @@
+from django.utils import timezone;
+
 from .models import Membership;
 from forums.models import Forum;
 
@@ -26,7 +28,34 @@ class MembershipService:
             ).exists()
         )
 
+    @staticmethod
+    def enter_community(
+            user, 
+            community, 
+            role=Membership.Role.MEMBER,
+            status=Membership.Status.ACTIVE,
+            joined_at=None
+        ):
+        membership = Membership.objects.filter(
+            user=user,
+            community=community
+        ).first() or Membership();
+        
+        membership.role=role or (
+            status==Membership.Status.ACTIVE and Membership.Role.MEMBER 
+        ) or Membership.Role.NONE;
+        membership.status=status;
+        membership.user=user;
+        membership.community=community;
+        if joined_at:
+            membership.joined_at = joined_at
+
+        membership.save();
+
+        return membership;
+
 class CommunityService:
+    @staticmethod
     def create_community(community, creator=None, icon=None):
         community.creator = creator or community.creator;
         community.icon = icon or "";
