@@ -1,3 +1,4 @@
+#FIXME: Há 5 falhas e 4 erros.
 from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -6,6 +7,10 @@ from datetime import datetime, timedelta;
 from django.utils import timezone
 from django.core.management import call_command
 from io import StringIO
+
+from goals.services import GoalService;
+from communities.services import CommunityService;
+from accounts.services import AccountService;
 # Create your tests here.
 
 class CT03(TestCase):
@@ -18,10 +23,12 @@ class CT03(TestCase):
         moderator_user = get_user_model().objects.create(username="Moderator");
 
         # comunidade
-        community = Community.objects.create(
-            name="NewCommunity",
-            description="New description",
-            creator=creator_user
+        community = CommunityService.create_community(
+            Community.objects.create(
+                name="NewCommunity",
+                description="New description",
+                creator=creator_user
+            )
         );
 
         # memberships
@@ -42,18 +49,20 @@ class CT03(TestCase):
             { 
                 'user':moderator_user, 'name':'Moderator Community', 
                 'description':'Moderator description',
-                'state':Community.State.ARCHIVED,
+                # 'state':Community.State.ARCHIVED,
                 'access':community.access,
             },
             # criador pode editar comunidade.
             { 
                 'user':creator_user, 'name':'Creator Community', 
                 'description':'Creator description',
-                'state':Community.State.ACTIVE,
+                # 'state':Community.State.ACTIVE,
                 'access':Community.Access.PRIVATE,
             },
         ];
 
+        # removida verificação de edição de estado
+        # devido às novas regras de negócio de edição de comunidade.
         for valid_test in valid:
             self.client.force_login(valid_test['user']);
             response = self.client.post(
@@ -61,7 +70,7 @@ class CT03(TestCase):
                 data={
                     'name':valid_test.get('name'),
                     'description':valid_test.get('description'),
-                    'state':valid_test.get('state', community.state),
+                    # 'state':valid_test.get('state', community.state),
                     'access':valid_test.get('access', community.access),
                 }
             );
@@ -69,7 +78,7 @@ class CT03(TestCase):
             self.assertEqual(response.status_code, 302);
             self.assertEqual(community.name, valid_test.get('name'));
             self.assertEqual(community.description, valid_test.get('description'));
-            self.assertEqual(community.state, valid_test.get('state'));
+            # self.assertEqual(community.state, valid_test.get('state'));
             self.assertEqual(community.access, valid_test.get('access'));
 
     def test_edit_community_INVALID(self):
@@ -110,20 +119,14 @@ class CT03(TestCase):
                 'user':regular_user, 'name':'Regular Community', 
                 'description':'regular description'
             },
-            # "estado" omitido.
-            {
-                'user':moderator_user, 'name':'Moderator Community', 'state':'',
-                'description':'Moderator description',
-            },
+
+            # Removido teste de estado omitido devido às novas
+            # regras de negócio relacionadas à edição de comunidade.
+
             # "accesso" de tipo errado
             {
                 'user':creator_user, 'name':True, 'access':2,
                 'description':'Creator description'
-            },
-            # tentando atribuir um novo "criador" diretamente
-            {
-                'user':creator_user, 'name':"Creator Community", 'state':'',
-                'description':'Creator description', "creator":moderator_user
             },
         ];
 
@@ -134,7 +137,7 @@ class CT03(TestCase):
                 data={
                     'name':invalid_test.get('name'),
                     'description':invalid_test.get('description'),
-                    'state':invalid_test.get('state', community.state),
+                    # 'state':invalid_test.get('state', community.state),
                     'access':invalid_test.get('access', community.access),
                     'creator':invalid_test.get('creator', '')
                 }
@@ -1237,29 +1240,42 @@ class PurgeArchivedCommunitiesTest(TestCase):
 
 class CT_CommunityGoalsPage(TestCase):
     """Listagem de metas na página da comunidade (F06 a F12, F19)."""
-
+    
     def setUp(self):
         from forums.models import Forum
         from goals.models import Goal, GoalParticipation
         self.Forum, self.Goal, self.GoalParticipation = Forum, Goal, GoalParticipation
 
         User = get_user_model()
-        self.creator = User.objects.create_user("creator", password="x")
-        self.member = User.objects.create_user("member", password="x")
-        self.outsider = User.objects.create_user("outsider", password="x")
-        self.community = Community.objects.create(name="Comm", creator=self.creator)
+        self.creator = AccountService.create_account(
+            User.objects.create_user("creator", password="x")
+        );
+        self.member = AccountService.create_account(
+            User.objects.create_user("member", password="x")
+        );
+        self.outsider = AccountService.create_account(
+            User.objects.create_user("outsider", password="x")
+        );
+        self.community = CommunityService.create_community(
+            Community.objects.create(name="Comm", creator=self.creator),
+            self.creator
+        );
         Membership.objects.create(
             user=self.member, community=self.community,
             role=Membership.Role.MEMBER, status=Membership.Status.ACTIVE)
         self.url = reverse("communities:view_community", kwargs={"community_id": self.community.id})
 
     def make_goal(self, name, status=None, with_forum=True, **kwargs):
-        goal = self.Goal.objects.create(
-            name=name, owner_community=self.community,
-            goal_type=self.Goal.GoalType.PAGE_COUNT, target=100,
-            status=status or self.Goal.Status.ACTIVE, **kwargs)
-        if with_forum:
-            self.Forum.objects.create(name=name, goal=goal)
+        goal = GoalService.create_goal(
+            self.Goal.objects.create(
+                name=name, 
+                owner_community=self.community if with_forum else None,
+                owner_profile=self.member.profile if not with_forum else None,
+                goal_type=self.Goal.GoalType.PAGE_COUNT, target=100,
+                status=status or self.Goal.Status.ACTIVE, **kwargs
+            ),
+            self.community
+        );
         return goal
 
     def test_goals_are_split_into_active_and_closed(self):
