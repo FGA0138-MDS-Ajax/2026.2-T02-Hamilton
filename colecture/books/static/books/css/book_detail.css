@@ -320,32 +320,28 @@ form > button:hover {
   z-index: 10;
 }
 
-/* Botão redondo, roxo e com brilho, para ser fácil de achar */
 .kebab-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border: 2px solid var(--purple-300);
-  border-radius: 50%;
-  background: var(--gradient-brand);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   color: #fff;
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
-  box-shadow: var(--glow);
-  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .kebab-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 32px rgba(139, 92, 246, 0.6);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .kebab-btn:focus-visible {
   outline: 2px solid var(--purple-300);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .kebab-dropdown {

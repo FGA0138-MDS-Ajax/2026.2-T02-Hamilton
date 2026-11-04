@@ -9,6 +9,7 @@ urlpatterns = [
     path('create/', views.create_community, name='create_community'),
     path('search/', views.search_communities, name='search'),
     path('<int:community_id>', views.view_community, name='view_community'),
+    path('<int:community_id>/forum/', views.forum_page, name='forum'),
     path('<int:community_id>/delete/',views.delete_community, name='delete_community'),
     path('<int:community_id>/archive/', views.archive_community, name='archive_community'),
     path('<int:community_id>/join', views.JoinCommunityView.as_view(), name='join_community'),

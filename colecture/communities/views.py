@@ -11,10 +11,7 @@ from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.urls import reverse
-from django.urls import NoReverseMatch
-from django.utils.http import url_has_allowed_host_and_scheme
-from forums.models import Forum
-from goals.services import GoalService
+
 
 # Create your views here.
 
@@ -169,8 +166,6 @@ class LeaveCommunityView(LoginRequiredMixin, View):
 
     def ec_is_creator(self):
         if self.is_creator: # o criador saiu.
-            # o criador não tem Membership, então nenhum signal dispara: desativa aqui
-            GoalService.deactivate_for_community_exit(self.user, self.community);
             self.give_ownership_to_oldest_member(except_user=self.user);
             return self.return_to_profile();
 
@@ -250,16 +245,7 @@ def view_community(request, community_id):
         "can_edit": can_manage,
         "can_leave": is_creator or is_active_member,
         "can_archive": can_manage and not community_is_archived,
-        "can_create_goal": can_manage and not community_is_archived,
     }
-
-    is_member = is_active_member or is_creator
-    goal_cards = None
-    general_forum = None
-    if is_member or user.is_superuser:
-        goal_cards = GoalService.build_community_cards(community)
-    if is_member:
-        general_forum = Forum.objects.filter(community=community, goal__isnull=True).first()
 
     community_info = {
         'id': community.id,
@@ -268,16 +254,12 @@ def view_community(request, community_id):
         'creator_name': community.creator.username,
         'creator_id': community.creator.id,
         'is_private': community.access == Community.Access.PRIVATE,
-        'code': community.id,
     }
 
     return render(request, "communities/community_view.html", {
         'community': community_info,
         'book': community.book,
         'permissions': permissions,
-        'goal_cards': goal_cards,
-        'general_forum': general_forum,
-        'is_member': is_member,
     })
 
 
@@ -641,60 +623,22 @@ def home_community(request):
 
     return render(request, "communities/home_community.html", {"comunidades": comunidades})
 
-
-def _back(request, community):
-    """Volta para a página de origem (campo 'next') ou, se não houver, para a comunidade."""
-    nxt = request.POST.get("next", "")
-    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
-        return redirect(nxt)
-    return redirect("communities:view_community", community_id=community.id)
-
-
 @login_required
-def moderator_view(request, community_id):
-    community = get_object_or_404(
-        Community.objects.select_related("creator"), id=community_id
-    )
+def forum_page(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
 
-    # só administrador, criador ou moderador ativo
-    if not _can_manage(request.user, community):
-        return HttpResponseForbidden()
-
-    if request.method != "GET":
-        return HttpResponseNotAllowed(["GET"])
-
-    is_private = community.access == Community.Access.PRIVATE
-
-    # solicitações só existem (e só aparecem) em comunidade privada
-    pending = []
-    if is_private:
-        pending = (
-            Membership.objects
-            .filter(community=community, status=Membership.Status.PENDING)
-            .select_related("user")
-            .order_by("joined_at")
-        )
-
-    # moderadores primeiro ("MODERATOR" > "MEMBER" na ordem alfabética)
-    members = (
-        Membership.objects
-        .filter(community=community, status=Membership.Status.ACTIVE)
-        .select_related("user")
-        .order_by("-role", "user__username")
-    )
-
-    # A tela de criar meta é da Sprint 4. Enquanto a rota 'create_goal' não
-    # existir, o botão aparece desativado em vez de quebrar a página.
-    try:
-        new_goal_url = reverse("communities:create_goal", args=[community.id])
-    except NoReverseMatch:
-        new_goal_url = None
-
-    return render(request, "communities/moderator.html", {
-        "community": community,
-        "is_private": is_private,
-        "pending": pending,
-        "members": members,
-        "members_count": members.count() + 1,  # +1 = criador (sem membership)
-        "new_goal_url": new_goal_url,
-    })
+    forum = {
+        "id": community.id,
+        "title": "Fórum geral",
+        "description": "Bem-vindos! Aqui falamos sobre " + community.name + ".",
+        "kind": "geral",
+        "meta_name": "",
+        "is_moderator": _can_manage(request.user, community),
+        "locked": False,
+        "pinned_id": None,
+        "current_user": request.user.username,
+        "created_by": community.creator.username,
+        "community_url": reverse("communities:view_community", args=[community.id]),
+        "messages": [],
+    }
+    return render(request, "communities/forum.html", {"forum": forum})
