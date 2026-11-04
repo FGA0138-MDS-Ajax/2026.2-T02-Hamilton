@@ -35,6 +35,12 @@ class GoalForm(forms.ModelForm):
         return deadline
 
 class ReadingSessionForm(forms.ModelForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if user is not None:
+            self.instance.user = user
+
     class Meta:
         model = ReadingSession
-        fields = ["book","page_start","page_end","minute_count","date"]
+        fields = ["book", "page_start", "page_end", "minute_count", "date"]
