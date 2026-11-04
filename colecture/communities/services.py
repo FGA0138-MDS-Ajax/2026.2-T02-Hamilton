@@ -1,4 +1,5 @@
 from .models import Membership;
+from forums.models import Forum;
 
 class MembershipService:
     @staticmethod
@@ -24,3 +25,17 @@ class MembershipService:
                 status=Membership.Status.ACTIVE
             ).exists()
         )
+
+class CommunityService:
+    def create_community(community, creator=None, icon=None):
+        community.creator = creator or community.creator;
+        community.icon = icon or "";
+        community.save();
+
+        # forum principal de comunidade
+        main_forum = Forum.objects.create(
+            name=community.name+" Forum",
+            community=community,
+        );
+
+        return community;

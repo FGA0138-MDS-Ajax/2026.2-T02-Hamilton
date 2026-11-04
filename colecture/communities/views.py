@@ -6,6 +6,7 @@ from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
+from .services import CommunityService;
 from django.utils import timezone;
 from django.views.decorators.http import require_GET
 from django.contrib import messages
@@ -269,11 +270,11 @@ def create_community(request):
         form = CommunityForm(request.POST)
 
         if form.is_valid():
-            community = form.save(commit=False)
-            community.creator = request.user
-            community.icon = ""
-            community.save()
-
+            community = CommunityService.create_community(
+                form.save(commit=False),
+                request.user
+            );
+            
             messages.success(request, f'Comunidade "{community.name}" criada com sucesso!')
             return redirect("communities:home_community")
 
