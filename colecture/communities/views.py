@@ -301,8 +301,40 @@ def delete_community(request, community_id):
     return HttpResponseForbidden()
 
 @login_required
-def moderator_view(request):
-    return render(request, 'communities/moderator.html')
+def moderator_view(request, community_id):
+    community = get_object_or_404(Community, id=community_id);
+    user = request.user;
+
+    if not MembershipService.user_can_manage(user, community):
+        return HttpResponseForbidden("Access restricted.");
+
+    if request.method == "POST":
+        return redirect(
+            "communities:view_community", 
+            community_id=community_id
+        );
+
+    members = Membership.objects.filter(
+        community=community,
+        status=Membership.Status.ACTIVE
+    );
+    pending_requests = Membership.objects.filter(
+        community=community,
+        status=Membership.Status.PENDING
+    );
+
+    return render(
+        request, 
+        'communities/moderator.html',
+        context={
+            'community':community,
+            'members':members,
+            'members_count':members.count()+1,
+            'is_private':community.access==Community.Access.PRIVATE,
+            'pending': pending_requests.exists() and pending_requests,
+
+        }
+    );
 
 @login_required
 def edit_community(request, community_id):
