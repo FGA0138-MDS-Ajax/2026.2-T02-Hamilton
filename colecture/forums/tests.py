@@ -120,9 +120,15 @@ class ForumMessages(TestCase):
             cls.participant,
             cls.community,
         );
+        # goal participant participa da comunidade e
+        # da meta
         MembershipService.enter_community(
             cls.goal_participant,
             cls.community,
+        );
+        GoalService.join(
+            cls.goal_participant,
+            cls.community_goal
         );
 
         cls.community_forum = cls.community.forum;
@@ -193,6 +199,68 @@ class ForumMessages(TestCase):
                 content=message_sent
             ).exists()
         );
+
+    def test_participant_message_goal(self):
+        # participantes da meta podem enviar mensagens
+        # no fórum
+
+        # login na conta do participante da meta
+        self.client.force_login(self.goal_participant);
+
+        message_sent = "Acaba pelo amor de Deus";
+
+        # tenta mandar mensagem
+        response = self.client.post(
+            reverse(
+                "forums:view_forum", 
+                kwargs={'forum_id':self.goal_forum.id}
+            ),
+            data={
+                'content':message_sent
+            }
+        );
+
+        # será aceito
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(
+            Message.objects.filter(
+                author=self.goal_participant,
+                forum=self.goal_forum,
+                content=message_sent
+            ).exists()
+        );
+
+    def test_non_participant_message_goal(self):
+        # não participantes da meta não podem enviar
+        # mensagens no fórum da meta.
+
+        # login na conta do participante da comunidade
+        # que não é participante da meta.
+        self.client.force_login(self.participant);
+
+        message_sent = "Acaba pelo amor de Deus";
+
+        # tenta mandar mensagem
+        response = self.client.post(
+            reverse(
+                "forums:view_forum", 
+                kwargs={'forum_id':self.goal_forum.id}
+            ),
+            data={
+                'content':message_sent
+            }
+        );
+
+        # será barrado
+        self.assertEqual(response.status_code, 403);
+        self.assertFalse(
+            Message.objects.filter(
+                author=self.participant,
+                forum=self.goal_forum,
+                content=message_sent
+            ).exists()
+        );
+
 
     # ===== DELETANDO MENSAGENS =====
     def test_mod_deleting_messages(self):
