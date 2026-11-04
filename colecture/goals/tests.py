@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -12,7 +12,8 @@ from books.models import Book
 from communities.models import Community, Membership
 from forums.models import Forum
 
-from .models import Goal, GoalParticipation
+from .models import Goal, GoalParticipation, ReadingSession
+from .forms import ReadingSessionForm
 from .services import GoalService
 
 User = get_user_model()
@@ -356,3 +357,225 @@ class CT_GoalConclude(GoalBase):
         self.assertEqual(
             response["Location"],
             reverse("goals:view_goal", kwargs={"goal_id": self.goal.id}))
+
+# Testes de validação dos dados do registro
+class ReadingSessionModelTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor",
+            email="leitor@email.com",
+            password="senha123"
+        )
+
+        self.other_user = User.objects.create_user(
+            username="outro_leitor",
+            email="outro@email.com",
+            password="senha123"
+        )
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            genre="Ficção",
+            pages=100
+        )
+
+    def test_registro_valido(self):
+        session = ReadingSession(
+            user=self.user,
+            book=self.book,
+            page_start=1,
+            page_end=20,
+            minute_count=30,
+            date=date(2026, 11, 4)
+        )
+
+        session.full_clean()
+
+        self.assertEqual(session.page_start, 1)
+        self.assertEqual(session.page_end, 20)
+
+    def test_pagina_inicial_maior_que_final(self):
+        session = ReadingSession(
+            user=self.user,
+            book=self.book,
+            page_start=30,
+            page_end=20,
+            minute_count=30
+        )
+
+        with self.assertRaises(ValidationError):
+            session.full_clean()
+
+    def test_pagina_final_maior_que_total_do_livro(self):
+        session = ReadingSession(
+            user=self.user,
+            book=self.book,
+            page_start=90,
+            page_end=110,
+            minute_count=30
+        )
+
+        with self.assertRaises(ValidationError):
+            session.full_clean()
+
+    def test_intervalo_sobreposto(self):
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            page_start=10,
+            page_end=20,
+            minute_count=30
+        )
+
+        session = ReadingSession(
+            user=self.user,
+            book=self.book,
+            page_start=15,
+            page_end=25,
+            minute_count=20
+        )
+
+        with self.assertRaises(ValidationError):
+            session.full_clean()
+
+    def test_intervalo_diferente_e_permitido(self):
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            page_start=10,
+            page_end=20,
+            minute_count=30
+        )
+
+        session = ReadingSession(
+            user=self.user,
+            book=self.book,
+            page_start=21,
+            page_end=30,
+            minute_count=20
+        )
+
+        session.full_clean()
+
+    def test_outro_usuario_pode_registrar_mesmo_intervalo(self):
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            page_start=10,
+            page_end=20,
+            minute_count=30
+        )
+
+        session = ReadingSession(
+            user=self.other_user,
+            book=self.book,
+            page_start=10,
+            page_end=20,
+            minute_count=20
+        )
+
+        session.full_clean()
+
+
+# Testes de validação do formulário de registro
+class ReadingSessionFormTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor",
+            email="leitor@email.com",
+            password="senha123"
+        )
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            genre="Ficção",
+            pages=100
+        )
+
+    def test_formulario_valido(self):
+        form = ReadingSessionForm(
+            data={
+                "book": self.book.id,
+                "page_start": 1,
+                "page_end": 20,
+                "minute_count": 30,
+                "date": "2026-11-04"
+            },
+            user=self.user
+        )
+
+        self.assertTrue(form.is_valid())
+
+    def test_formulario_impede_intervalo_sobreposto(self):
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            page_start=10,
+            page_end=20,
+            minute_count=30
+        )
+
+        form = ReadingSessionForm(
+            data={
+                "book": self.book.id,
+                "page_start": 15,
+                "page_end": 25,
+                "minute_count": 20,
+                "date": "2026-11-04"
+            },
+            user=self.user
+        )
+
+        self.assertFalse(form.is_valid())
+
+
+# Testes da view de registro de leitura
+class ReadingSessionViewTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor",
+            email="leitor@email.com",
+            password="senha123"
+        )
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            genre="Ficção",
+            pages=100
+        )
+
+        self.url = reverse("goals:register_reading_session")
+
+    def test_usuario_autenticado_registra_sessao(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.url, {
+            "book": self.book.id,
+            "page_start": 1,
+            "page_end": 20,
+            "minute_count": 30,
+            "date": "2026-11-04"
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ReadingSession.objects.count(), 1)
+
+        session = ReadingSession.objects.first()
+
+        self.assertEqual(session.user, self.user)
+        self.assertEqual(session.book, self.book)
+
+    def test_usuario_nao_autenticado_nao_acessa_registro(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ReadingSession.objects.count(), 0)

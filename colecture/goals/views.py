@@ -113,17 +113,14 @@ def leave_goal(request, goal_id):
 @login_required
 def register_reading_session(request):
     if request.method == "POST":
-        form = ReadingSessionForm(request.POST)
+        form = ReadingSessionForm(request.POST, user=request.user)
 
         if form.is_valid():
-            reading_session = form.save(commit=False)
-            reading_session.user = request.user
-            reading_session.save()
-
+            reading_session = form.save()
             return redirect("goals:register_reading_session")
 
     else:
-        form = ReadingSessionForm()
+        form = ReadingSessionForm(user=request.user)
 
     return render(
         request,
