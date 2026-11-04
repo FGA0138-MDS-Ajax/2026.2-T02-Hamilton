@@ -16,15 +16,15 @@ class Forum(models.Model):
         blank=False,
     );
     
-    community = models.ForeignKey(
+    community = models.OneToOneField(
         "communities.Community",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name="forums"
+        related_name="forum"
     );
 
-    goal = models.ForeignKey(
+    goal = models.OneToOneField(
         "goals.Goal",
         on_delete=models.CASCADE,
         null=True,
