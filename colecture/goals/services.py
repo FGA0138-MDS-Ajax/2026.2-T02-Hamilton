@@ -3,6 +3,7 @@ import math
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.contrib.auth import get_user_model;
 
 from communities.models import Community
 from communities.services import MembershipService
@@ -48,12 +49,13 @@ class GoalService:
     @transaction.atomic
     def create_goal(goal: Goal, creator) -> Goal:
         """goal: instância já validada (form.save(commit=False))."""
+        creator_is_a_user = type(creator) == get_user_model();
         goal.save()
         if goal.is_collective:
             # só metas coletivas têm fórum
             Forum.objects.create(name=goal.name[:100], goal=goal)
-        # o criador entra na própria meta (o admin pode não ser membro da comunidade)
-        if (not goal.is_collective
+            # o criador entra na própria meta (o admin pode não ser membro da comunidade)
+        if creator_is_a_user and (not goal.is_collective
                 or MembershipService.user_in_community(creator, goal.owner_community)):
             GoalService.join(creator, goal)
         return goal
