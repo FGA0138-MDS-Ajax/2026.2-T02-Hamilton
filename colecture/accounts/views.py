@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout, get_user_model;
 from django.contrib.auth.decorators import login_required;
 from django.contrib import messages
 from .models import Profile;
+from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
 
 def register_view(request):
@@ -10,14 +11,12 @@ def register_view(request):
         form = RegistrationForm(request.POST);
         
         if form.is_valid():
-            user = get_user_model().objects.create_user(
-                username=form.cleaned_data['username'],
-                password=form.cleaned_data['password1'],
-                email=form.cleaned_data['email']
-            );
-
-            Profile.objects.create(
-                user=user
+            user = AccountService.create_account(
+                get_user_model().objects.create_user(
+                    username=form.cleaned_data['username'],
+                    password=form.cleaned_data['password1'],
+                    email=form.cleaned_data['email']
+                )
             );
 
             return redirect("accounts:login");
