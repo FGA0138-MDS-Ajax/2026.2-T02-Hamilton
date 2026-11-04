@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import Profile
@@ -129,3 +130,20 @@ def register_reading_session(request):
         "goals/register_reading_session.html",
         {"form": form}
     )
+
+@login_required
+@require_POST
+def conclude_goal(request, goal_id):
+    goal = get_object_or_404(Goal, id=goal_id)
+    if not GoalService.user_can_manage(request.user, goal):
+        return HttpResponseForbidden()
+
+    if GoalService.conclude(goal):
+        messages.success(request, f'Meta "{goal.name}" marcada como concluída.')
+    else:
+        messages.error(request, "Esta meta já está concluída.")
+
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return redirect(nxt)
+    return redirect("goals:view_goal", goal_id=goal.id)

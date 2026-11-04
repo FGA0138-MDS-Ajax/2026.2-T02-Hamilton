@@ -1234,3 +1234,94 @@ class PurgeArchivedCommunitiesTest(TestCase):
 
         self.assertIn("0 comunidade(s)", output)
         self.assertTrue(Community.objects.filter(pk=keep.pk).exists())
+
+class CT_CommunityGoalsPage(TestCase):
+    """Listagem de metas na página da comunidade (F06 a F12, F19)."""
+
+    def setUp(self):
+        from forums.models import Forum
+        from goals.models import Goal, GoalParticipation
+        self.Forum, self.Goal, self.GoalParticipation = Forum, Goal, GoalParticipation
+
+        User = get_user_model()
+        self.creator = User.objects.create_user("creator", password="x")
+        self.member = User.objects.create_user("member", password="x")
+        self.outsider = User.objects.create_user("outsider", password="x")
+        self.community = Community.objects.create(name="Comm", creator=self.creator)
+        Membership.objects.create(
+            user=self.member, community=self.community,
+            role=Membership.Role.MEMBER, status=Membership.Status.ACTIVE)
+        self.url = reverse("communities:view_community", kwargs={"community_id": self.community.id})
+
+    def make_goal(self, name, status=None, with_forum=True, **kwargs):
+        goal = self.Goal.objects.create(
+            name=name, owner_community=self.community,
+            goal_type=self.Goal.GoalType.PAGE_COUNT, target=100,
+            status=status or self.Goal.Status.ACTIVE, **kwargs)
+        if with_forum:
+            self.Forum.objects.create(name=name, goal=goal)
+        return goal
+
+    def test_goals_are_split_into_active_and_closed(self):
+        self.make_goal("Ativa")
+        self.make_goal("Encerrada", status=self.Goal.Status.CONCLUDED)
+        self.client.force_login(self.member)
+        cards = self.client.get(self.url).context["goal_cards"]
+        self.assertEqual([c["goal"].name for c in cards["active"]], ["Ativa"])
+        self.assertEqual([c["goal"].name for c in cards["closed"]], ["Encerrada"])
+        self.assertTrue(cards["closed"][0]["closed"])
+
+    def test_card_has_completion_count_and_forum(self):
+        goal = self.make_goal("Com fórum")
+        self.GoalParticipation.objects.create(goal=goal, user=self.member)
+        self.client.force_login(self.member)
+        card = self.client.get(self.url).context["goal_cards"]["active"][0]
+        self.assertEqual(card["completion"], {"done": 0, "total": 1})
+        self.assertIsNotNone(card["forum"])
+
+    def test_goal_without_forum_has_no_forum_in_card(self):
+        self.make_goal("Sem fórum", with_forum=False)
+        self.client.force_login(self.member)
+        card = self.client.get(self.url).context["goal_cards"]["active"][0]
+        self.assertIsNone(card["forum"])
+        self.assertContains(self.client.get(self.url), 'data-no-forum')
+
+    def test_empty_state_shows_create_button_only_to_moderator(self):
+        self.client.force_login(self.member)
+        response = self.client.get(self.url)
+        self.assertContains(response, "Nenhuma meta ativa")
+        self.assertNotContains(response, "Criar meta")
+
+        self.client.force_login(self.creator)
+        self.assertContains(self.client.get(self.url), "Criar meta")
+
+    def test_outsider_does_not_see_goals_or_forum(self):
+        self.make_goal("Ativa")
+        self.client.force_login(self.outsider)
+        response = self.client.get(self.url)
+        self.assertIsNone(response.context["goal_cards"])
+        self.assertIsNone(response.context["general_forum"])
+
+    def test_general_forum_link_is_shown_to_members_only(self):
+        forum = self.Forum.objects.create(name="Fórum geral", community=self.community)
+        link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
+
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.url), link)
+
+        self.client.force_login(self.outsider)
+        self.assertNotContains(self.client.get(self.url), link)
+
+    def test_private_community_shows_code_box_to_members_only(self):
+        self.community.access = Community.Access.PRIVATE
+        self.community.save()
+
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.url), "Código da comunidade")
+
+        self.client.force_login(self.outsider)
+        self.assertNotContains(self.client.get(self.url), "Código da comunidade")
+
+    def test_public_community_has_no_code_box(self):
+        self.client.force_login(self.member)
+        self.assertNotContains(self.client.get(self.url), "Código da comunidade")

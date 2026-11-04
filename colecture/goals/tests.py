@@ -318,3 +318,41 @@ class CT04GoalParticipation(GoalBase):
         membership.save()
         self.assertEqual(GoalParticipation.objects.get(goal=other_goal, user=self.member).state,
                          GoalParticipation.State.ACTIVE)
+
+
+class CT_GoalConclude(GoalBase):
+    """F11: marcar a meta como concluída."""
+
+    def setUp(self):
+        super().setUp()
+        self.goal = self.make_collective_goal()
+        self.url = reverse("goals:conclude_goal", kwargs={"goal_id": self.goal.id})
+
+    def test_moderator_concludes_goal_VALID(self):
+        self.client.force_login(self.moderator)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.status, Goal.Status.CONCLUDED)
+
+    def test_common_member_cannot_conclude_INVALID(self):
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(self.url).status_code, 403)
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.status, Goal.Status.ACTIVE)
+
+    def test_conclude_requires_post_INVALID(self):
+        self.client.force_login(self.moderator)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_conclude_goes_back_to_next_only_when_it_is_local(self):
+        self.client.force_login(self.moderator)
+        response = self.client.post(self.url, {"next": "/communities/1"})
+        self.assertEqual(response["Location"], "/communities/1")
+
+        self.goal.status = Goal.Status.ACTIVE
+        self.goal.save()
+        response = self.client.post(self.url, {"next": "https://evil.example/"})
+        self.assertEqual(
+            response["Location"],
+            reverse("goals:view_goal", kwargs={"goal_id": self.goal.id}))

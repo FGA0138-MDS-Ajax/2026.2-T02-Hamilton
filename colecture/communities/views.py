@@ -13,6 +13,7 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from django.urls import NoReverseMatch
 from django.utils.http import url_has_allowed_host_and_scheme
+from forums.models import Forum
 from goals.services import GoalService
 
 # Create your views here.
@@ -249,7 +250,16 @@ def view_community(request, community_id):
         "can_edit": can_manage,
         "can_leave": is_creator or is_active_member,
         "can_archive": can_manage and not community_is_archived,
+        "can_create_goal": can_manage and not community_is_archived,
     }
+
+    is_member = is_active_member or is_creator
+    goal_cards = None
+    general_forum = None
+    if is_member or user.is_superuser:
+        goal_cards = GoalService.build_community_cards(community)
+    if is_member:
+        general_forum = Forum.objects.filter(community=community, goal__isnull=True).first()
 
     community_info = {
         'id': community.id,
@@ -258,12 +268,16 @@ def view_community(request, community_id):
         'creator_name': community.creator.username,
         'creator_id': community.creator.id,
         'is_private': community.access == Community.Access.PRIVATE,
+        'code': community.id,
     }
 
     return render(request, "communities/community_view.html", {
         'community': community_info,
         'book': community.book,
         'permissions': permissions,
+        'goal_cards': goal_cards,
+        'general_forum': general_forum,
+        'is_member': is_member,
     })
 
 

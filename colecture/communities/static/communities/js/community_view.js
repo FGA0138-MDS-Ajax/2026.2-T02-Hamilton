@@ -61,3 +61,86 @@
     btn.addEventListener('click', function () { btn.closest('dialog').close(); });
   });
 })();
+
+(function () {
+  var goals = document.querySelector('.goals');
+  if (!goals) return;
+
+  function toast(type, title, desc) {
+    if (typeof showToast === 'function') showToast(type, title, desc || '');
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-flash]'), function (el) {
+    toast(el.getAttribute('data-type'), el.textContent.trim());
+  });
+
+  var tabs = Array.prototype.slice.call(goals.querySelectorAll('[role="tab"]'));
+
+  function selectTab(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.classList.toggle('is-selected', on);
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) tab.focus();
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { selectTab(tab, false); });
+    tab.addEventListener('keydown', function (e) {
+      var next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (e.key === 'Home') next = tabs[0];
+      if (e.key === 'End') next = tabs[tabs.length - 1];
+      if (next) { e.preventDefault(); selectTab(next, true); }
+    });
+  });
+
+  Array.prototype.forEach.call(goals.querySelectorAll('[data-no-forum]'), function (btn) {
+    btn.addEventListener('click', function () {
+      toast('error', 'Fórum indisponível', 'Esta meta ainda não tem um fórum.');
+    });
+  });
+
+  var dialog = document.getElementById('confirm-conclude');
+  if (dialog) {
+    var form = document.getElementById('concludeForm');
+    var nameEl = document.getElementById('concludeName');
+    Array.prototype.forEach.call(goals.querySelectorAll('[data-conclude]'), function (btn) {
+      btn.addEventListener('click', function () {
+        form.action = btn.getAttribute('data-url');
+        nameEl.textContent = btn.getAttribute('data-name');
+        dialog.showModal();
+      });
+    });
+  }
+})();
+
+(function () {
+  var btn = document.querySelector('[data-copy]');
+  if (!btn) return;
+  var input = document.querySelector(btn.getAttribute('data-copy'));
+
+  function done() {
+    if (typeof showToast === 'function') showToast('success', 'Código copiado', input.value);
+  }
+
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(input.value).then(done, fallback);
+    } else {
+      fallback();
+    }
+  });
+
+  function fallback() {
+    input.focus();
+    input.select();
+    try {
+      if (document.execCommand('copy')) done();
+    } catch (e) {}
+  }
+})();

@@ -1,3 +1,5 @@
+import math
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -7,6 +9,12 @@ from communities.services import MembershipService
 from forums.models import Forum
 
 from .models import Goal, GoalParticipation
+
+
+GOAL_UNIT_LABELS = {
+    Goal.GoalType.PAGE_COUNT: "páginas",
+    Goal.GoalType.HOUR_COUNT: "horas",
+}
 
 
 class GoalService:
@@ -114,6 +122,60 @@ class GoalService:
             goal__owner_community=community,
             state=GoalParticipation.State.ACTIVE,
         ).update(state=GoalParticipation.State.INACTIVE)
+
+    # ---------- conclusão ----------
+    @staticmethod
+    def conclude(goal) -> bool:
+        if goal.status == Goal.Status.CONCLUDED:
+            return False
+        goal.status = Goal.Status.CONCLUDED
+        goal.save(update_fields=["status"])
+        return True
+
+    # ---------- cards da comunidade ----------
+    @staticmethod
+    def days_remaining(goal):
+        remaining = goal.time_remaining
+        if remaining is None:
+            return None
+        return math.ceil(remaining.total_seconds() / 86400)
+
+    @staticmethod
+    def get_completion(goal) -> dict:
+        # concluiu quem contribuiu com pelo menos o alvo da meta
+        participations = list(
+            goal.participations.filter(state=GoalParticipation.State.ACTIVE)
+        )
+        done = sum(
+            1 for p in participations
+            if GoalService.get_user_contribution(p) >= goal.target
+        )
+        return {"done": done, "total": len(participations)}
+
+    @staticmethod
+    def build_community_cards(community) -> dict:
+        goals = list(
+            community.goals
+            .select_related("book")
+            .order_by("-created_at")
+        )
+        forums = {}
+        for forum in Forum.objects.filter(goal__in=goals).order_by("id"):
+            forums.setdefault(forum.goal_id, forum)
+
+        cards = {"active": [], "closed": []}
+        for goal in goals:
+            closed = goal.status == Goal.Status.CONCLUDED
+            cards["closed" if closed else "active"].append({
+                "goal": goal,
+                "closed": closed,
+                "unit": GOAL_UNIT_LABELS.get(goal.goal_type, ""),
+                "progress": GoalService.get_progress(goal),
+                "completion": GoalService.get_completion(goal),
+                "days_remaining": GoalService.days_remaining(goal),
+                "forum": forums.get(goal.id),
+            })
+        return cards
 
     # ---------- contribuição / progresso ----------
     @staticmethod

@@ -1,0 +1,77 @@
+{% with goal=item.goal %}
+<article class="goal-card{% if item.closed %} goal-card--closed{% endif %}">
+
+  <header class="goal-card__head">
+    <h3 class="goal-card__title">
+      {% if item.forum %}
+        <a class="goal-card__link" href="{% url 'forums:view_forum' item.forum.id %}"
+          title="{{ goal.name }}">{{ goal.name }}</a>
+      {% else %}
+        <button type="button" class="goal-card__link" title="{{ goal.name }}"
+          data-no-forum>{{ goal.name }}</button>
+      {% endif %}
+    </h3>
+
+    {% if item.closed %}
+      <span class="badge badge--closed">Encerrada</span>
+    {% endif %}
+  </header>
+
+  <ul class="goal-card__facts">
+    <li>
+      <i class="bx bx-book-open" aria-hidden="true"></i>
+      <span>{{ goal.target }} {{ item.unit }}</span>
+    </li>
+    {% if goal.book %}
+      <li>
+        <i class="bx bx-book" aria-hidden="true"></i>
+        <span class="truncate" title="{{ goal.book.title }}">{{ goal.book.title }}</span>
+      </li>
+    {% endif %}
+    {% if goal.deadline %}
+      <li>
+        <i class="bx bx-calendar" aria-hidden="true"></i>
+        <span>Até {{ goal.deadline|date:"d/m/Y" }}</span>
+      </li>
+    {% endif %}
+  </ul>
+
+  <div class="goal-progress">
+    <div class="goal-progress__bar" role="progressbar" aria-label="Progresso da meta"
+      aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.progress.percent }}">
+      <span style="width: {{ item.progress.percent }}%"></span>
+    </div>
+    <div class="goal-progress__info">
+      <span>{{ item.progress.percent }}%</span>
+      <span class="muted">
+        {% if item.closed %}
+          Meta encerrada
+        {% elif item.days_remaining is None %}
+          Sem prazo
+        {% elif item.days_remaining == 0 %}
+          Prazo encerrado
+        {% else %}
+          {{ item.days_remaining }} dia{{ item.days_remaining|pluralize }} restante{{ item.days_remaining|pluralize }}
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <footer class="goal-card__foot">
+    <span class="goal-card__done" title="Pessoas que já concluíram esta meta">
+      <i class="bx bx-check-circle" aria-hidden="true"></i>
+      {{ item.completion.done }}/{{ item.completion.total }} concluíram
+    </span>
+
+    <div class="goal-card__actions">
+      {% if permissions.can_edit and not item.closed %}
+        <button type="button" class="btn-outline btn--sm" data-conclude
+          data-url="{% url 'goals:conclude_goal' goal.id %}" data-name="{{ goal.name }}">
+          Marcar como concluída
+        </button>
+      {% endif %}
+    </div>
+  </footer>
+
+</article>
+{% endwith %}
