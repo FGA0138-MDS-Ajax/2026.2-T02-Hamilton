@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -55,16 +55,33 @@ def view_goal(request, goal_id):
         return HttpResponseForbidden()
 
     participates = GoalService.user_participates(request.user, goal)
+    can_manage = GoalService.user_can_manage(request.user, goal)
     return render(request, "goals/goal_view.html", {
         "goal": goal,
         "progress": GoalService.get_progress(goal),
         "time_remaining": goal.time_remaining,
-        # o fórum só é visível a quem participa da meta (ver ViewForum)
-        "forum": goal.forum if participates else None,
+        # o fórum só é visível a quem participa da meta ou a modera
+        # (ver ForumService.user_can_view). Metas individuais não têm
+        # fórum: get_forum devolve None (goal.forum levantaria exceção).
+        "forum": GoalService.get_forum(goal) if (participates or can_manage) else None,
         "participates": participates,
-        "can_manage": GoalService.user_can_manage(request.user, goal),
+        "can_manage": can_manage,
         "can_join": not participates and goal.status == Goal.Status.ACTIVE,
     })
+
+
+@login_required
+def goal_forum(request, goal_id):
+    """Atalho para o fórum da meta (equivale a communities:forum).
+
+    A página do fórum é única (forums.views.ViewForum), que valida quem
+    pode entrar; aqui só redirecionamos para ela.
+    """
+    forum = GoalService.get_forum(get_object_or_404(Goal, id=goal_id))
+    if forum is None:
+        # meta individual (ou meta antiga sem fórum): não há fórum para abrir
+        raise Http404("Esta meta não possui fórum.")
+    return redirect("forums:view_forum", forum_id=forum.id)
 
 
 @login_required
