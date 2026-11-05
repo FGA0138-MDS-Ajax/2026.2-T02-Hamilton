@@ -7,6 +7,10 @@
 
   {% for message in messages %}<p>{{ message }}</p>{% endfor %}
 
+  {% if goal.description %}
+    <p>{{ goal.description|linebreaksbr }}</p>
+  {% endif %}
+
   <p>Objetivo: {{ goal.target }} ({{ goal.get_goal_type_display }}) · Status: {{ goal.get_status_display }}</p>
   <p>Progresso: {{ progress.current }}/{{ progress.target }} ({{ progress.percent }}%)</p>
 
