@@ -12,8 +12,8 @@ from books.models import Book
 from communities.models import Community, Membership
 from forums.models import Forum
 
-from .models import Goal, GoalParticipation, ReadingSession
-from .forms import ReadingSessionForm
+from .models import GOAL_DESC_MAX_LENGTH, Goal, GoalParticipation, ReadingSession
+from .forms import GoalForm, ReadingSessionForm
 from .services import GoalService
 
 User = get_user_model()
@@ -53,6 +53,14 @@ class GoalBase(TestCase):
         }
         data.update(overrides)
         return data
+
+    def set_community_book(self, **kwargs):
+        """Define um livro para a comunidade (por padrão ela não tem livro)."""
+        community_book = Book.objects.create(
+            isbn="9876543210", title="Livro da comunidade", author="Autor 2", **kwargs)
+        self.community.book = community_book
+        self.community.save()
+        return community_book
 
     def make_collective_goal(self, **kwargs):
         goal = Goal.objects.create(
@@ -124,6 +132,59 @@ class CT04GoalCreation(GoalBase):
         goal = Goal.objects.get()
         self.assertIsNone(goal.deadline)
         self.assertIsNone(goal.book)
+
+    def test_create_collective_goal_uses_community_book_VALID(self):
+        community_book = self.set_community_book()
+        self.client.force_login(self.moderator)
+        # o payload traz outro livro (self.book); o campo foi removido do
+        # form de meta de comunidade, então deve ser ignorado
+        response = self.client.post(self.url_create_community, self.payload())
+        self.assertEqual(response.status_code, 302)
+        goal = Goal.objects.get(owner_community=self.community)
+        self.assertEqual(goal.book, community_book)
+
+    def test_goal_form_book_field_only_for_individual_goal(self):
+        collective = GoalForm(instance=Goal(owner_community=self.community))
+        individual = GoalForm(instance=Goal(owner_profile=self.member.profile))
+        self.assertNotIn("book", collective.fields)
+        self.assertIn("book", individual.fields)
+
+    def test_goal_form_labels_are_in_portuguese(self):
+        form = GoalForm(instance=Goal(owner_profile=self.member.profile))
+        labels = {name: field.label for name, field in form.fields.items()}
+        self.assertEqual(labels, {
+            "name": "Nome da meta",
+            "description": "Descrição",
+            "goal_type": "Tipo de meta",
+            "target": "Quantidade-alvo",
+            "deadline": "Prazo",
+            "book": "Livro",
+        })
+        self.assertEqual(
+            [label for _, label in form.fields["goal_type"].choices],
+            ["---------", "Páginas", "Horas"],
+        )
+
+    def test_create_goal_with_description_VALID(self):
+        self.client.force_login(self.member)
+        response = self.client.post(
+            self.url_create_profile, self.payload(description="Um capítulo por dia"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Goal.objects.get().description, "Um capítulo por dia")
+
+    def test_create_goal_without_description_VALID(self):
+        self.client.force_login(self.member)
+        self.assertEqual(
+            self.client.post(self.url_create_profile, self.payload()).status_code, 302)
+        self.assertEqual(Goal.objects.get().description, "")
+
+    def test_create_goal_INVALID_description_too_long(self):
+        self.client.force_login(self.member)
+        response = self.client.post(
+            self.url_create_profile,
+            self.payload(description="a" * (GOAL_DESC_MAX_LENGTH + 1)))
+        self.assertEqual(response.status_code, 200)  # reexibe o form
+        self.assertEqual(Goal.objects.count(), 0)
 
     def test_goal_with_both_owners_INVALID(self):
         base = dict(name="X", goal_type=Goal.GoalType.PAGE_COUNT, target=10)
@@ -205,6 +266,19 @@ class CT04GoalEdit(GoalBase):
                 self.assertEqual(response.status_code, 200)
         self.personal.refresh_from_db()
         self.assertEqual(self.personal.target, 1000)
+
+    def test_edit_collective_goal_keeps_its_book_VALID(self):
+        # a meta nasceu com self.book; depois a comunidade troca de livro
+        goal = self.make_collective_goal(book=self.book)
+        self.set_community_book()
+        self.client.force_login(self.moderator)
+        response = self.client.post(
+            self.edit_url(goal),
+            self.edit_payload(goal, name="Renomeada", description="Nova descrição"))
+        self.assertEqual(response.status_code, 302)
+        goal.refresh_from_db()
+        self.assertEqual(goal.book, self.book)
+        self.assertEqual(goal.description, "Nova descrição")
 
     def test_edit_cannot_change_owner(self):
         self.client.force_login(self.member)
