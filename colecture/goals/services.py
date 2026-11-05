@@ -49,7 +49,8 @@ class GoalService:
     @transaction.atomic
     def create_goal(goal: Goal, creator) -> Goal:
         """goal: instância já validada (form.save(commit=False))."""
-        creator_is_a_user = type(creator) == get_user_model();
+        # isinstance (e não type ==): request.user é um SimpleLazyObject
+        creator_is_a_user = isinstance(creator, get_user_model());
         if goal.is_collective:
             # meta de comunidade sempre usa o livro atual da comunidade
             # (o form não tem campo livro); só vale na criação, para que
@@ -66,10 +67,17 @@ class GoalService:
         return goal
 
     @staticmethod
+    def get_forum(goal):
+        """Fórum da meta, ou None (metas individuais não têm fórum)."""
+        # goal.forum (reverso do OneToOne) levanta Forum.DoesNotExist quando
+        # não há fórum; por isso a consulta direta.
+        return Forum.objects.filter(goal=goal).first()
+
+    @staticmethod
     @transaction.atomic
     def update_goal(goal: Goal) -> Goal:
         goal.save()
-        forum = goal.forum
+        forum = GoalService.get_forum(goal)
         if forum and forum.name != goal.name[:100]:
             forum.name = goal.name[:100]
             forum.save(update_fields=["name"])

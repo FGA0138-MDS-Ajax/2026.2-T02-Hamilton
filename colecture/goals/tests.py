@@ -160,9 +160,10 @@ class CT04GoalCreation(GoalBase):
             "deadline": "Prazo",
             "book": "Livro",
         })
+        # a primeira opção é o texto em branco do Django (varia por versão)
         self.assertEqual(
-            [label for _, label in form.fields["goal_type"].choices],
-            ["---------", "Páginas", "Horas"],
+            [label for _, label in list(form.fields["goal_type"].choices)[1:]],
+            ["Páginas", "Horas"],
         )
 
     def test_create_goal_with_description_VALID(self):

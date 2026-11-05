@@ -12,6 +12,8 @@ from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.urls import reverse
+from forums.models import Forum
+from goals.services import GoalService
 
 
 # Create your views here.
@@ -161,6 +163,9 @@ class LeaveCommunityView(LoginRequiredMixin, View):
 
     def ec_is_creator(self):
         if self.is_creator: # o criador saiu.
+            # o criador não tem Membership, então o signal de goals não
+            # dispara: as metas da comunidade são desativadas aqui
+            GoalService.deactivate_for_community_exit(self.user, self.community);
             self.give_ownership_to_oldest_member(except_user=self.user);
             return self.return_to_profile();
 
@@ -240,7 +245,18 @@ def view_community(request, community_id):
         "can_edit": can_manage,
         "can_leave": is_creator or is_active_member,
         "can_archive": can_manage and not community_is_archived,
+        # só quem gerencia cria metas, e apenas em comunidade ativa
+        "can_create_goal": can_manage and not community_is_archived,
     }
+
+    # metas e fórum geral só aparecem para quem participa da comunidade
+    # (o criador não tem Membership, por isso is_creator) ou a gerencia
+    is_member = is_creator or is_active_member
+    can_see_content = is_member or can_manage
+    goal_cards = GoalService.build_community_cards(community) if can_see_content else None
+    general_forum = (
+        Forum.objects.filter(community=community).first() if can_see_content else None
+    )
 
     community_info = {
         'id': community.id,
@@ -255,6 +271,9 @@ def view_community(request, community_id):
         'community': community_info,
         'book': community.book,
         'permissions': permissions,
+        'is_member': is_member,
+        'goal_cards': goal_cards,
+        'general_forum': general_forum,
     })
 
 
@@ -652,20 +671,10 @@ def home_community(request):
 
 @login_required
 def forum_page(request, community_id):
-    community = get_object_or_404(Community, id=community_id)
+    """Atalho para o fórum geral da comunidade.
 
-    forum = {
-        "id": community.id,
-        "title": "Fórum geral",
-        "description": "Bem-vindos! Aqui falamos sobre " + community.name + ".",
-        "kind": "geral",
-        "meta_name": "",
-        "is_moderator": _can_manage(request.user, community),
-        "locked": False,
-        "pinned_id": None,
-        "current_user": request.user.username,
-        "created_by": community.creator.username,
-        "community_url": reverse("communities:view_community", args=[community.id]),
-        "messages": [],
-    }
-    return render(request, "communities/forum.html", {"forum": forum})
+    A página do fórum é única (forums.views.ViewForum, que renderiza
+    communities/forum.html); aqui só redirecionamos para ela.
+    """
+    forum = get_object_or_404(Forum, community_id=community_id)
+    return redirect("forums:view_forum", forum_id=forum.id)
