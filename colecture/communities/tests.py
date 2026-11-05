@@ -1296,12 +1296,14 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertEqual(card["completion"], {"done": 0, "total": 1})
         self.assertIsNotNone(card["forum"])
 
-    def test_goal_without_forum_has_no_forum_in_card(self):
-        self.make_goal("Sem fórum", with_forum=False)
+    def test_card_links_to_goal_page_even_without_forum(self):
+        goal = self.make_goal("Com link")
+        self.Forum.objects.filter(goal=goal).delete()
         self.client.force_login(self.member)
-        card = self.client.get(self.url).context["goal_cards"]["active"][0]
-        self.assertIsNone(card["forum"])
-        self.assertContains(self.client.get(self.url), 'data-no-forum')
+        response = self.client.get(self.url)
+        self.assertIsNone(response.context["goal_cards"]["active"][0]["forum"])
+        link = reverse("goals:view_goal", kwargs={"goal_id": goal.id})
+        self.assertContains(response, f'href="{link}"')
 
     def test_empty_state_shows_create_button_only_to_moderator(self):
         self.client.force_login(self.member)
@@ -1320,7 +1322,8 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertIsNone(response.context["general_forum"])
 
     def test_general_forum_link_is_shown_to_members_only(self):
-        forum = self.Forum.objects.create(name="Fórum geral", community=self.community)
+        # o fórum geral já é criado por CommunityService.create_community
+        forum = self.Forum.objects.get(community=self.community)
         link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
 
         self.client.force_login(self.member)
