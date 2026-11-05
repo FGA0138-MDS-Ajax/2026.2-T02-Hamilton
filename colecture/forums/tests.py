@@ -1,13 +1,16 @@
 from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model;
-from .models import Forum, Message
+from .models import Forum, Message, FORUM_NAME_MAX_LENGTH
 
-from communities.models import Community;
+from communities.models import Community, Membership;
 from communities.services import CommunityService, MembershipService;
 from goals.models import Goal, GoalParticipation;
 from goals.services import GoalService;
 from accounts.services import AccountService;
+
+import importlib;
+from django.apps import apps;
 
 # Create your tests here.
 
@@ -391,3 +394,331 @@ class ForumMessages(TestCase):
                 forum=old_forum
             ).exists()
         );
+
+
+# ---------------------------------------------------------------------------
+# CT04 - acesso aos fóruns (geral da comunidade e próprio de cada meta)
+# ---------------------------------------------------------------------------
+class ForumAccess(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model();
+        cls.admin_acc = AccountService.create_account(
+            User.objects.create_superuser(username='Admin')
+        );
+        cls.com_owner = AccountService.create_account(
+            User.objects.create(username='CommunityOwner')
+        );
+        cls.moderator = AccountService.create_account(
+            User.objects.create(username='Moderator')
+        );
+        cls.member = AccountService.create_account(
+            User.objects.create(username='Member')
+        );
+        cls.goal_participant = AccountService.create_account(
+            User.objects.create(username='GoalParticipant')
+        );
+        cls.outsider = AccountService.create_account(
+            User.objects.create(username='Outsider')
+        );
+
+        cls.community = CommunityService.create_community(Community.objects.create(
+            name='NewCommunity',
+            creator=cls.com_owner
+        ));
+        cls.community_goal = GoalService.create_goal(Goal.objects.create(
+            name='Read 1500 pages',
+            owner_community=cls.community,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=1500,
+        ), cls.community);
+        cls.user_goal = GoalService.create_goal(Goal.objects.create(
+            name='Read for 2 hours',
+            owner_profile=cls.com_owner.profile,
+            goal_type=Goal.GoalType.HOUR_COUNT,
+            target=2
+        ), cls.com_owner.profile);
+
+        MembershipService.enter_community(
+            cls.moderator, cls.community, role=Membership.Role.MODERATOR
+        );
+        MembershipService.enter_community(cls.member, cls.community);
+        MembershipService.enter_community(cls.goal_participant, cls.community);
+        GoalService.join(cls.goal_participant, cls.community_goal);
+
+        cls.community_forum = cls.community.forum;
+        cls.goal_forum = cls.community_goal.forum;
+
+    def forum_url(self, forum):
+        return reverse("forums:view_forum", kwargs={'forum_id':forum.id});
+
+    # ===== VISUALIZAÇÃO =====
+    def test_community_forum_is_visible_to_members_only(self):
+        # membros veem o fórum geral; estrangeiros não
+        self.client.force_login(self.member);
+        self.assertEqual(self.client.get(self.forum_url(self.community_forum)).status_code, 200);
+
+        self.client.force_login(self.outsider);
+        self.assertEqual(self.client.get(self.forum_url(self.community_forum)).status_code, 403);
+
+    def test_goal_forum_is_visible_to_participants_only(self):
+        # só quem participa da meta vê o fórum dela, mesmo
+        # sendo membro da comunidade
+        self.client.force_login(self.goal_participant);
+        self.assertEqual(self.client.get(self.forum_url(self.goal_forum)).status_code, 200);
+
+        self.client.force_login(self.member);
+        self.assertEqual(self.client.get(self.forum_url(self.goal_forum)).status_code, 403);
+
+        self.client.force_login(self.outsider);
+        self.assertEqual(self.client.get(self.forum_url(self.goal_forum)).status_code, 403);
+
+    def test_managers_can_view_every_forum_of_the_community(self):
+        # criador, moderador e admin entram nos dois fóruns
+        # mesmo sem participar da meta
+        for user in (self.com_owner, self.moderator, self.admin_acc):
+            self.client.force_login(user);
+            for forum in (self.community_forum, self.goal_forum):
+                with self.subTest(user=user.username, forum=forum.name):
+                    response = self.client.get(self.forum_url(forum));
+                    self.assertEqual(response.status_code, 200);
+
+    def test_anonymous_is_sent_to_login(self):
+        response = self.client.get(self.forum_url(self.community_forum));
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(response.url.startswith(reverse("accounts:login")));
+
+    def test_archived_community_forum_is_closed_to_non_managers(self):
+        # mesma regra da página da comunidade: arquivada = só quem gerencia
+        Community.objects.filter(pk=self.community.pk).update(
+            state=Community.State.ARCHIVED
+        );
+
+        self.client.force_login(self.member);
+        self.assertEqual(self.client.get(self.forum_url(self.community_forum)).status_code, 403);
+        self.client.force_login(self.goal_participant);
+        self.assertEqual(self.client.get(self.forum_url(self.goal_forum)).status_code, 403);
+
+        self.client.force_login(self.com_owner);
+        self.assertEqual(self.client.get(self.forum_url(self.community_forum)).status_code, 200);
+
+    def test_messages_are_listed_oldest_first_with_author(self):
+        first = Message.objects.create(
+            forum=self.community_forum, author=self.member, content='primeira'
+        );
+        second = Message.objects.create(
+            forum=self.community_forum, author=self.com_owner, content='segunda'
+        );
+
+        self.client.force_login(self.member);
+        response = self.client.get(self.forum_url(self.community_forum));
+
+        self.assertEqual(list(response.context['forum_messages']), [first, second]);
+        self.assertContains(response, 'primeira');
+        self.assertContains(response, self.com_owner.username);
+
+    def test_messages_of_one_forum_do_not_leak_to_the_other(self):
+        Message.objects.create(
+            forum=self.community_forum, author=self.member, content='so no geral'
+        );
+        Message.objects.create(
+            forum=self.goal_forum, author=self.goal_participant, content='so na meta'
+        );
+
+        self.client.force_login(self.goal_participant);
+        response = self.client.get(self.forum_url(self.goal_forum));
+
+        self.assertContains(response, 'so na meta');
+        self.assertNotContains(response, 'so no geral');
+
+    # ===== ENVIO =====
+    def test_invalid_message_is_rejected_and_form_is_shown_again(self):
+        self.client.force_login(self.member);
+        response = self.client.post(
+            self.forum_url(self.community_forum), data={'content':''}
+        );
+
+        self.assertEqual(response.status_code, 400);
+        self.assertTemplateUsed(response, "forums/forum_view.html");
+        self.assertFalse(Message.objects.filter(forum=self.community_forum).exists());
+
+    def test_locked_forum_does_not_accept_messages(self):
+        Forum.objects.filter(pk=self.community_forum.pk).update(
+            state=Forum.State.LOCKED
+        );
+
+        self.client.force_login(self.member);
+        response = self.client.post(
+            self.forum_url(self.community_forum), data={'content':'oi'}
+        );
+
+        self.assertEqual(response.status_code, 403);
+        self.assertFalse(Message.objects.filter(forum=self.community_forum).exists());
+
+    # ===== MODERAÇÃO =====
+    def test_moderator_deletes_message_of_goal_forum(self):
+        # o fórum da meta encontra a comunidade pela meta (owner_community)
+        message = Message.objects.create(
+            forum=self.goal_forum, author=self.goal_participant, content='apagar'
+        );
+
+        self.client.force_login(self.moderator);
+        response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id':message.id})
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(Message.objects.filter(pk=message.pk).exists());
+
+    def test_anonymous_cannot_delete_message(self):
+        message = Message.objects.create(
+            forum=self.community_forum, author=self.member, content='fica'
+        );
+
+        response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id':message.id})
+        );
+
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(response.url.startswith(reverse("accounts:login")));
+        self.assertTrue(Message.objects.filter(pk=message.pk).exists());
+
+    def test_moderator_edits_goal_forum(self):
+        # o fórum de meta antes quebrava aqui (Goal não tem "community")
+        self.client.force_login(self.moderator);
+        url = reverse("forums:edit_forum", kwargs={'forum_id':self.goal_forum.id});
+
+        self.assertEqual(self.client.get(url).status_code, 200);
+
+        response = self.client.post(url, data={
+            'name':'Novo nome', 'state':Forum.State.ACTIVE
+        });
+        self.assertEqual(response.status_code, 302);
+        self.goal_forum.refresh_from_db();
+        self.assertEqual(self.goal_forum.name, 'Novo nome');
+
+    def test_member_cannot_edit_forums(self):
+        self.client.force_login(self.member);
+        for forum in (self.community_forum, self.goal_forum):
+            response = self.client.get(
+                reverse("forums:edit_forum", kwargs={'forum_id':forum.id})
+            );
+            self.assertEqual(response.status_code, 403);
+
+    def test_anonymous_cannot_edit_forum(self):
+        response = self.client.get(
+            reverse("forums:edit_forum", kwargs={'forum_id':self.community_forum.id})
+        );
+        self.assertEqual(response.status_code, 302);
+        self.assertTrue(response.url.startswith(reverse("accounts:login")));
+
+    # ===== ATALHOS E PÁGINAS QUE LEVAM AO FÓRUM =====
+    def test_community_forum_shortcut_redirects_to_forum(self):
+        self.client.force_login(self.member);
+        response = self.client.get(
+            reverse("communities:forum", kwargs={'community_id':self.community.id})
+        );
+        self.assertRedirects(
+            response, self.forum_url(self.community_forum), fetch_redirect_response=False
+        );
+
+    def test_goal_forum_shortcut_redirects_to_forum(self):
+        self.client.force_login(self.goal_participant);
+        response = self.client.get(
+            reverse("goals:forum", kwargs={'goal_id':self.community_goal.id})
+        );
+        self.assertRedirects(
+            response, self.forum_url(self.goal_forum), fetch_redirect_response=False
+        );
+
+    def test_goal_forum_shortcut_is_404_for_individual_goal(self):
+        self.client.force_login(self.com_owner);
+        response = self.client.get(
+            reverse("goals:forum", kwargs={'goal_id':self.user_goal.id})
+        );
+        self.assertEqual(response.status_code, 404);
+
+    def test_individual_goal_page_works_without_forum(self):
+        # o dono participa da própria meta individual, que não tem fórum.
+        # Antes, goal.forum levantava Forum.DoesNotExist (erro 500).
+        GoalService.join(self.com_owner, self.user_goal);
+
+        self.client.force_login(self.com_owner);
+        response = self.client.get(
+            reverse("goals:view_goal", kwargs={'goal_id':self.user_goal.id})
+        );
+
+        self.assertEqual(response.status_code, 200);
+        self.assertIsNone(response.context['forum']);
+
+    def test_goal_page_links_to_forum_for_participants_only(self):
+        url = reverse("goals:view_goal", kwargs={'goal_id':self.community_goal.id});
+        forum_link = self.forum_url(self.goal_forum);
+
+        self.client.force_login(self.goal_participant);
+        self.assertContains(self.client.get(url), forum_link);
+
+        self.client.force_login(self.member);
+        self.assertNotContains(self.client.get(url), forum_link);
+
+    def test_goal_card_in_community_page_links_to_goal_forum(self):
+        self.client.force_login(self.member);
+        response = self.client.get(
+            reverse("communities:view_community", kwargs={'community_id':self.community.id})
+        );
+        self.assertContains(response, self.forum_url(self.goal_forum));
+
+# ---------------------------------------------------------------------------
+# CT04 - criação dos fóruns
+# ---------------------------------------------------------------------------
+class ForumCreationRules(TestCase):
+    def test_forum_name_fits_the_field_even_with_a_long_community_name(self):
+        owner = AccountService.create_account(
+            get_user_model().objects.create(username='Owner')
+        );
+        community = CommunityService.create_community(Community.objects.create(
+            name='C'*100,
+            creator=owner
+        ));
+
+        self.assertLessEqual(len(community.forum.name), FORUM_NAME_MAX_LENGTH);
+        community.forum.clean_fields(); # o nome é válido para o formulário de edição
+
+    def test_creating_the_community_twice_keeps_one_general_forum(self):
+        owner = AccountService.create_account(
+            get_user_model().objects.create(username='Owner')
+        );
+        community = CommunityService.create_community(Community.objects.create(
+            name='NewCommunity',
+            creator=owner
+        ));
+        CommunityService.create_community(community);
+
+        self.assertEqual(Forum.objects.filter(community=community).count(), 1);
+
+    def test_migration_creates_forums_that_were_missing(self):
+        # comunidade e metas criadas "antigamente", sem passar pelos
+        # services, ou seja, sem fórum.
+        owner = AccountService.create_account(
+            get_user_model().objects.create(username='Owner')
+        );
+        community = Community.objects.create(name='Legacy', creator=owner);
+        collective = Goal.objects.create(
+            name='Legacy goal', owner_community=community,
+            goal_type=Goal.GoalType.PAGE_COUNT, target=10,
+        );
+        individual = Goal.objects.create(
+            name='Legacy personal', owner_profile=owner.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT, target=10,
+        );
+        migration = importlib.import_module(
+            "forums.migrations.0005_create_missing_forums"
+        );
+
+        migration.create_missing_forums(apps, None);
+        migration.create_missing_forums(apps, None); # idempotente
+
+        self.assertEqual(Forum.objects.get(community=community).name, 'Legacy Forum');
+        self.assertEqual(Forum.objects.get(goal=collective).name, 'Legacy goal');
+        self.assertFalse(Forum.objects.filter(goal=individual).exists());
+        self.assertEqual(Forum.objects.count(), 2);
