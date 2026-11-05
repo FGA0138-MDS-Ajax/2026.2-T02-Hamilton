@@ -88,10 +88,10 @@ class Goal(models.Model):
     def is_collective(self) -> bool:
         return self.owner_community_id is not None
 
-    @property
-    def forum(self):
-        # Forum.goal é uma FK sem related_name, então o reverso é forum_set.
-        return self.forum_set.first()
+    # O fórum da meta é o reverso do OneToOneField Forum.goal
+    # (related_name="forum"), e não uma propriedade deste model.
+    # Metas individuais não têm fórum: use GoalService.get_forum(goal),
+    # que devolve None em vez de levantar Forum.DoesNotExist.
 
     @property
     def time_remaining(self):
