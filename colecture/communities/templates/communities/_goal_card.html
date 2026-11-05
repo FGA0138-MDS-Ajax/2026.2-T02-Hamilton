@@ -3,13 +3,8 @@
 
   <header class="goal-card__head">
     <h3 class="goal-card__title">
-      {% if item.forum %}
-        <a class="goal-card__link" href="{% url 'forums:view_forum' item.forum.id %}"
-          title="{{ goal.name }}">{{ goal.name }}</a>
-      {% else %}
-        <button type="button" class="goal-card__link" title="{{ goal.name }}"
-          data-no-forum>{{ goal.name }}</button>
-      {% endif %}
+      <a class="goal-card__link" href="{% url 'goals:view_goal' goal.id %}"
+        title="{{ goal.name }}">{{ goal.name }}</a>
     </h3>
 
     {% if item.closed %}
