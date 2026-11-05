@@ -42,6 +42,9 @@
             <p class="intro">
               Comunidade: <strong>{{ community.name }}</strong>{% if community.book %} · Livro: <strong>{{ community.book.title }}</strong>{% endif %}
             </p>
+            {% if community.book %}
+              <p class="intro">A meta usa automaticamente o livro da comunidade.</p>
+            {% endif %}
           {% endif %}
         {% endwith %}
         <p class="req-legend">Campos marcados com <span class="required">*</span> são obrigatórios.</p>
