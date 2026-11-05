@@ -1,7 +1,7 @@
 from django.utils import timezone;
 
 from .models import Membership;
-from forums.models import Forum;
+from forums.models import Forum, FORUM_NAME_MAX_LENGTH;
 
 class MembershipService:
     @staticmethod
@@ -61,10 +61,13 @@ class CommunityService:
         community.icon = icon or "";
         community.save();
 
-        # forum principal de comunidade
-        main_forum = Forum.objects.create(
-            name=community.name+" Forum",
+        # forum principal de comunidade. O nome é cortado para caber
+        # no limite do campo (o nome da comunidade já pode ter 100
+        # caracteres) e get_or_create evita um segundo fórum geral
+        # se a função for chamada de novo para a mesma comunidade.
+        Forum.objects.get_or_create(
             community=community,
+            defaults={'name':(community.name+" Forum")[:FORUM_NAME_MAX_LENGTH]},
         );
 
         return community;
