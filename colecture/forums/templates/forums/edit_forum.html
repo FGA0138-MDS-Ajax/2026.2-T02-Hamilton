@@ -1,13 +1,9 @@
-{% load static %}
+{% extends "sidebar.html" %}
 
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ forum.name }}</title>
-</head>
-<body>
+{% block title %}Editar {{ forum.name }} - CoLecture{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'forums:view_forum' forum.id %}">&larr; Voltar para o fórum</a></p>
 
     <h1>{{ forum.name }}</h1>
 
@@ -16,7 +12,4 @@
         {{ form.as_p }}
         <button type="submit">Salvar alterações</button>
     </form>
-    <hr>
-
-</body>
-</html>
+{% endblock %}
