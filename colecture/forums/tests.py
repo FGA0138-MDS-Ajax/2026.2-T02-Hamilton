@@ -552,8 +552,36 @@ class ForumAccess(TestCase):
             self.forum_url(self.community_forum), data={'content':'oi'}
         );
 
-        self.assertEqual(response.status_code, 403);
+        # volta para o fórum (página normal) com um aviso, sem salvar nada
+        self.assertRedirects(
+            response, self.forum_url(self.community_forum), fetch_redirect_response=False
+        );
         self.assertFalse(Message.objects.filter(forum=self.community_forum).exists());
+
+        page = self.client.get(self.forum_url(self.community_forum));
+        self.assertEqual(page.status_code, 200);
+        self.assertContains(page, "Este fórum está trancado. Não é possível enviar mensagens.");
+
+    def test_locked_forum_keeps_messages_and_warns_on_delete(self):
+        message = Message.objects.create(
+            forum=self.community_forum, author=self.member, content='fica'
+        );
+        Forum.objects.filter(pk=self.community_forum.pk).update(
+            state=Forum.State.LOCKED
+        );
+
+        self.client.force_login(self.member);
+        response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id':message.id})
+        );
+
+        self.assertRedirects(
+            response, self.forum_url(self.community_forum), fetch_redirect_response=False
+        );
+        self.assertTrue(Message.objects.filter(pk=message.pk).exists());
+
+        page = self.client.get(self.forum_url(self.community_forum));
+        self.assertContains(page, "Este fórum está trancado. Não é possível apagar mensagens.");
 
     # ===== MODERAÇÃO =====
     def test_moderator_deletes_message_of_goal_forum(self):

@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect;
 from django.http import HttpResponseForbidden, HttpResponse;
 from django.views import View;
+from django.contrib import messages;
 from django.contrib.auth.decorators import login_required;
 from django.contrib.auth.mixins import LoginRequiredMixin;
 from .models import Forum, Message;
@@ -38,7 +39,10 @@ class ViewForum(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         form = MessageForm(request.POST);
         if self.forum.state!=Forum.State.ACTIVE:
-            return HttpResponseForbidden("The forum is inactive!");
+            # fórum trancado: nada é salvo, e o usuário volta para a
+            # página do fórum com um aviso (em vez de um 403 sem template).
+            messages.error(request, "Este fórum está trancado. Não é possível enviar mensagens.");
+            return redirect("forums:view_forum", forum_id = self.forum.id);
         if form.is_valid():
             message_instance = form.save(commit=False);
 
@@ -85,14 +89,18 @@ def delete_message(request, message_id):
         forum = message.forum;
         user = request.user;
 
-        if forum.state!=Forum.State.ACTIVE:
-            return HttpResponseForbidden("The forum is inactive!");
-
         # valida se o usuário pode deletar essa mensagem.
         # (a comunidade é encontrada tanto para o fórum geral
         # quanto para o fórum de uma meta)
         if not ForumService.user_can_delete_message(user, message):
             return HttpResponseForbidden("You cannot delete this message.");
+
+        # fórum trancado: a mensagem fica e o usuário volta ao fórum com
+        # um aviso. A checagem vem depois da permissão para não revelar
+        # o estado do fórum a quem nem poderia apagar a mensagem.
+        if forum.state!=Forum.State.ACTIVE:
+            messages.error(request, "Este fórum está trancado. Não é possível apagar mensagens.");
+            return redirect("forums:view_forum", forum_id=forum.id);
 
         message.delete();
 

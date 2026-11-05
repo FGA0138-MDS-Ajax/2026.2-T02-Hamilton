@@ -3,6 +3,9 @@
 {% block title %}{{ forum.name }} - CoLecture{% endblock %}
 
 {% block content %}
+    {# avisos (ex.: fórum trancado) #}
+    {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+
     <p>
         {% if parent_goal %}
             <a href="{% url 'goals:view_goal' parent_goal.id %}">&larr; Voltar para a meta "{{ parent_goal.name }}"</a>
