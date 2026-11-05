@@ -10,19 +10,22 @@ from django.utils import timezone
 from books.models import Book
 
 GOAL_NAME_MAX_LENGTH = 100
+GOAL_DESC_MAX_LENGTH = 500
 
 
 class Goal(models.Model):
     class GoalType(models.TextChoices):
-        PAGE_COUNT = "PAGE_COUNT", "Pages"
-        HOUR_COUNT = "HOUR_COUNT", "Hours"
+        PAGE_COUNT = "PAGE_COUNT", "Páginas"
+        HOUR_COUNT = "HOUR_COUNT", "Horas"
 
     class Status(models.TextChoices):
-        ACTIVE = "ACTIVE", "Active"
-        CONCLUDED = "CONCLUDED", "Concluded"
-        PAUSED = "PAUSED", "Paused"
+        ACTIVE = "ACTIVE", "Ativa"
+        CONCLUDED = "CONCLUDED", "Concluída"
+        PAUSED = "PAUSED", "Pausada"
 
     name = models.CharField(max_length=GOAL_NAME_MAX_LENGTH, blank=False)
+    # Texto livre opcional explicando o objetivo da meta.
+    description = models.CharField(max_length=GOAL_DESC_MAX_LENGTH, blank=True)
 
     # Dono: comunidade OU perfil, nunca ambos (ver CheckConstraint abaixo).
     owner_community = models.ForeignKey(
