@@ -59,6 +59,12 @@
     </span>
 
     <div class="goal-card__actions">
+      {# fórum próprio da meta (item.forum é None se a meta não tiver fórum) #}
+      {% if item.forum %}
+        <a class="btn-outline btn--sm" href="{% url 'forums:view_forum' item.forum.id %}">
+          <i class="bx bx-conversation" aria-hidden="true"></i> Fórum
+        </a>
+      {% endif %}
       {% if permissions.can_edit and not item.closed %}
         <button type="button" class="btn-outline btn--sm" data-conclude
           data-url="{% url 'goals:conclude_goal' goal.id %}" data-name="{{ goal.name }}">
