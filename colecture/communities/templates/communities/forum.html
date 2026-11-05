@@ -1,0 +1,157 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Fórum - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+  <link rel="stylesheet" href="{% static 'communities/css/forum.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="forum-layout">
+  <div class="forum"
+       id="forum"
+       data-redirect-url="/communities/">
+
+    <!-- F13: titulo e descricao no topo -->
+    <header class="forum-header">
+      <div class="forum-header-info">
+        <a class="forum-back" id="forumBack" href="/communities/">&larr; Voltar para a comunidade</a>
+        <br>
+        <span class="forum-badge" id="forumBadge"></span>
+        <h1 class="forum-title" id="forumTitle"></h1>
+
+        <p class="forum-description" id="forumDescription"></p>
+        <button type="button" class="forum-description-toggle hidden" id="descToggle">ver mais</button>
+      </div>
+
+      <div class="forum-menu hidden" id="forumMenu">
+        <button type="button" class="forum-menu-button" id="menuButton"
+                aria-label="Ferramentas de moderação" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="12" cy="5" r="2"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <circle cx="12" cy="19" r="2"></circle>
+          </svg>
+        </button>
+        <div class="forum-menu-list" id="menuList">
+          <button type="button" class="forum-menu-item" id="menuPin">Fixar mensagem</button>
+          <button type="button" class="forum-menu-item" id="menuLock">Trancar chat</button>
+          <button type="button" class="forum-menu-item danger" id="menuDelete">Excluir fórum</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="pinned hidden" id="pinnedBox">
+      <div class="pinned-text">
+        <span class="pinned-label">Mensagem fixada</span>
+        <span class="pinned-content" id="pinnedContent"></span>
+      </div>
+      <button type="button" class="pinned-remove hidden" id="pinnedRemove" aria-label="Desafixar mensagem">×</button>
+    </div>
+
+    <div class="pick-banner hidden" id="pickBanner">
+      <span>Toque na mensagem que deseja fixar</span>
+      <button type="button" id="pickCancel">Cancelar</button>
+    </div>
+
+    <div class="messages" id="messages" aria-live="polite"></div>
+
+    <div class="locked-notice hidden" id="lockedNotice">
+      Este chat está trancado. Só o moderador pode reabrir as mensagens.
+    </div>
+
+    <div class="reply-bar hidden" id="replyBar">
+      <div class="reply-bar-text">
+        <span class="reply-bar-author" id="replyBarAuthor"></span>
+        <span class="reply-bar-content" id="replyBarContent"></span>
+      </div>
+      <button type="button" class="reply-bar-close" id="replyBarClose" aria-label="Cancelar resposta">×</button>
+    </div>
+
+    <form class="composer" id="composer">
+      <textarea id="messageInput" rows="1" placeholder="Escreva uma mensagem..." maxlength="2000"></textarea>
+      <button type="submit" class="composer-send" id="sendButton">Enviar</button>
+    </form>
+  </div>
+
+  <aside class="forum-side">
+    <section class="side-card side-card-banner">
+      <div class="side-banner">
+        <h2>Sobre</h2>
+      </div>
+      <p class="side-about" id="sideAbout"></p>
+    </section>
+
+    <section class="side-card">
+      <h2>Detalhes</h2>
+
+      <div class="side-row">
+        <span class="side-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          Tipo
+        </span>
+        <strong id="detailKind"></strong>
+      </div>
+
+      <div class="side-row">
+        <span class="side-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Criado por
+        </span>
+        <strong id="detailCreator"></strong>
+      </div>
+
+      <div class="side-row">
+        <span class="side-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Mensagens
+        </span>
+        <strong id="detailCount"></strong>
+      </div>
+
+      <div class="side-row">
+        <span class="side-label">
+          <!-- cadeado aberto (chat aberto) -->
+          <svg class="lock-open" id="iconUnlocked" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+          <!-- cadeado fechado (chat trancado) -->
+          <svg class="lock-closed hidden" id="iconLocked" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Chat
+        </span>
+        <strong id="detailStatus"></strong>
+      </div>
+    </section>
+  </aside>
+  </div>
+
+  <!-- F15: janela de confirmacao ao excluir -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle">Excluir fórum?</h2>
+      <p>Todas as mensagens serão apagadas e essa ação não pode ser desfeita.</p>
+      <div class="confirm-actions">
+        <button type="button" class="confirm-cancel" id="confirmCancel">Cancelar</button>
+        <button type="button" class="confirm-delete" id="confirmDelete">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  {# Os dados vem da view (veja o exemplo no fim da resposta) #}
+  {{ forum|json_script:"dados-forum" }}
+  <script src="{% static 'communities/js/forum.js' %}"></script>
+{% endblock %}

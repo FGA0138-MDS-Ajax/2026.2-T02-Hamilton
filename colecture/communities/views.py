@@ -6,6 +6,7 @@ from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
 from .models import Community, Membership;
+from .services import CommunityService, MembershipService;
 from django.utils import timezone;
 from django.views.decorators.http import require_GET
 from django.contrib import messages
@@ -96,26 +97,20 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
     def join_community(self):
         community_is_private = self.community.access == Community.Access.PRIVATE;
-        membership = self.membership or Membership();
 
-        membership.user = self.user;
-        membership.community =self.community;
-        membership.role = (
-            Membership.Role.NONE if community_is_private else
-            Membership.Role.MEMBER
+        MembershipService.enter_community(
+            self.user,
+            self.community,
+            role = (
+                Membership.Role.NONE if community_is_private else
+                Membership.Role.MEMBER
+            ),
+            status = (
+                Membership.Status.PENDING if community_is_private else 
+                Membership.Status.ACTIVE
+            ),
+            joined_at=timezone.now() if not community_is_private else None
         );
-
-        membership.status = (
-            Membership.Status.PENDING if community_is_private else 
-            Membership.Status.ACTIVE
-        );
-
-        if not community_is_private: # será membro agora.
-            # então (re)entrou agora.
-            # isso ajudará a determinar o membro mais velho posteriormente
-            membership.joined_at = timezone.now();
-        
-        membership.save();
 
         return self.redirect_to_community();
 
@@ -269,11 +264,11 @@ def create_community(request):
         form = CommunityForm(request.POST)
 
         if form.is_valid():
-            community = form.save(commit=False)
-            community.creator = request.user
-            community.icon = ""
-            community.save()
-
+            community = CommunityService.create_community(
+                form.save(commit=False),
+                request.user
+            );
+            
             messages.success(request, f'Comunidade "{community.name}" criada com sucesso!')
             return redirect("communities:home_community")
 
@@ -306,8 +301,40 @@ def delete_community(request, community_id):
     return HttpResponseForbidden()
 
 @login_required
-def moderator_view(request):
-    return render(request, 'communities/moderator.html')
+def moderator_view(request, community_id):
+    community = get_object_or_404(Community, id=community_id);
+    user = request.user;
+
+    if not MembershipService.user_can_manage(user, community):
+        return HttpResponseForbidden("Access restricted.");
+
+    if request.method == "POST":
+        return redirect(
+            "communities:view_community", 
+            community_id=community_id
+        );
+
+    members = Membership.objects.filter(
+        community=community,
+        status=Membership.Status.ACTIVE
+    );
+    pending_requests = Membership.objects.filter(
+        community=community,
+        status=Membership.Status.PENDING
+    );
+
+    return render(
+        request, 
+        'communities/moderator.html',
+        context={
+            'community':community,
+            'members':members,
+            'members_count':members.count()+1,
+            'is_private':community.access==Community.Access.PRIVATE,
+            'pending': pending_requests.exists() and pending_requests,
+
+        }
+    );
 
 @login_required
 def edit_community(request, community_id):
@@ -622,3 +649,23 @@ def home_community(request):
         })
 
     return render(request, "communities/home_community.html", {"comunidades": comunidades})
+
+@login_required
+def forum_page(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    forum = {
+        "id": community.id,
+        "title": "Fórum geral",
+        "description": "Bem-vindos! Aqui falamos sobre " + community.name + ".",
+        "kind": "geral",
+        "meta_name": "",
+        "is_moderator": _can_manage(request.user, community),
+        "locked": False,
+        "pinned_id": None,
+        "current_user": request.user.username,
+        "created_by": community.creator.username,
+        "community_url": reverse("communities:view_community", args=[community.id]),
+        "messages": [],
+    }
+    return render(request, "communities/forum.html", {"forum": forum})

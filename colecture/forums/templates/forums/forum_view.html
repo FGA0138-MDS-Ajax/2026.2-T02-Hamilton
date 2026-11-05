@@ -1,0 +1,29 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ forum.name }}</title>
+</head>
+<body>
+
+    <h1>{{ forum.name }}</h1>
+
+    <form action="{% url 'forums:view_forum' forum.id %}" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Enviar Mensagem</button>
+    </form>
+    <hr>
+    {% for message in messages.all %}
+        <p>{{ message.content }}</p>
+        <form action="{% url 'forums:delete_message' message.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Deletar</button>
+        </form>
+    {% endfor %}
+    
+</body>
+</html>

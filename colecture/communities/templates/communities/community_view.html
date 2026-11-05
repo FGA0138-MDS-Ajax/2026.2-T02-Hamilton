@@ -5,6 +5,8 @@
 
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'communities/css/community_view.css' %}" />
+  <link rel="stylesheet" href="{% static 'communities/css/community_goals.css' %}" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 {% endblock %}
 
@@ -48,11 +50,9 @@
           </form>
         {% endif %}
 
+       
         {% if permissions.can_edit %}
-          <form class="community-join" method="post" action="{% url 'communities:community_moderator' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn">Gerenciar Comunidade</button>
-          </form>
+          <a class="btn community-join" href="{% url 'communities:community_moderator' community.id %}">Gerenciar Comunidade</a>
         {% endif %}
 
         {% if permissions.can_edit or permissions.can_leave or permissions.can_archive %}
@@ -89,45 +89,70 @@
 
       <div class="community-body">
 
-        <section class="card forum" aria-labelledby="forum-title">
-          <div class="forum-head">
-            <h2 id="forum-title">Fórum</h2>
-            <span class="chapter-badge{% if not forum.chapter %} chapter-badge--empty{% endif %}">
-              {% if forum.chapter %}
-                Capítulo {{ forum.chapter.number }}{% if forum.chapter.title %} · {{ forum.chapter.title }}{% endif %}
-              {% else %}
-                Capítulo não definido
-              {% endif %}
-            </span>
-          </div>
+        <div class="main-col">
 
-          {% if forum.chapters %}
-            <nav class="chapter-nav" aria-label="Capítulos do livro">
-              {% for item in forum.chapters %}
-                <a href="{{ item.url }}" class="chapter-link{% if item.current %} is-current{% endif %}"
-                  {% if item.current %}aria-current="true"{% endif %}>{{ item.number }}</a>
-              {% endfor %}
-            </nav>
+          {% if general_forum %}
+            <a class="card general-forum" href="{% url 'forums:view_forum' general_forum.id %}">
+              <i class="bx bx-conversation general-forum__icon" aria-hidden="true"></i>
+              <span class="general-forum__text">
+                <strong>Fórum geral</strong>
+                <span class="muted">Converse com toda a comunidade</span>
+              </span>
+              <i class="bx bx-chevron-right general-forum__go" aria-hidden="true"></i>
+            </a>
           {% endif %}
 
-          {% if forum.posts %}
-            <ol class="post-list">
-              {% for post in forum.posts %}
-                <li class="post">
-                  <div class="post-meta">
-                    <strong>{{ post.author }}</strong>
-                    <time datetime="{{ post.created_at|date:'c' }}">{{ post.created_at|date:"d/m/Y H:i" }}</time>
+          <section class="card goals" aria-labelledby="goals-title">
+            <div class="goals-head">
+              <h2 id="goals-title">Metas</h2>
+            </div>
+
+            {% if goal_cards %}
+              <div class="tabs" role="tablist" aria-label="Metas da comunidade">
+                <button type="button" role="tab" class="tab is-selected" id="tab-active"
+                  aria-selected="true" aria-controls="panel-active" data-tab="active">
+                  Ativas <span class="tab-count">{{ goal_cards.active|length }}</span>
+                </button>
+                <button type="button" role="tab" class="tab" id="tab-closed"
+                  aria-selected="false" aria-controls="panel-closed" data-tab="closed" tabindex="-1">
+                  Encerradas <span class="tab-count">{{ goal_cards.closed|length }}</span>
+                </button>
+              </div>
+
+              <div class="goal-list" role="tabpanel" id="panel-active" aria-labelledby="tab-active">
+                {% for item in goal_cards.active %}
+                  {% include "communities/_goal_card.html" %}
+                {% empty %}
+                  <div class="goals-empty">
+                    <i class="bx bx-target-lock" aria-hidden="true"></i>
+                    <h3>Nenhuma meta ativa</h3>
+                    {% if permissions.can_create_goal %}
+                      <p class="muted">Crie a primeira meta de leitura da comunidade.</p>
+                      <a class="btn" href="{% url 'goals:create_community_goal' community.id %}">Criar meta</a>
+                    {% else %}
+                      <p class="muted">Quando um moderador criar uma meta, ela aparece aqui.</p>
+                    {% endif %}
                   </div>
-                  <p>{{ post.text|linebreaksbr }}</p>
-                </li>
-              {% endfor %}
-            </ol>
-          {% else %}
-            <p class="empty">
-              Ainda não há mensagens{% if forum.chapter %} no capítulo {{ forum.chapter.number }}{% endif %}.
-            </p>
-          {% endif %}
-        </section>
+                {% endfor %}
+              </div>
+
+              <div class="goal-list" role="tabpanel" id="panel-closed" aria-labelledby="tab-closed" hidden>
+                {% for item in goal_cards.closed %}
+                  {% include "communities/_goal_card.html" %}
+                {% empty %}
+                  <div class="goals-empty">
+                    <i class="bx bx-archive" aria-hidden="true"></i>
+                    <h3>Nenhuma meta encerrada</h3>
+                    <p class="muted">As metas concluídas ficam guardadas aqui.</p>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty">Entre na comunidade para ver as metas e o fórum.</p>
+            {% endif %}
+          </section>
+
+        </div>
 
         <aside class="side" aria-label="Sobre a comunidade">
           <section class="card" aria-labelledby="about-title">
@@ -150,6 +175,20 @@
               <p class="muted">Nenhum livro definido para esta comunidade.</p>
             {% endif %}
           </section>
+
+          {% if community.is_private and is_member %}
+            <section class="card" aria-labelledby="code-title">
+              <h2 id="code-title">Código da comunidade</h2>
+              <p class="muted code-hint">Compartilhe para convidar alguém para esta comunidade privada.</p>
+              <div class="code-box">
+                <input id="inviteCode" class="code-input" type="text" readonly
+                  value="{{ community.code }}" aria-label="Código da comunidade" />
+                <button type="button" class="btn-outline btn--sm" data-copy="#inviteCode">
+                  <i class="bx bx-copy" aria-hidden="true"></i> Copiar
+                </button>
+              </div>
+            </section>
+          {% endif %}
 
           <section class="card" aria-labelledby="details-title">
             <h2 id="details-title">Detalhes</h2>
@@ -188,10 +227,30 @@
         </dialog>
       {% endif %}
 
+      {% if permissions.can_edit and goal_cards %}
+        <dialog class="confirm" id="confirm-conclude" aria-labelledby="confirm-conclude-title">
+          <form method="post" action="" id="concludeForm">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}" />
+            <h2 id="confirm-conclude-title">Marcar meta como concluída?</h2>
+            <p class="muted">A meta <strong id="concludeName"></strong> vai para a aba Encerradas.</p>
+            <div class="confirm-actions">
+              <button type="button" class="btn-outline" data-close>Cancelar</button>
+              <button type="submit" class="btn">Concluir meta</button>
+            </div>
+          </form>
+        </dialog>
+      {% endif %}
+
+      {% for message in messages %}
+        <div hidden data-flash data-type="{% if 'error' in message.tags %}error{% elif 'success' in message.tags %}success{% else %}info{% endif %}">{{ message }}</div>
+      {% endfor %}
+
     {% endif %}
   </div>
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'main/js/toast.js' %}"></script>
   <script src="{% static 'communities/js/community_view.js' %}"></script>
 {% endblock %}

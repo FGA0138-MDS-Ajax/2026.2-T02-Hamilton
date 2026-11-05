@@ -38,10 +38,6 @@
   box-shadow: var(--glow);
 }
 
-.main-box--narrow {
-  width: 760px;
-}
-
 .navbar {
   display: flex;
   align-items: center;
@@ -189,6 +185,60 @@
   flex-direction: column;
   gap: 4px;
   margin-bottom: 20px;
+}
+
+/*
+  Distribuição dos campos em colunas.
+
+  O formulário (.book-form) vira um "container": as colunas dependem da
+  largura dele, e não da largura da janela. Assim funciona certo com a
+  sidebar aberta, recolhida ou virando barra inferior no celular.
+
+    até 479px  → 1 coluna
+    480px+     → 2 colunas
+    800px+     → 3 colunas
+
+  Só a posição dos campos muda: obrigatoriedade, tipos e validações
+  continuam vindo do BookForm.
+*/
+.book-form {
+  container-type: inline-size;
+  container-name: book-form;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px 24px;
+  margin-bottom: 20px;
+}
+
+/* O espaço entre os campos agora vem do "gap" do grid */
+.form-grid .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* Campos longos ocupam a linha inteira */
+.field--synopsis {
+  grid-column: 1 / -1;
+}
+
+@container book-form (min-width: 480px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container book-form (min-width: 800px) {
+  .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Título ocupa 2 colunas (ao lado do ISBN) */
+  .field--title {
+    grid-column: span 2;
+  }
 }
 
 /* Botão (igual ao do perfil) */

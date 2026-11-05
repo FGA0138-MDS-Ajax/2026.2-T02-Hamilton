@@ -1,0 +1,784 @@
+/* Página do fórum (chat). Usa as variáveis de variables.css */
+
+/* ---------- Layout: chat + coluna lateral ---------- */
+.forum-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.forum-side {
+  display: none; 
+}
+
+.side-card {
+  padding: 24px 30px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.side-card h2 {
+  margin-bottom: 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--purple-300);
+}
+
+.side-about {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.side-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.side-row span {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.side-row strong {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1025px) {
+  .forum-layout {
+    grid-template-columns: minmax(0, 1fr) 374px;
+    align-items: start;
+  }
+
+  .forum-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* a descrição já aparece em "Sobre" na lateral */
+  .forum-description,
+  .forum-description-toggle {
+    display: none !important;
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+.forum {
+  display: flex;
+  flex-direction: column;
+  /* mesma largura dos cards da página da comunidade */
+  margin: 0;
+  /* O .content da sidebar tem 32px de padding em cima e embaixo */
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---------- Topo ---------- */
+.forum-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 30px 18px;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 0;
+}
+
+.forum-header-info {
+  flex: 1;
+  min-width: 0; /* permite o texto quebrar dentro do flex */
+}
+
+.forum-back {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.forum-back:hover {
+  color: var(--purple-300);
+}
+
+/* chip em contorno, igual ao "Capítulo não definido" da comunidade */
+.forum-badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forum-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  /* título muito longo: no máximo 2 linhas */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.forum-description {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  /* recolhida: 2 linhas, igual WhatsApp */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.forum-description.expanded {
+  display: block;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.forum-description-toggle {
+  margin-top: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--purple-400);
+  cursor: pointer;
+}
+
+.forum-description-toggle:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Menu 3 pontinhos ---------- */
+.forum-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.forum-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.forum-menu-button:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.forum-menu-button:focus-visible {
+  outline: 2px solid var(--purple-400);
+  outline-offset: 2px;
+}
+
+.forum-menu-list {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 6px;
+  min-width: 190px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--glow);
+  z-index: 20;
+}
+
+.forum-menu-list.open {
+  display: block;
+}
+
+.forum-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.forum-menu-item:hover {
+  background: var(--bg-input);
+}
+
+.forum-menu-item.danger {
+  color: var(--danger);
+}
+
+/* ---------- Mensagem fixada ---------- */
+.pinned {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: var(--purple-900);
+  border-bottom: 1px solid var(--purple-700);
+  border-left: 4px solid var(--purple-400);
+}
+
+.pinned-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pinned-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--purple-300);
+}
+
+.pinned-content {
+  font-size: 0.9rem;
+  color: var(--purple-100);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pinned-remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--purple-300);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pinned-remove:hover {
+  background: var(--purple-700);
+}
+
+.pick-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  color: var(--warning);
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border);
+}
+
+.pick-banner button {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ---------- Mensagens ---------- */
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 30px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.messages-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.message {
+  max-width: 65%;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 4px;
+  align-self: flex-start;
+}
+
+.message.mine {
+  align-self: flex-end;
+  background: var(--purple-900);
+  border-color: var(--purple-700);
+  border-radius: 12px 12px 4px 12px;
+}
+
+.message.pinned-message {
+  border-color: var(--purple-400);
+  box-shadow: var(--glow);
+}
+
+.message.pickable {
+  cursor: pointer;
+  outline: 2px dashed var(--warning);
+  outline-offset: 2px;
+}
+
+.message-author {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--purple-300);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-text {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  /* mensagens longas e palavras gigantes não quebram o layout */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.message-pin-tag {
+  color: var(--purple-300);
+  font-weight: 600;
+}
+
+/* ---------- Chat trancado ---------- */
+.locked-notice {
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--warning);
+  background: var(--bg-base);
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Campo de envio ---------- */
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 14px 30px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.composer textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 120px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  resize: none;
+}
+
+.composer textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.composer textarea:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: var(--glow);
+}
+
+.composer-send {
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  background: var(--purple-600);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.composer-send:hover:enabled {
+  background: var(--purple-500);
+}
+
+.composer-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Confirmação de exclusão ---------- */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.confirm-overlay.open {
+  display: flex;
+}
+
+.confirm-box {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: var(--glow);
+}
+
+.confirm-box h2 {
+  margin-bottom: 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirm-box p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.confirm-cancel,
+.confirm-delete {
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.confirm-cancel {
+  color: var(--text-primary);
+  background: none;
+  border: 1px solid var(--border-strong);
+}
+
+.confirm-delete {
+  color: white;
+  background: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.confirm-delete:hover {
+  opacity: 0.85;
+}
+
+/* ---------- Logo no fundo do chat ---------- */
+.forum {
+  isolation: isolate; /* mantém a logo atrás do conteúdo, sem sair do card */
+}
+
+.forum::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(380px, 60%);
+  height: min(380px, 60%);
+  transform: translate(-50%, -50%);
+  background: url("../img/logo.png") center / contain no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ---------- Lateral: faixa de imagem e ícones ---------- */
+.side-card-banner {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Se a imagem não existir, aparece só o degradê roxo */
+.side-banner {
+  position: relative;
+  height: 120px;
+  background-image:
+    linear-gradient(to top, rgba(20, 18, 28, 0.9) 0%, rgba(20, 18, 28, 0) 65%),
+    url("../img/forum-banner.png"),
+    var(--gradient-brand);
+  background-size: cover;
+  background-position: center;
+}
+
+.side-banner h2 {
+  position: absolute;
+  left: 30px;
+  bottom: 10px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.side-card-banner .side-about {
+  padding: 16px 30px 24px;
+}
+
+.side-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.side-label svg {
+  flex-shrink: 0;
+  color: var(--purple-400);
+}
+
+.side-label svg.lock-open {
+  color: var(--warning);
+}
+
+.side-label svg.lock-closed {
+  color: var(--danger);
+}
+
+/* ---------- Responder mensagem ---------- */
+.message {
+  position: relative;
+}
+
+.message-reply-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--purple-300);
+  cursor: pointer;
+}
+
+.message-reply-btn:hover {
+  text-decoration: underline;
+}
+
+/* No computador o botão aparece ao passar o mouse; no celular fica sempre visível */
+@media (hover: hover) {
+  .message-reply-btn {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .message:hover .message-reply-btn,
+  .message-reply-btn:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* Citação dentro da mensagem */
+.reply-quote {
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 4px solid var(--purple-400);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.reply-quote-author {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--purple-300);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-quote-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Piscada ao ir até a mensagem original */
+.message.highlight {
+  animation: message-flash 1.5s ease;
+}
+
+@keyframes message-flash {
+  0% { box-shadow: 0 0 0 3px var(--purple-400); }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+
+/* Barra de prévia em cima do campo de escrever */
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 30px 0;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border-left: 4px solid var(--purple-400);
+  border-radius: 8px;
+}
+
+.reply-bar-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-bar-author {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--purple-300);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-bar-content {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-bar-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reply-bar-close:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .reply-bar {
+    margin: 8px 12px 0;
+  }
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 768px) {
+  .forum {
+    /* .content no celular: 20px em cima e (barra inferior + 24px) embaixo */
+    height: calc(100vh - 44px - var(--bottom-h) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 44px - var(--bottom-h) - env(safe-area-inset-bottom, 0px));
+    border-radius: 12px;
+  }
+
+  .forum-header {
+    padding: 16px 14px 12px;
+  }
+
+  .pinned,
+  .pick-banner {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .messages {
+    padding: 12px 14px;
+  }
+
+  .message {
+    max-width: 88%;
+  }
+
+  .composer {
+    padding: 10px 12px;
+  }
+
+  /* 16px evita o zoom automático do iPhone ao focar o campo */
+  .composer textarea {
+    font-size: 16px;
+  }
+
+  .composer-send {
+    padding: 12px 16px;
+  }
+}

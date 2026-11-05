@@ -1,0 +1,220 @@
+:root {
+  color-scheme: dark;
+}
+
+.goal-page,
+.goal-page :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+/* Layout Principal aproveitando o espaço horizontal (Max Width 1200px) */
+.goal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--glow);
+  color: var(--text-primary);
+  font-family: var(--font-main, "Poppins", sans-serif);
+}
+
+.goal-page :where(h1, p, form) {
+  margin: 0;
+  padding: 0;
+}
+
+.goal-page :where(input, select, textarea, button) {
+  font-family: inherit;
+}
+
+/* Botão de Voltar */
+.goal-page .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.goal-page .back-link:hover {
+  color: var(--purple-300);
+}
+
+/* Cabeçalho */
+.goal-page .goal-header {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.goal-page h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.goal-page .intro {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.goal-page .req-legend {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Grid com 2 colunas para desktop */
+.goal-page .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+.goal-page .form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Campos de entrada */
+.goal-page .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-page .field label {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.goal-page label .required {
+  color: var(--purple-300);
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+.goal-page .field input,
+.goal-page .field textarea,
+.goal-page .field select {
+  display: block;
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.goal-page .field textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.goal-page .field input[type="date"] {
+  min-height: 52px;
+}
+
+/* Oculta botões de incremento dos inputs numéricos */
+.goal-page .field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.goal-page .field input[type="number"]::-webkit-outer-spin-button,
+.goal-page .field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Estilo com erro */
+.goal-page .field--error input,
+.goal-page .field--error textarea,
+.goal-page .field--error select {
+  border-color: var(--danger);
+}
+
+.goal-page .field input:focus,
+.goal-page .field textarea:focus,
+.goal-page .field select:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: var(--glow);
+}
+
+.goal-page .help {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.goal-page .error {
+  font-size: 14px;
+  color: var(--danger);
+}
+
+/* Botões de Ação */
+.goal-page .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.goal-page .btn,
+.goal-page .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.goal-page .btn {
+  background: var(--purple-500);
+  border: none;
+  color: #fff;
+  transition: background 0.15s;
+}
+
+.goal-page .btn:hover {
+  background: var(--purple-600);
+}
+
+.goal-page .btn-outline {
+  background: transparent;
+  border: 2px solid var(--purple-500);
+  color: var(--purple-300);
+}
+
+.goal-page .btn-outline:hover {
+  background: var(--purple-500);
+  color: #fff;
+}
+
+/* Ajuste Responsivo (Em telas menores, volta a ser 1 coluna) */
+@media (max-width: 900px) {
+  .goal-page .form-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

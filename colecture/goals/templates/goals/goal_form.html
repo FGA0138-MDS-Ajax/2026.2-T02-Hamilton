@@ -1,0 +1,123 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Editar meta{% else %}Criar meta{% endif %} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <div class="goal-page">
+
+    {# Toasts de sucesso e erro no mesmo modelo da página Cadastrar Livro #}
+    {% if messages %}
+      <ul class="mensagens">
+        {% for message in messages %}
+          <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="goal-header-nav">
+      {% with community=form.instance.owner_community %}
+        {% if community %}
+          <a class="back-link" href="{% url 'communities:view_community' community.id %}">
+            <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar à comunidade
+          </a>
+        {% else %}
+          <a class="back-link" href="{% url 'main:index' %}">
+            <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar
+          </a>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <section class="goal-form-container" aria-labelledby="goal-title">
+      <header class="goal-header">
+        <h1 id="goal-title">{% if is_edit %}Editar meta{% else %}Criar meta{% endif %}</h1>
+        {% with community=form.instance.owner_community %}
+          {% if community %}
+            <p class="intro">
+              Comunidade: <strong>{{ community.name }}</strong>{% if community.book %} · Livro: <strong>{{ community.book.title }}</strong>{% endif %}
+            </p>
+          {% endif %}
+        {% endwith %}
+        <p class="req-legend">Campos marcados com <span class="required">*</span> são obrigatórios.</p>
+      </header>
+
+      {% with community=form.instance.owner_community %}
+        {% if community and not community.book %}
+          {# Aviso exibido no lugar do formulário caso a comunidade não tenha livro definido #}
+          <div class="notice" role="alert">
+            <i class="bx bx-error-circle" aria-hidden="true"></i>
+            <div class="notice-body">
+              <strong>Esta comunidade ainda não tem um livro definido.</strong>
+              <p>Defina o livro da comunidade para poder {% if is_edit %}editar{% else %}criar{% endif %} metas.</p>
+              <a class="btn-outline" href="{% url 'communities:edit_community' community.id %}">Definir livro</a>
+            </div>
+          </div>
+        {% else %}
+          <form method="post" id="goal-form" novalidate>
+            {% csrf_token %}
+
+            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+            {% if form.non_field_errors %}
+              <div class="form-errors" role="alert">
+                {% for error in form.non_field_errors %}
+                  <span class="error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            {# Layout em Grid de 2 colunas para aproveitar o espaço horizontal da tela #}
+            <div class="form-grid">
+              <div class="form-col">
+                {% for field in form.visible_fields %}
+                  {% if forloop.counter <= 2 %}
+                    <div class="field {% if field.errors %}field--error{% endif %}">
+                      <label for="{{ field.id_for_label }}">
+                        {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+                      </label>
+                      {{ field }}
+                      {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+                      {% for error in field.errors %}<span class="error">{{ error }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+
+              <div class="form-col">
+                {% for field in form.visible_fields %}
+                  {% if forloop.counter > 2 %}
+                    <div class="field {% if field.errors %}field--error{% endif %}">
+                      <label for="{{ field.id_for_label }}">
+                        {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+                      </label>
+                      {{ field }}
+                      {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+                      {% for error in field.errors %}<span class="error">{{ error }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-actions">
+              {% with community=form.instance.owner_community %}
+                {% if community %}
+                  <a class="btn-outline" href="{% url 'communities:view_community' community.id %}">Cancelar</a>
+                {% else %}
+                  <a class="btn-outline" href="{% url 'main:index' %}">Cancelar</a>
+                {% endif %}
+              {% endwith %}
+              <button type="submit" class="btn">{% if is_edit %}Atualizar{% else %}Criar meta{% endif %}</button>
+            </div>
+          </form>
+        {% endif %}
+      {% endwith %}
+    </section>
+  </div>
+{% endblock %}

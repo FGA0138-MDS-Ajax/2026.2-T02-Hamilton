@@ -437,3 +437,23 @@
 .com-overlay[hidden] {
     display: none
 }
+
+/* Gato de fundo */
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: url("../../main/img/logo.png") center / contain no-repeat;
+  opacity: 0.10;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.com-page {
+  position: relative;
+  z-index: 1;
+}
