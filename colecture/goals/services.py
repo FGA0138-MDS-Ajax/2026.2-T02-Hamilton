@@ -50,6 +50,11 @@ class GoalService:
     def create_goal(goal: Goal, creator) -> Goal:
         """goal: instância já validada (form.save(commit=False))."""
         creator_is_a_user = type(creator) == get_user_model();
+        if goal.is_collective:
+            # meta de comunidade sempre usa o livro atual da comunidade
+            # (o form não tem campo livro); só vale na criação, para que
+            # trocar o livro da comunidade depois não altere metas antigas
+            goal.book = goal.owner_community.book
         goal.save()
         if goal.is_collective:
             # só metas coletivas têm fórum
