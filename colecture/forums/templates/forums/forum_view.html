@@ -1,29 +1,49 @@
-{% load static %}
+{% extends "sidebar.html" %}
 
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ forum.name }}</title>
-</head>
-<body>
+{% block title %}{{ forum.name }} - CoLecture{% endblock %}
+
+{% block content %}
+    <p>
+        {% if parent_goal %}
+            <a href="{% url 'goals:view_goal' parent_goal.id %}">&larr; Voltar para a meta "{{ parent_goal.name }}"</a>
+        {% else %}
+            <a href="{% url 'communities:view_community' parent_community.id %}">&larr; Voltar para a comunidade "{{ parent_community.name }}"</a>
+        {% endif %}
+    </p>
 
     <h1>{{ forum.name }}</h1>
+    <p>
+        {% if parent_goal %}Fórum da meta{% else %}Fórum geral da comunidade{% endif %}
+        {% if can_moderate %}· <a href="{% url 'forums:edit_forum' forum.id %}">Editar fórum</a>{% endif %}
+    </p>
 
-    <form action="{% url 'forums:view_forum' forum.id %}" method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Enviar Mensagem</button>
-    </form>
-    <hr>
-    {% for message in messages.all %}
-        <p>{{ message.content }}</p>
-        <form action="{% url 'forums:delete_message' message.id %}" method="post">
+    {% if forum.state == "ACTIVE" %}
+        <form action="{% url 'forums:view_forum' forum.id %}" method="post">
             {% csrf_token %}
-            <button type="submit">Deletar</button>
+            {{ form.as_p }}
+            <button type="submit">Enviar Mensagem</button>
         </form>
+    {% else %}
+        <p>Este fórum está trancado. Não é possível enviar ou apagar mensagens.</p>
+    {% endif %}
+    <hr>
+
+    {% for message in forum_messages %}
+        <p>
+            <strong>{{ message.author.username }}</strong>
+            <small>{{ message.created_at|date:"d/m/Y H:i" }}</small><br>
+            {{ message.content|linebreaksbr }}
+        </p>
+        {% if forum.state == "ACTIVE" %}
+            {# só o autor ou quem modera vê o botão (o servidor valida de novo) #}
+            {% if message.author_id == request.user.id or can_moderate %}
+                <form action="{% url 'forums:delete_message' message.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit">Deletar</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    {% empty %}
+        <p>Nenhuma mensagem ainda. Comece a conversa!</p>
     {% endfor %}
-    
-</body>
-</html>
+{% endblock %}
