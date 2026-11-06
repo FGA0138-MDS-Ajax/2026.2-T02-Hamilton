@@ -640,6 +640,29 @@ class ForumAccess(TestCase):
         self.assertEqual(response.status_code, 302);
         self.assertTrue(response.url.startswith(reverse("accounts:login")));
 
+    def test_edit_button_is_shown_to_creator_and_moderator_only(self):
+        url = reverse("forums:edit_forum", kwargs={'forum_id':self.community_forum.id});
+        for user in (self.com_owner, self.moderator):
+            self.client.force_login(user);
+            response = self.client.get(self.forum_url(self.community_forum));
+            self.assertContains(response, url);
+
+        self.client.force_login(self.member);
+        response = self.client.get(self.forum_url(self.community_forum));
+        self.assertNotContains(response, url);
+
+    def test_invalid_message_error_is_shown_to_the_user(self):
+        # mensagem acima do limite: o erro precisa aparecer na página,
+        # não só o recarregamento silencioso do formulário.
+        self.client.force_login(self.member);
+        response = self.client.post(
+            self.forum_url(self.community_forum), data={'content':'x' * 5001}
+        );
+
+        self.assertEqual(response.status_code, 400);
+        self.assertContains(response, 'class="form-error"', status_code=400);
+        self.assertFalse(Message.objects.filter(forum=self.community_forum).exists());
+
     # ===== ATALHOS E PÁGINAS QUE LEVAM AO FÓRUM =====
     def test_community_forum_shortcut_redirects_to_forum(self):
         self.client.force_login(self.member);

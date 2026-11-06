@@ -26,6 +26,11 @@
         <button type="button" class="forum-description-toggle hidden" id="descToggle">ver mais</button>
       </div>
 
+      <div class="forum-header-actions">
+        {% if can_moderate %}
+          <a class="forum-edit-btn" id="forumEdit" href="{% url 'forums:edit_forum' forum.id %}">Editar</a>
+        {% endif %}
+
       <div class="forum-menu hidden" id="forumMenu">
         <button type="button" class="forum-menu-button" id="menuButton"
                 aria-label="Ferramentas de moderação" aria-expanded="false">
@@ -40,6 +45,7 @@
           <button type="button" class="forum-menu-item" id="menuLock">Trancar chat</button>
           <button type="button" class="forum-menu-item danger" id="menuDelete">Excluir fórum</button>
         </div>
+      </div>
       </div>
     </header>
 
@@ -72,9 +78,17 @@
       <button type="button" class="reply-bar-close" id="replyBarClose" aria-label="Cancelar resposta">×</button>
     </div>
 
+    {# erros do envio (ex.: mensagem acima do limite) voltam pelo status 400 da view #}
+    {% if form.errors %}
+      <div class="form-errors" role="alert">
+        {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        {% for error in form.content.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
     <form class="composer" id="composer" method="post" action="{% url 'forums:view_forum' forum.id %}">
       {% csrf_token %}
-      <textarea id="messageInput" name="content" rows="1" placeholder="Escreva uma mensagem..." maxlength="2000"></textarea>
+      <textarea id="messageInput" name="content" rows="1" placeholder="Escreva uma mensagem..." maxlength="2000">{{ form.content.value|default_if_none:"" }}</textarea>
       <button type="submit" class="composer-send" id="sendButton">Enviar</button>
     </form>
   </div>
