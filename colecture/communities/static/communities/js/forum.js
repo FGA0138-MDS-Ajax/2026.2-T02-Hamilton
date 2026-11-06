@@ -1,4 +1,3 @@
-
 var dados = JSON.parse(document.getElementById("dados-forum").textContent);
 
 var storageKey = "colectureForum-" + dados.id;
@@ -58,7 +57,11 @@ function saveState() {
 
 function renderHeader() {
   if (dados.community_url) {
-    document.getElementById("forumBack").href = dados.community_url;
+    var forumBack = document.getElementById("forumBack");
+    forumBack.href = dados.community_url;
+    if (dados.back_label) {
+      forumBack.innerHTML = "&larr; " + dados.back_label;
+    }
     forumBox.dataset.redirectUrl = dados.community_url;
   }
 

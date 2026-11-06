@@ -54,15 +54,27 @@ class ForumService:
     @staticmethod
     def build_page_data(forum, user, forum_messages)->dict:
         """Dados que o forum.js (communities/forum.html) lê para montar a página
-        do fórum geral de uma comunidade."""
-        community = forum.community;
+        de qualquer fórum: o geral da comunidade ou o de uma meta."""
+        community = ForumService.get_forum_parent_community(forum);
+        goal = forum.goal;
+
+        if goal:
+            kind = "meta";
+            description = goal.description;
+            back_url = reverse("goals:view_goal", args=[goal.id]);
+            back_label = "Voltar para a meta";
+        else:
+            kind = "geral";
+            description = community.description;
+            back_url = reverse("communities:view_community", args=[community.id]);
+            back_label = "Voltar para a comunidade";
 
         return {
             "id": forum.id,
             "title": forum.name,
-            "description": community.description,
-            "kind": "geral",
-            "meta_name": "",
+            "description": description,
+            "kind": kind,
+            "meta_name": goal.name if goal else "",
             # o menu de moderação do front (fixar/trancar/excluir) ainda não
             # tem backend; trancar e editar continuam em forums:edit_forum.
             "is_moderator": False,
@@ -70,7 +82,8 @@ class ForumService:
             "pinned_id": None,
             "current_user": user.username,
             "created_by": community.creator.username,
-            "community_url": reverse("communities:view_community", args=[community.id]),
+            "community_url": back_url,
+            "back_label": back_label,
             "messages": [
                 {
                     "id": message.id,
