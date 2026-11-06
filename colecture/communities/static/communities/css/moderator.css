@@ -230,7 +230,6 @@
 }
 
 .mod-btn-primary:hover {
-    border-color: transparent;
     filter: brightness(1.1);
 }
 
