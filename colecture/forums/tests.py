@@ -539,7 +539,7 @@ class ForumAccess(TestCase):
         );
 
         self.assertEqual(response.status_code, 400);
-        self.assertTemplateUsed(response, "forums/forum_view.html");
+        self.assertTemplateUsed(response, "communities/forum.html");
         self.assertFalse(Message.objects.filter(forum=self.community_forum).exists());
 
     def test_locked_forum_does_not_accept_messages(self):
