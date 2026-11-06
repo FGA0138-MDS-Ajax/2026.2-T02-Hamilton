@@ -53,7 +53,8 @@ def edit_book(request, book_id):
 
             messages.success(request, 'Livro editado com sucesso!')
 
-            return redirect('books:edit_book', book_id=book.id)
+            # MODIFICAÇÃO AQUI: Redireciona de volta para a página de detalhes do livro
+            return redirect('books:book_detail', book_id=book.id)
 
     else:
         form = BookForm(instance=book)
