@@ -1,3 +1,5 @@
+from django.urls import reverse;
+from django.utils.timezone import localtime;
 from communities.models import Community;
 from communities.services import MembershipService;
 from goals.services import GoalService;
@@ -48,3 +50,36 @@ class ForumService:
             message.author_id == user.id
             or MembershipService.user_can_manage(user, parent_community)
         );
+
+    @staticmethod
+    def build_page_data(forum, user, forum_messages)->dict:
+        """Dados que o forum.js (communities/forum.html) lê para montar a página
+        do fórum geral de uma comunidade."""
+        community = forum.community;
+
+        return {
+            "id": forum.id,
+            "title": forum.name,
+            "description": community.description,
+            "kind": "geral",
+            "meta_name": "",
+            # o menu de moderação do front (fixar/trancar/excluir) ainda não
+            # tem backend; trancar e editar continuam em forums:edit_forum.
+            "is_moderator": False,
+            "locked": forum.state != forum.State.ACTIVE,
+            "pinned_id": None,
+            "current_user": user.username,
+            "created_by": community.creator.username,
+            "community_url": reverse("communities:view_community", args=[community.id]),
+            "messages": [
+                {
+                    "id": message.id,
+                    "author": message.author.username,
+                    "text": message.content,
+                    "time": localtime(message.created_at).strftime("%d/%m %H:%M"),
+                    "mine": message.author_id == user.id,
+                    "reply_to": None,
+                }
+                for message in forum_messages
+            ],
+        };

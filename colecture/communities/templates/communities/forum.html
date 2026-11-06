@@ -58,6 +58,8 @@
 
     <div class="messages" id="messages" aria-live="polite"></div>
 
+    {% for message in messages %}<p class="locked-notice">{{ message }}</p>{% endfor %}
+
     <div class="locked-notice hidden" id="lockedNotice">
       Este chat está trancado. Só o moderador pode reabrir as mensagens.
     </div>
@@ -70,8 +72,9 @@
       <button type="button" class="reply-bar-close" id="replyBarClose" aria-label="Cancelar resposta">×</button>
     </div>
 
-    <form class="composer" id="composer">
-      <textarea id="messageInput" rows="1" placeholder="Escreva uma mensagem..." maxlength="2000"></textarea>
+    <form class="composer" id="composer" method="post" action="{% url 'forums:view_forum' forum.id %}">
+      {% csrf_token %}
+      <textarea id="messageInput" name="content" rows="1" placeholder="Escreva uma mensagem..." maxlength="2000"></textarea>
       <button type="submit" class="composer-send" id="sendButton">Enviar</button>
     </form>
   </div>
@@ -151,7 +154,6 @@
     </div>
   </div>
 
-  {# Os dados vem da view (veja o exemplo no fim da resposta) #}
-  {{ forum|json_script:"dados-forum" }}
+  {{ dados_forum|json_script:"dados-forum" }}
   <script src="{% static 'communities/js/forum.js' %}"></script>
 {% endblock %}

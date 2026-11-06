@@ -63,23 +63,30 @@ class ViewForum(LoginRequiredMixin, View):
         return self.render_forum(request, MessageForm());
 
     def render_forum(self, request, form, status=200):
-        return render(
-            request,
-            "forums/forum_view.html",
-            {
-                'forum':self.forum,
-                # não usar a chave 'messages': ela é do
-                # django.contrib.messages (context processor).
-                'forum_messages':self.forum.messages.select_related(
-                    'author'
-                ).order_by('created_at', 'id'),
-                'form':form,
-                'parent_community':self.forum_parent_community,
-                'parent_goal':self.forum_parent_goal,
-                'can_moderate':ForumService.user_can_edit(self.user, self.forum),
-            },
-            status=status
-        );
+        # não usar a chave 'messages': ela é do
+        # django.contrib.messages (context processor).
+        forum_messages = self.forum.messages.select_related(
+            'author'
+        ).order_by('created_at', 'id');
+
+        context = {
+            'forum':self.forum,
+            'forum_messages':forum_messages,
+            'form':form,
+            'parent_community':self.forum_parent_community,
+            'parent_goal':self.forum_parent_goal,
+            'can_moderate':ForumService.user_can_edit(self.user, self.forum),
+        };
+
+        template = "forums/forum_view.html";
+        if self.forum.community_id:
+            # fórum geral da comunidade: página estilizada (forum.js)
+            template = "communities/forum.html";
+            context['dados_forum'] = ForumService.build_page_data(
+                self.forum, self.user, forum_messages
+            );
+
+        return render(request, template, context, status=status);
 
 @login_required
 def delete_message(request, message_id):

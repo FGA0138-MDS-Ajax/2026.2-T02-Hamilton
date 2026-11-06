@@ -402,33 +402,18 @@ function getTime() {
 }
 
 function sendMessage() {
-  var text = messageInput.value.trim();
-
-  if (text === "" || state.locked) {
+  if (messageInput.value.trim() === "" || state.locked) {
     return;
   }
 
-  // BACKEND: fetch(sendUrl, { method: "POST", body: ... }).then(...) e usar a resposta do servidor
-  state.messages.push({
-    id: Date.now(),
-    author: dados.current_user || "Você",
-    text: text,
-    time: getTime(),
-    mine: true,
-    reply_to: replyingTo
-  });
-
-  cancelReply();
-  saveState();
-  messageInput.value = "";
-  resizeInput();
-  renderMessages();
-  renderDetails();
+  // POST normal para forums:view_forum; o servidor grava e redireciona de volta
+  composer.submit();
 }
 
 composer.addEventListener("submit", function (event) {
-  event.preventDefault();
-  sendMessage();
+  if (messageInput.value.trim() === "" || state.locked) {
+    event.preventDefault();
+  }
 });
 
 messageInput.addEventListener("keydown", function (event) {
@@ -458,6 +443,5 @@ if (dados.is_moderator) {
   forumMenu.classList.remove("hidden");
 }
 
-loadState();
 renderHeader();
 renderAll();
