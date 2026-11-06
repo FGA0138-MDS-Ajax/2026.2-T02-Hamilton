@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404, render, redirect;
 from django.contrib.auth import get_user_model;
 from django.contrib.auth.mixins import LoginRequiredMixin;
-from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse;
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse, HttpResponse;
 from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
-from .models import Community, Membership;
+from .models import Community, Membership, Invitation;
 from .services import CommunityService, MembershipService;
 from django.utils import timezone;
 from django.views.decorators.http import require_GET
@@ -33,11 +33,16 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
         # mantém a comunidade e usuário para os
         # outros métodos usarem.
+        self.invitation_code = kwargs['invitation_code'];
         self.community = get_object_or_404(Community, id=community_id);
         self.user = request.user;
         self.membership = Membership.objects.filter(
             community=self.community,
             user=self.user
+        ).first();
+        self.invitation = self.invitation_code and Invitation.objects.filter(
+            community=self.community,
+            invitation_code=self.invitation_code,
         ).first();
     
         return super().dispatch(request, *args, **kwargs)
@@ -52,6 +57,7 @@ class JoinCommunityView(LoginRequiredMixin, View):
             self.user_is_member, # já é membro?
             self.user_is_banned, # está banido?
             self.request_is_pending, # já solicitou entrada?
+            self.invitation_code_wrong,
         ];
         for check in validation:
             response = check();
@@ -61,6 +67,17 @@ class JoinCommunityView(LoginRequiredMixin, View):
         # se nenhum método retornar falha, o usuário
         # entra/solicita entrada na comunidade.
         return self.join_community();
+
+    def invitation_code_wrong(self):
+        # se for pública, ou o usuário não enviou
+        # um código, não precisa verificar nada.
+        if (self.community.access!=Community.Access.PRIVATE) or (
+            not self.invitation_code
+        ):
+            return;
+
+        return HttpResponseForbidden("Invitation code incorrect or expired") if (
+            not self.invitation or self.invitation.is_expired) else None;
 
     def community_not_available(self):
         return (self.community.state!=Community.State.ACTIVE and
@@ -97,20 +114,31 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
     def join_community(self):
         community_is_private = self.community.access == Community.Access.PRIVATE;
+        entrance_allowed = not(community_is_private) or ( # a comunidade é pública OU
+            community_is_private and self.invitation # é privada e o usuário enviou um código (validado antes)
+        );
 
         MembershipService.enter_community(
             self.user,
             self.community,
             role = (
-                Membership.Role.NONE if community_is_private else
-                Membership.Role.MEMBER
+                # caso o usuário enviou o código correto (validado antes)
+                # ele pode entrar direto.
+                Membership.Role.MEMBER if entrance_allowed else
+                Membership.Role.NONE
             ),
             status = (
-                Membership.Status.PENDING if community_is_private else 
-                Membership.Status.ACTIVE
+                Membership.Status.ACTIVE if entrance_allowed else 
+                Membership.Status.PENDING
             ),
             joined_at=timezone.now() if not community_is_private else None
         );
+
+        if self.invitation_code:
+            MembershipService.delete_invitation(
+                self.community,
+                self.invitation_code
+            );
 
         return self.redirect_to_community();
 
@@ -669,3 +697,25 @@ def forum_page(request, community_id):
         "messages": [],
     }
     return render(request, "communities/forum.html", {"forum": forum})
+
+def generate_invitation(request, community_id):
+    community = get_object_or_404(Community, id=community_id);
+    user = request.user;
+
+    is_eligible = MembershipService.user_can_manage(user, community);
+
+    if not is_eligible:
+        return HttpResponseForbidden("Access Restricted");
+
+    if request.method=="POST":
+        return HttpResponse("Only GET method is allowed.");
+
+    new_invitation = MembershipService.generate_invitation(
+        community
+    );
+
+    return JsonResponse(
+        data={
+            'invitation_code':new_invitation.invitation_code
+        }
+    );

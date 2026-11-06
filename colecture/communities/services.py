@@ -1,6 +1,10 @@
+from datetime import timedelta;
+
+from django.utils import timezone;
+from django.utils.crypto import get_random_string;
 from django.utils import timezone;
 
-from .models import Membership;
+from .models import Membership, Invitation, INVITATION_EXPIRATION, INVITATION_CODE_LENGTH;
 from forums.models import Forum;
 
 class MembershipService:
@@ -53,6 +57,27 @@ class MembershipService:
         membership.save();
 
         return membership;
+
+    @staticmethod
+    def delete_invitation(community, invitation_code):
+        invitation = Invitation.objects.filter(
+            community=community,
+            invitation_code=invitation_code
+        ).first();
+
+        if invitation:
+            invitation.delete();
+    
+    @staticmethod
+    def generate_invitation(community):
+        invitation = Invitation();
+
+        invitation.invitation_code = get_random_string(length=INVITATION_CODE_LENGTH);
+        invitation.community = community;
+        invitation.expires_at = timezone.now() + timedelta(minutes=INVITATION_EXPIRATION);
+        invitation.save();
+
+        return invitation;
 
 class CommunityService:
     @staticmethod
