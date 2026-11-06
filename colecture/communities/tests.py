@@ -2,7 +2,7 @@
 from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from .models import Community, Membership
+from .models import Community, Membership, Invitation;
 from .services import CommunityService
 from datetime import datetime, timedelta;
 from django.utils import timezone
@@ -17,6 +17,74 @@ from accounts.services import AccountService;
 class CT03(TestCase):
     def setUp(self):
         self.client = Client();
+
+    def test_join_via_code(self):
+        creator_user = AccountService.create_account(
+            get_user_model().objects.create(username='Creator')
+        );
+        participant_user = AccountService.create_account(
+            get_user_model().objects.create(username='Participant')
+        );
+        community = CommunityService.create_community(
+            Community.objects.create(
+                name='NewCommunity',
+                description='Description',
+                creator=creator_user,
+                access=Community.Access.PRIVATE
+            ),
+            creator_user
+        );
+
+        # creator creates invitation
+        self.client.force_login(creator_user);
+        response0 = self.client.get(
+            reverse(
+                "communities:gen_invitation",
+                kwargs={'community_id':community.id}
+            )
+        );
+        invitation = Invitation.objects.filter(
+            community = community,
+        ).first();
+
+        self.assertEqual(response0.status_code, 200);
+        self.assertIsNotNone(invitation);
+        invitation_code = invitation.invitation_code;
+
+        self.client.force_login(participant_user);
+        response1 = self.client.post(
+            reverse(
+                'communities:join_community_invitation',
+                kwargs={
+                    'community_id':community.id,
+                    'invitation_code':'incorrect_code'
+                }
+            )
+        );
+        self.assertEqual(response1.status_code, 403);
+        self.assertFalse(invitation.is_used);
+
+        self.client.force_login(participant_user);
+        response2 = self.client.post(
+            reverse(
+                'communities:join_community_invitation',
+                kwargs={
+                    'community_id':community.id,
+                    'invitation_code':invitation_code
+                }
+            )
+        );
+        self.assertEqual(response2.status_code, 302);
+        self.assertTrue(MembershipService.user_in_community(
+            participant_user,
+            community
+        ));
+        self.assertFalse(
+            Invitation.objects.filter(
+                invitation_code=invitation_code
+            ).exists()
+        );
+
 
     def test_edit_community_VALID(self):
         # usuários
