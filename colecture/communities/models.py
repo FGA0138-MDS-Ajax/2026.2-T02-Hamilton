@@ -1,9 +1,14 @@
+from datetime import timedelta
+
 from django.conf import settings;
 from django.core.validators import URLValidator;
 from django.db import models;
 from django.utils import timezone;
+from django.utils.crypto import get_random_string;
 
 # CONSTANTES
+INVITATION_EXPIRATION = 15; # em minutos
+INVITATION_CODE_LENGTH = 8;
 COMMUNITY_NAME_LENGTH = 100;
 COMMUNITY_DESC_LENGTH = 5000;
 COMMUNITY_ICON_LENGTH = 500;
@@ -133,3 +138,33 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.community} ({self.role}, {self.status})";
+
+class Invitation(models.Model):
+
+    community = models.ForeignKey(
+        Community,
+        on_delete=models.CASCADE,
+        related_name="community_invitations"
+    );
+
+    invitation_code = models.CharField(
+        max_length=INVITATION_CODE_LENGTH,
+        unique=True,
+        null=False
+    );
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    );
+
+    expires_at = models.DateTimeField(
+        null=True
+    );
+
+    is_used = models.BooleanField(
+        default=False
+    );
+
+    @property
+    def is_expired(self):
+        return self.expires_at and timezone.now() > self.expires_at;
