@@ -185,6 +185,48 @@
   text-decoration: underline;
 }
 
+/* cabeçalho editar e menu */
+.forum-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.forum-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: transparent;
+}
+
+.forum-edit-btn:hover {
+  background: var(--bg-input);
+}
+
+.forum-edit-btn:focus-visible {
+  outline: 2px solid var(--purple-400);
+  outline-offset: 2px;
+}
+
+/* Erros do envio de mensagem */
+.form-errors {
+  padding: 12px 20px 0;
+  background: var(--bg-base);
+}
+
+.form-error {
+  font-size: 0.9rem;
+  color: var(--danger);
+}
+
 /* ---------- Menu 3 pontinhos ---------- */
 .forum-menu {
   position: relative;

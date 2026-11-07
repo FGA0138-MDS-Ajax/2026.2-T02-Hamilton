@@ -78,15 +78,13 @@ class ViewForum(LoginRequiredMixin, View):
             'can_moderate':ForumService.user_can_edit(self.user, self.forum),
         };
 
-        template = "forums/forum_view.html";
-        if self.forum.community_id:
-            # fórum geral da comunidade: página estilizada (forum.js)
-            template = "communities/forum.html";
-            context['dados_forum'] = ForumService.build_page_data(
-                self.forum, self.user, forum_messages
-            );
+        # todos os fóruns (geral da comunidade e de meta) usam a mesma
+        # página estilizada, que é montada pelo forum.js.
+        context['dados_forum'] = ForumService.build_page_data(
+            self.forum, self.user, forum_messages
+        );
 
-        return render(request, template, context, status=status);
+        return render(request, "communities/forum.html", context, status=status);
 
 @login_required
 def delete_message(request, message_id):
