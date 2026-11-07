@@ -28,19 +28,14 @@
 
       <div class="forum-header-actions">
         {% if can_moderate %}
-          {% if parent_goal %}
-            {# fórum de meta: três pontinhos abrem o pop-up de edição (título e status) #}
-            <button type="button" class="forum-menu-button" id="forumEditDots" aria-haspopup="dialog"
-                    aria-label="Editar fórum" title="Editar fórum">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <circle cx="12" cy="5" r="2"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-                <circle cx="12" cy="19" r="2"></circle>
-              </svg>
-            </button>
-          {% else %}
-            <a class="forum-edit-btn" id="forumEdit" href="{% url 'forums:edit_forum' forum.id %}">Editar</a>
-          {% endif %}
+          <button type="button" class="forum-menu-button" id="forumEditDots" aria-haspopup="dialog"
+                  aria-label="Editar fórum" title="Editar fórum">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="12" cy="19" r="2"></circle>
+            </svg>
+          </button>
         {% endif %}
 
       <div class="forum-menu hidden" id="forumMenu">
@@ -168,7 +163,7 @@
   </aside>
   </div>
 
-  {% if can_moderate and parent_goal %}
+  {% if can_moderate %}
     <dialog class="forum-dialog" id="forumEditDialog" aria-labelledby="forumEditTitle">
       <form method="post" action="{% url 'forums:edit_forum' forum.id %}">
         {% csrf_token %}
