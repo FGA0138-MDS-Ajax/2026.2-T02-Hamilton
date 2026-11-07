@@ -625,6 +625,68 @@ class ForumAccess(TestCase):
         self.goal_forum.refresh_from_db();
         self.assertEqual(self.goal_forum.name, 'Novo nome');
 
+    def test_edit_forum_popup_goes_back_to_next_page(self):
+        # os pop-ups (comunidade e fórum) enviam "next"
+        self.client.force_login(self.moderator);
+        url = reverse("forums:edit_forum", kwargs={'forum_id':self.goal_forum.id});
+        community_page = reverse(
+            "communities:view_community", kwargs={'community_id':self.community.id}
+        );
+
+        response = self.client.post(url, data={
+            'name':'Pelo popup', 'state':Forum.State.LOCKED, 'next':community_page
+        });
+
+        self.assertRedirects(response, community_page, fetch_redirect_response=False);
+        self.goal_forum.refresh_from_db();
+        self.assertEqual(self.goal_forum.name, 'Pelo popup');
+        self.assertEqual(self.goal_forum.state, Forum.State.LOCKED);
+
+    def test_edit_forum_ignores_external_next(self):
+        self.client.force_login(self.moderator);
+        url = reverse("forums:edit_forum", kwargs={'forum_id':self.goal_forum.id});
+
+        response = self.client.post(url, data={
+            'name':'Nome', 'state':Forum.State.ACTIVE, 'next':'https://evil.example/'
+        });
+
+        self.assertRedirects(response, url, fetch_redirect_response=False);
+
+    def test_edit_forum_popup_with_invalid_data_goes_back_without_saving(self):
+        self.client.force_login(self.moderator);
+        url = reverse("forums:edit_forum", kwargs={'forum_id':self.goal_forum.id});
+        community_page = reverse(
+            "communities:view_community", kwargs={'community_id':self.community.id}
+        );
+        old_name = self.goal_forum.name;
+
+        response = self.client.post(url, data={
+            'name':'', 'state':Forum.State.ACTIVE, 'next':community_page
+        });
+
+        self.assertRedirects(response, community_page, fetch_redirect_response=False);
+        self.goal_forum.refresh_from_db();
+        self.assertEqual(self.goal_forum.name, old_name);
+
+    def test_edit_dots_button_is_in_goal_forum_only_for_moderation(self):
+        # fórum de meta: três pontinhos + pop-up; fórum geral mantém o link
+        for user in (self.com_owner, self.moderator):
+            self.client.force_login(user);
+            response = self.client.get(self.forum_url(self.goal_forum));
+            self.assertContains(response, 'id="forumEditDots"');
+            self.assertContains(response, 'id="forumEditDialog"');
+            self.assertContains(response, 'name="next"');
+
+            response = self.client.get(self.forum_url(self.community_forum));
+            self.assertNotContains(response, 'id="forumEditDots"');
+            self.assertContains(response, 'id="forumEdit"');
+
+        # participante comum da meta não edita
+        self.client.force_login(self.goal_participant);
+        response = self.client.get(self.forum_url(self.goal_forum));
+        self.assertNotContains(response, 'id="forumEditDots"');
+        self.assertNotContains(response, 'id="forumEditDialog"');
+
     def test_member_cannot_edit_forums(self):
         self.client.force_login(self.member);
         for forum in (self.community_forum, self.goal_forum):

@@ -4,6 +4,7 @@ from django.views import View;
 from django.contrib import messages;
 from django.contrib.auth.decorators import login_required;
 from django.contrib.auth.mixins import LoginRequiredMixin;
+from django.utils.http import url_has_allowed_host_and_scheme;
 from .models import Forum, Message;
 from .forms import MessageForm, ForumForm;
 from .services import ForumService;
@@ -125,12 +126,29 @@ def edit_forum(request, forum_id):
     if not is_eligible:
         return HttpResponseForbidden("You cannot edit this forum.");
 
+    # "next": os pop-ups de edição (página da comunidade e do fórum) mandam de
+    # volta para ela. Só aceitamos endereços do próprio site (evita open redirect).
+    next_url = request.POST.get("next", "");
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = "";
+
     if request.method == "POST":
         form = ForumForm(data=request.POST, instance=forum);
 
         if form.is_valid():
             form.save();
+            if next_url:
+                # a mensagem só é criada quando há para onde mostrá-la: a
+                # página de edição avulsa não exibe mensagens, e uma mensagem
+                # pendente apareceria depois no fórum.
+                messages.success(request, "Fórum atualizado!");
+                return redirect(next_url);
             return redirect("forums:edit_forum", forum_id=forum_id);
+
+        if next_url:
+            # o pop-up não tem como mostrar os erros do formulário
+            messages.error(request, "Não foi possível salvar o fórum. Verifique o título e o status.");
+            return redirect(next_url);
     else:
         form = ForumForm(instance=forum);
 
