@@ -123,6 +123,9 @@ class ForumMessages(TestCase):
             cls.participant,
             cls.community,
         );
+        # entrar na comunidade já inscreve na meta; este usuário
+        # representa quem é membro mas saiu da meta por conta própria
+        GoalService.leave(cls.participant, cls.community_goal);
         # goal participant participa da comunidade e
         # da meta
         MembershipService.enter_community(
@@ -443,6 +446,9 @@ class ForumAccess(TestCase):
             cls.moderator, cls.community, role=Membership.Role.MODERATOR
         );
         MembershipService.enter_community(cls.member, cls.community);
+        # entrar na comunidade já inscreve na meta; "member" representa
+        # quem é da comunidade mas saiu da meta por conta própria
+        GoalService.leave(cls.member, cls.community_goal);
         MembershipService.enter_community(cls.goal_participant, cls.community);
         GoalService.join(cls.goal_participant, cls.community_goal);
 

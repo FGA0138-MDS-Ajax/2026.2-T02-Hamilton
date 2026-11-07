@@ -1357,11 +1357,11 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertTrue(cards["closed"][0]["closed"])
 
     def test_card_has_completion_count_and_forum(self):
-        goal = self.make_goal("Com fórum")
-        self.GoalParticipation.objects.create(goal=goal, user=self.member)
+        # a meta criada já inscreve todos: o criador da comunidade e o membro
+        self.make_goal("Com fórum")
         self.client.force_login(self.member)
         card = self.client.get(self.url).context["goal_cards"]["active"][0]
-        self.assertEqual(card["completion"], {"done": 0, "total": 1})
+        self.assertEqual(card["completion"], {"done": 0, "total": 2})
         self.assertIsNotNone(card["forum"])
 
     def test_card_without_forum_shows_name_without_link(self):
