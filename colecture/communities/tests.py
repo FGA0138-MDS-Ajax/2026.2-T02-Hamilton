@@ -1364,24 +1364,31 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertEqual(card["completion"], {"done": 0, "total": 1})
         self.assertIsNotNone(card["forum"])
 
-    def test_card_links_to_goal_page_even_without_forum(self):
-        goal = self.make_goal("Com link")
+    def test_card_without_forum_shows_name_without_link(self):
+        goal = self.make_goal("Sem link")
         self.Forum.objects.filter(goal=goal).delete()
         self.client.force_login(self.member)
         response = self.client.get(self.url)
         self.assertIsNone(response.context["goal_cards"]["active"][0]["forum"])
-        link = reverse("goals:view_goal", kwargs={"goal_id": goal.id})
-        self.assertContains(response, f'href="{link}"')
+        self.assertContains(response, 'Sem link')
+        self.assertEqual(self.client.get(f"/goals/{goal.id}/").status_code, 404)
 
     def test_card_title_goes_straight_to_forum_even_without_participating(self):
         goal = self.make_goal("Com fórum")
         forum = self.Forum.objects.get(goal=goal)
-        self.client.force_login(self.member)  # não participa da meta
+        self.client.force_login(self.member)  
         forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
-        goal_link = reverse("goals:view_goal", kwargs={"goal_id": goal.id})
         response = self.client.get(self.url)
         self.assertContains(response, f'class="goal-card__link" href="{forum_link}"')
-        self.assertNotContains(response, f'class="goal-card__link" href="{goal_link}"')
+
+    def test_card_has_no_separate_forum_button(self):
+        goal = self.make_goal("Sem botão")
+        forum = self.Forum.objects.get(goal=goal)
+        forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
+        for user in (self.member, self.creator):
+            self.client.force_login(user)
+            response = self.client.get(self.url)
+            self.assertContains(response, f'href="{forum_link}"', count=1)
 
     def test_edit_forum_button_and_popup_are_for_moderators_only(self):
         goal = self.make_goal("Editável")
@@ -1417,7 +1424,6 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertIsNone(response.context["general_forum"])
 
     def test_general_forum_link_is_shown_to_members_only(self):
-        # o fórum geral já é criado por CommunityService.create_community
         forum = self.Forum.objects.get(community=self.community)
         link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
 

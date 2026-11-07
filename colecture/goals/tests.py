@@ -431,7 +431,7 @@ class CT_GoalConclude(GoalBase):
         response = self.client.post(self.url, {"next": "https://evil.example/"})
         self.assertEqual(
             response["Location"],
-            reverse("goals:view_goal", kwargs={"goal_id": self.goal.id}))
+            reverse("communities:view_community", kwargs={"community_id": self.goal.owner_community_id}))
 
 # Testes de validação dos dados do registro
 class ReadingSessionModelTests(TestCase):

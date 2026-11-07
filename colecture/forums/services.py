@@ -58,16 +58,17 @@ class ForumService:
         community = ForumService.get_forum_parent_community(forum);
         goal = forum.goal;
 
+        # fórum geral ou de meta: o "voltar" sempre leva à página da
+        # comunidade dona do fórum (a meta não tem página própria).
+        back_url = reverse("communities:view_community", args=[community.id]);
+        back_label = "Voltar para a comunidade";
+
         if goal:
             kind = "meta";
             description = goal.description;
-            back_url = reverse("goals:view_goal", args=[goal.id]);
-            back_label = "Voltar para a comunidade";
         else:
             kind = "geral";
             description = community.description;
-            back_url = reverse("communities:view_community", args=[community.id]);
-            back_label = "Voltar para a comunidade";
 
         return {
             "id": forum.id,
