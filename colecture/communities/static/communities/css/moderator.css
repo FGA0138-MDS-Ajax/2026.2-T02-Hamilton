@@ -223,17 +223,21 @@
     font-size: 1.1rem;
 }
 
+/* mesmo estilo do .btn da página da comunidade: roxo sólido, brilho só no hover */
 .mod-btn-primary {
-    background: var(--gradient-brand);
+    background: var(--purple-500);
+    color: #fff;
     font-weight: 600;
-    box-shadow: var(--glow);
+    transition: background .15s, box-shadow .15s;
 }
 
 .mod-btn-primary:hover {
-    filter: brightness(1.1);
+    background: var(--purple-600);
+    box-shadow: var(--glow);
 }
 
 .mod-btn-primary.is-disabled {
+    background: var(--purple-500);
     opacity: .5;
     cursor: not-allowed;
     box-shadow: none;
