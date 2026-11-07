@@ -168,6 +168,12 @@ class ReadingSession(models.Model):
 
         errors = {}
 
+        #impede leitura registrada com data no futuro
+        if self.date is not None and self.date > timezone.localdate():
+            errors["date"] = (
+                "A data da leitura não pode estar no futuro."
+            )
+
         #verifica se a pagina inicial é menor que a final
         if (
             self.page_start is not None
