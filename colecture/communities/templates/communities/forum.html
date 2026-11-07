@@ -28,7 +28,19 @@
 
       <div class="forum-header-actions">
         {% if can_moderate %}
-          <a class="forum-edit-btn" id="forumEdit" href="{% url 'forums:edit_forum' forum.id %}">Editar</a>
+          {% if parent_goal %}
+            {# fórum de meta: três pontinhos abrem o pop-up de edição (título e status) #}
+            <button type="button" class="forum-menu-button" id="forumEditDots" aria-haspopup="dialog"
+                    aria-label="Editar fórum" title="Editar fórum">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+              </svg>
+            </button>
+          {% else %}
+            <a class="forum-edit-btn" id="forumEdit" href="{% url 'forums:edit_forum' forum.id %}">Editar</a>
+          {% endif %}
         {% endif %}
 
       <div class="forum-menu hidden" id="forumMenu">
@@ -155,6 +167,35 @@
     </section>
   </aside>
   </div>
+
+  {% if can_moderate and parent_goal %}
+    <dialog class="forum-dialog" id="forumEditDialog" aria-labelledby="forumEditTitle">
+      <form method="post" action="{% url 'forums:edit_forum' forum.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}" />
+        <h2 id="forumEditTitle">Editar fórum</h2>
+
+        <div class="field">
+          <label for="forumEditName">Título</label>
+          <input type="text" id="forumEditName" name="name" value="{{ forum.name }}" maxlength="100" required />
+        </div>
+
+        <div class="field">
+          <label for="forumEditState">Status</label>
+          <select id="forumEditState" name="state">
+            <option value="ACTIVE"{% if forum.state == 'ACTIVE' %} selected{% endif %}>Ativo</option>
+            <option value="LOCKED"{% if forum.state == 'LOCKED' %} selected{% endif %}>Trancado</option>
+          </select>
+          <p class="field-hint">Em um fórum trancado ninguém consegue enviar nem apagar mensagens.</p>
+        </div>
+
+        <div class="confirm-actions">
+          <button type="button" class="confirm-cancel" id="forumEditCancel">Cancelar</button>
+          <button type="submit" class="confirm-save">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+  {% endif %}
 
   <!-- F15: janela de confirmacao ao excluir -->
   <div class="confirm-overlay" id="confirmOverlay">

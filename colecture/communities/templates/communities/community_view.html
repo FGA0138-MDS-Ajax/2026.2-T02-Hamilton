@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{% static 'communities/css/community_goals.css' %}" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'communities/css/fixiconeforum.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -237,6 +238,34 @@
             <div class="confirm-actions">
               <button type="button" class="btn-outline" data-close>Cancelar</button>
               <button type="submit" class="btn">Concluir meta</button>
+            </div>
+          </form>
+        </dialog>
+
+        <dialog class="confirm" id="edit-forum-dialog" aria-labelledby="edit-forum-title">
+          <form method="post" action="" id="editForumForm">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}" />
+            <h2 id="edit-forum-title">Editar fórum</h2>
+            <p class="muted">Fórum da meta <strong id="editForumGoal"></strong>.</p>
+
+            <div class="field">
+              <label for="editForumName">Título</label>
+              <input type="text" id="editForumName" name="name" maxlength="100" required />
+            </div>
+
+            <div class="field">
+              <label for="editForumState">Status</label>
+              <select id="editForumState" name="state">
+                <option value="ACTIVE">Ativo</option>
+                <option value="LOCKED">Trancado</option>
+              </select>
+              <p class="muted field-hint">Em um fórum trancado ninguém consegue enviar nem apagar mensagens.</p>
+            </div>
+
+            <div class="confirm-actions">
+              <button type="button" class="btn-outline" data-close>Cancelar</button>
+              <button type="submit" class="btn">Salvar</button>
             </div>
           </form>
         </dialog>

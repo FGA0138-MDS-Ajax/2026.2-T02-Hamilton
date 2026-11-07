@@ -446,5 +446,29 @@ if (dados.is_moderator) {
   forumMenu.classList.remove("hidden");
 }
 
+// Pop-up de edição do fórum da meta (título e status). Os três pontinhos só
+// existem no fórum de meta para moderação.
+var editDots = document.getElementById("forumEditDots");
+var editDialog = document.getElementById("forumEditDialog");
+
+if (editDots && editDialog) {
+  var editForm = editDialog.querySelector("form");
+  var editName = document.getElementById("forumEditName");
+
+  editDots.addEventListener("click", function () {
+    editDialog.showModal();
+    editName.select();
+  });
+
+  document.getElementById("forumEditCancel").addEventListener("click", function () {
+    editDialog.close();
+  });
+
+  // fechar (Cancelar ou Esc) descarta o que foi digitado
+  editDialog.addEventListener("close", function () {
+    editForm.reset();
+  });
+}
+
 renderHeader();
 renderAll();

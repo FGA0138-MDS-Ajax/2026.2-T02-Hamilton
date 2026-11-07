@@ -33,7 +33,8 @@ INSTALLED_APPS = [
     'books',
     'communities',
     'goals',
-    'forums'
+    'forums',
+    'notifications'
 ]
 
 MIDDLEWARE = [

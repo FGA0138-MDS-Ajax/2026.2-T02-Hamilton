@@ -225,13 +225,11 @@
 
 .mod-btn-primary {
     background: var(--gradient-brand);
-    border-color: transparent;
     font-weight: 600;
     box-shadow: var(--glow);
 }
 
 .mod-btn-primary:hover {
-    border-color: transparent;
     filter: brightness(1.1);
 }
 

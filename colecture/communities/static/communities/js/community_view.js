@@ -111,6 +111,25 @@
       });
     });
   }
+
+  // Pop-up de edição do fórum da meta (título e status)
+  var editDialog = document.getElementById('edit-forum-dialog');
+  if (editDialog) {
+    var editForm = document.getElementById('editForumForm');
+    var editName = document.getElementById('editForumName');
+    var editState = document.getElementById('editForumState');
+    var editGoal = document.getElementById('editForumGoal');
+    Array.prototype.forEach.call(goals.querySelectorAll('[data-edit-forum]'), function (btn) {
+      btn.addEventListener('click', function () {
+        editForm.action = btn.getAttribute('data-url');
+        editName.value = btn.getAttribute('data-name');
+        editState.value = btn.getAttribute('data-state');
+        editGoal.textContent = btn.getAttribute('data-goal');
+        editDialog.showModal();
+        editName.select();
+      });
+    });
+  }
 })();
 
 (function () {
