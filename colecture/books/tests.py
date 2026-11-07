@@ -1,8 +1,11 @@
+import json;
+
 from django.test import TestCase, Client;
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 
-from .models import Book, BookReview, SYNOPSIS_MAX_LENGTH;
+from accounts.services import AccountService;
+from .models import Book, BookReview, BookStatus, SYNOPSIS_MAX_LENGTH;
 from .forms import BookForm, GENRE_CHOICES;
 from .views import SEARCH_LIMIT;
 
@@ -387,5 +390,63 @@ Hey, hey, hey. Who wants coffee? Does anybody want coffee? Who wants coffee?
             302
         );
 
+class CT02_BookStatus(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.client = Client();
+        cls.author_user = AccountService.create_account(
+            get_user_model().objects.create(
+                username='Author'
+            )
+        );
+        cls.book = Book.objects.create(
+            created_by=cls.author_user,
+            author=cls.author_user,
+            isbn='978-3-16-148410-0',
+            title='NewBook',
+        );
 
+    def test_set_statuses(self):
+        self.client.force_login(self.author_user);
+        status_choices = [
+            BookStatus.Status.WANT_TO_READ,
+            BookStatus.Status.READING,
+            BookStatus.Status.READ,
+        ];
 
+        for choice in status_choices:
+            response = self.client.post(
+                reverse('books:manage_bookshelf'),
+                data=json.dumps({
+                    'book_id':self.book.id,
+                    'status':choice
+                }),
+                content_type="application/json"
+            );
+            self.assertEqual(response.status_code, 200);
+            self.assertTrue(
+                BookStatus.objects.filter(
+                    user=self.author_user,
+                    book=self.book,
+                    status=choice
+                ).exists()
+            );
+
+        # valida se o BookStatus é apagado
+        # caso nenhum status for enviado
+        response1 = self.client.post(
+            reverse('books:manage_bookshelf'),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':None
+            }),
+            content_type="application/json"
+        );
+        self.assertEqual(response1.status_code, 200);
+        self.assertFalse(
+            BookStatus.objects.filter(
+                user=self.author_user,
+                book=self.book,
+                status=choice
+            ).exists()
+        );
