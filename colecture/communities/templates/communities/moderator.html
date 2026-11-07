@@ -99,21 +99,23 @@
             {# ninguém age sobre si mesmo #}
             {% if m.user_id != request.user.id %}
               <div class="mod-actions">
-                <form method="post" action="{% url 'communities:edit_member_role' community.id m.id %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.path }}">
-                  {% if m.role == 'MODERATOR' %}
-                    <input type="hidden" name="role" value="MEMBER">
-                    <button type="submit" class="mod-btn mod-btn-ghost">
-                      <i class="bx bx-down-arrow-alt" aria-hidden="true"></i> Rebaixar
-                    </button>
-                  {% else %}
-                    <input type="hidden" name="role" value="MODERATOR">
-                    <button type="submit" class="mod-btn mod-btn-ghost">
-                      <i class="bx bx-up-arrow-alt" aria-hidden="true"></i> Promover
-                    </button>
-                  {% endif %}
-                </form>
+                {% if m.role == 'MODERATOR' %}
+                  <button type="button" class="mod-btn mod-btn-ghost"
+                          data-role
+                          data-role-value="MEMBER"
+                          data-name="{{ m.user.username }}"
+                          data-action="{% url 'communities:edit_member_role' community.id m.id %}">
+                    <i class="bx bx-down-arrow-alt" aria-hidden="true"></i> Rebaixar
+                  </button>
+                {% else %}
+                  <button type="button" class="mod-btn mod-btn-ghost"
+                          data-role
+                          data-role-value="MODERATOR"
+                          data-name="{{ m.user.username }}"
+                          data-action="{% url 'communities:edit_member_role' community.id m.id %}">
+                    <i class="bx bx-up-arrow-alt" aria-hidden="true"></i> Promover
+                  </button>
+                {% endif %}
 
                 <button type="button" class="mod-btn mod-btn-danger"
                         data-ban
@@ -139,6 +141,21 @@
         <div class="mod-dialog-actions">
           <button type="button" class="mod-btn mod-btn-ghost" data-close>Cancelar</button>
           <button type="submit" class="mod-btn mod-btn-danger">Banir</button>
+        </div>
+      </form>
+    </dialog>
+
+    {# confirmação de promover / rebaixar #}
+    <dialog class="mod-dialog" id="role-dialog" aria-labelledby="role-title">
+      <form method="post" id="role-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="hidden" name="role" id="role-value">
+        <h2 id="role-title"></h2>
+        <p class="mod-sub"><strong id="role-name" class="mod-name"></strong> <span id="role-text"></span></p>
+        <div class="mod-dialog-actions">
+          <button type="button" class="mod-btn mod-btn-ghost" data-close>Cancelar</button>
+          <button type="submit" class="mod-btn mod-btn-primary" id="role-submit"></button>
         </div>
       </form>
     </dialog>

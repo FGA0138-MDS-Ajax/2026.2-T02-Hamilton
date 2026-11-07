@@ -14,6 +14,17 @@ COMMUNITY_DESC_LENGTH = 5000;
 COMMUNITY_ICON_LENGTH = 500;
 # dias que uma comunidade arquivada fica no banco antes de ser excluída
 ARCHIVE_RETENTION_DAYS = 60;
+COMMUNITY_CODE_LENGTH = 8;
+# sem 0/O e 1/I para o código não ser confundido ao digitar
+COMMUNITY_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+
+def generate_community_code():
+    """Sorteia um código que ainda não é usado por nenhuma comunidade."""
+    while True:
+        code = get_random_string(COMMUNITY_CODE_LENGTH, COMMUNITY_CODE_CHARS);
+        if not Community.objects.filter(code=code).exists():
+            return code;
 
 # Create your models here.
 
@@ -72,8 +83,21 @@ class Community(models.Model):
     )
     # Quando foi arquivada (apoia a regra dos 60 dias). Preenchido pelo save().
     archived_at = models.DateTimeField(null=True, blank=True, editable=False)
+    # Código fixo da comunidade (não expira). Quem tem o código pode pedir
+    # entrada numa comunidade privada; o moderador ainda precisa aceitar.
+    # Preenchido automaticamente pelo save().
+    code = models.CharField(
+        max_length=COMMUNITY_CODE_LENGTH,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+    )
 
     def save(self, *args, **kwargs):
+        # toda comunidade ganha um código fixo na primeira vez que é salva
+        if not self.code:
+            self.code = generate_community_code()
         # mantém archived_at coerente com o estado, qualquer que seja o
         # caminho usado para arquivar (view de arquivar ou formulário de edição)
         if self.state == self.State.ARCHIVED and self.archived_at is None:

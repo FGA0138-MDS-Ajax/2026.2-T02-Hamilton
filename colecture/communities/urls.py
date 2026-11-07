@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.home_community, name='home_community'),
     path('create/', views.create_community, name='create_community'),
     path('search/', views.search_communities, name='search'),
+    path('join-by-code/', views.JoinByCodeView.as_view(), name='join_by_code'),
     path('<int:community_id>', views.view_community, name='view_community'),
     path('<int:community_id>/generate_invitation_code', views.generate_invitation, name='gen_invitation'),
     path('<int:community_id>/forum/', views.forum_page, name='forum'),
