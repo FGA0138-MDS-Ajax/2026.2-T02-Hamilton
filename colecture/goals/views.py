@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -116,7 +117,12 @@ def register_reading_session(request):
         form = ReadingSessionForm(request.POST, user=request.user)
 
         if form.is_valid():
-            reading_session = form.save()
+            # sessão e ofensiva são salvas juntas: ou as duas, ou nenhuma
+            with transaction.atomic():
+                reading_session = form.save()
+                profile, _ = Profile.objects.get_or_create(user=request.user)
+                if profile.register_reading_day(reading_session.date):
+                    profile.save(update_fields=["streak", "last_read_date"])
             return redirect("goals:register_reading_session")
 
     else:

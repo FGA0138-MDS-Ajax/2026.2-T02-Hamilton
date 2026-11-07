@@ -5,5 +5,6 @@ class GoalsConfig(AppConfig):
     name = 'goals'
 
     def ready(self):
-        # registra os signals (desativar GoalParticipation ao sair da comunidade)
+        # registra os signals (sincronizar GoalParticipation com a Membership:
+        # entrar nas metas ao entrar na comunidade, sair delas ao sair)
         from . import signals  # noqa: F401
