@@ -140,3 +140,36 @@ class BookReview(models.Model):
     # Define como a avaliação será representada em texto
     def __str__(self):
         return f"{self.user} - {self.book}: {self.rating}"
+
+class BookStatus(models.Model):
+    class Status(models.TextChoices):
+        WANT_TO_READ = "WANT_TO_READ", "Quero ler";
+        READING = "READING", "Lendo";
+        READ = "READ", "Lido";
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="book_statuses",
+        null=False
+    );
+
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="book_statuses",
+        null=False
+    );
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.WANT_TO_READ
+    );
+
+    reading_progress = models.DecimalField(
+        default=0,
+        max_digits=4,
+        decimal_places=3
+    );
+
