@@ -14,6 +14,7 @@ urlpatterns = [
     path('<int:community_id>/forum/', views.forum_page, name='forum'),
     path('<int:community_id>/delete/',views.delete_community, name='delete_community'),
     path('<int:community_id>/archive/', views.archive_community, name='archive_community'),
+    path('<int:community_id>/unarchive/', views.unarchive_community, name='unarchive_community'),
     path('<int:community_id>/join', views.JoinCommunityView.as_view(), name='join_community'),
     path('<int:community_id>/join/<str:invitation_code>', views.JoinCommunityView.as_view(), name='join_community_invitation'),
     path('<int:community_id>/leave', views.LeaveCommunityView.as_view(), name='leave_community'),

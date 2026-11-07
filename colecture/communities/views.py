@@ -659,6 +659,27 @@ def archive_community(request, community_id):
     return redirect("communities:home_community")
 
 
+@login_required
+def unarchive_community(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    if not _can_manage(request.user, community):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    if community.state != Community.State.ARCHIVED:
+        return HttpResponseForbidden()
+
+    # o save() do model limpa archived_at ao sair do estado arquivado
+    community.state = Community.State.ACTIVE
+    community.save()
+
+    messages.success(request, f'Comunidade "{community.name}" desarquivada.')
+    return redirect("communities:home_community")
+
+
 SEARCH_LIMIT = 50
 
 @require_GET
@@ -707,10 +728,16 @@ def home_community(request):
         .values_list("community_id", "role")
     )
 
+    # comunidades em que o usuário modera (o criador também é moderador)
+    moderated = Q(creator=user) | Q(
+        id__in=[cid for cid, role in roles.items() if role == Membership.Role.MODERATOR]
+    )
+
+    # arquivadas só aparecem para quem modera; membros comuns não as veem
     communities = (
         Community.objects
         .filter(Q(creator=user) | Q(id__in=roles.keys()))
-        .exclude(state=Community.State.ARCHIVED)
+        .filter(~Q(state=Community.State.ARCHIVED) | moderated)
         .order_by("name")
     )
 
@@ -739,9 +766,16 @@ def home_community(request):
             "papel": papel,
             # o criador também é moderador
             "is_moderator": papel in ("Criador", "Moderador"),
+            "arquivada": c.state == Community.State.ARCHIVED,
         })
 
-    return render(request, "communities/home_community.html", {"comunidades": comunidades})
+    # arquivadas vão para o fim da lista (sort é estável: mantém a ordem por nome)
+    comunidades.sort(key=lambda c: c["arquivada"])
+
+    return render(request, "communities/home_community.html", {
+        "comunidades": comunidades,
+        "ativas_count": sum(1 for c in comunidades if not c["arquivada"]),
+    })
 
 @login_required
 def forum_page(request, community_id):
