@@ -65,14 +65,12 @@
 
     <div class="goal-card__actions">
       {# o título da meta já abre o fórum, então não há botão "Fórum". #}
-      {# só moderação edita; abre o pop-up de edição do fórum (título e status) #}
-      {% if item.forum and permissions.can_edit %}
-        <button type="button" class="btn-outline btn--sm" data-edit-forum
-          data-url="{% url 'forums:edit_forum' item.forum.id %}"
-          data-name="{{ item.forum.name }}" data-state="{{ item.forum.state }}"
-          data-goal="{{ goal.name }}" title="Editar fórum" aria-label="Editar fórum da meta {{ goal.name }}">
+      {# só moderação edita; abre a página de edição da meta (nome, alvo, prazo...) #}
+      {% if permissions.can_edit %}
+        <a class="btn-outline btn--sm" href="{% url 'goals:edit_goal' goal.id %}"
+          title="Editar meta" aria-label="Editar meta {{ goal.name }}">
           <i class="bx bx-edit-alt" aria-hidden="true"></i> Editar
-        </button>
+        </a>
       {% endif %}
       {% if permissions.can_edit and not item.closed %}
         <button type="button" class="btn-outline btn--sm" data-conclude

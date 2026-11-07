@@ -1390,22 +1390,19 @@ class CT_CommunityGoalsPage(TestCase):
             response = self.client.get(self.url)
             self.assertContains(response, f'href="{forum_link}"', count=1)
 
-    def test_edit_forum_button_and_popup_are_for_moderators_only(self):
+    def test_edit_goal_link_is_for_moderators_only(self):
         goal = self.make_goal("Editável")
-        forum = self.Forum.objects.get(goal=goal)
-        edit_url = reverse("forums:edit_forum", kwargs={"forum_id": forum.id})
+        edit_url = reverse("goals:edit_goal", kwargs={"goal_id": goal.id})
 
         self.client.force_login(self.creator)
         response = self.client.get(self.url)
-        self.assertContains(response, f'data-url="{edit_url}"')
-        self.assertContains(response, "data-edit-forum")
-        self.assertContains(response, 'id="edit-forum-dialog"')
+        self.assertContains(response, f'href="{edit_url}"')
+        self.assertNotContains(response, "data-edit-forum")
 
         self.client.force_login(self.member)
         response = self.client.get(self.url)
         self.assertNotContains(response, edit_url)
         self.assertNotContains(response, "data-edit-forum")
-        self.assertNotContains(response, 'id="edit-forum-dialog"')
 
     def test_empty_state_shows_create_button_only_to_moderator(self):
         self.client.force_login(self.member)
