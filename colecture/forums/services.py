@@ -62,7 +62,7 @@ class ForumService:
             kind = "meta";
             description = goal.description;
             back_url = reverse("goals:view_goal", args=[goal.id]);
-            back_label = "Voltar para a meta";
+            back_label = "Voltar para a comunidade";
         else:
             kind = "geral";
             description = community.description;
