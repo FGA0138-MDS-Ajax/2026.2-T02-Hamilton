@@ -827,3 +827,166 @@ class ReadingSessionViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ReadingSession.objects.count(), 0)
+
+
+
+# Testes dos métodos de ofensiva do Profile (sem requisição HTTP)
+class ProfileStreakModelTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="leitor", password="senha123")
+        self.profile = Profile.objects.create(user=self.user)
+        self.today = date(2026, 11, 7)
+
+    def test_primeira_leitura_inicia_ofensiva_em_1(self):
+        changed = self.profile.register_reading_day(self.today, today=self.today)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.profile.streak, 1)
+        self.assertEqual(self.profile.last_read_date, self.today)
+
+    def test_dias_consecutivos_incrementam_ofensiva(self):
+        for offset in (2, 1, 0):
+            self.profile.register_reading_day(
+                self.today - timedelta(days=offset), today=self.today)
+
+        self.assertEqual(self.profile.streak, 3)
+
+    def test_mesmo_dia_nao_incrementa_duas_vezes(self):
+        self.profile.register_reading_day(self.today, today=self.today)
+        changed = self.profile.register_reading_day(self.today, today=self.today)
+
+        self.assertFalse(changed)
+        self.assertEqual(self.profile.streak, 1)
+
+    def test_leitura_retroativa_nao_altera_ofensiva(self):
+        self.profile.streak = 3
+        self.profile.last_read_date = self.today
+
+        changed = self.profile.register_reading_day(
+            self.today - timedelta(days=1), today=self.today)
+
+        self.assertFalse(changed)
+        self.assertEqual(self.profile.streak, 3)
+        self.assertEqual(self.profile.last_read_date, self.today)
+
+    def test_faltar_um_dia_reseta_ofensiva_para_zero(self):
+        self.profile.streak = 5
+        self.profile.last_read_date = self.today - timedelta(days=2)
+
+        reset = self.profile.reset_streak_if_broken(today=self.today)
+
+        self.assertTrue(reset)
+        self.assertEqual(self.profile.streak, 0)
+
+    def test_ofensiva_de_ontem_continua_viva(self):
+        self.profile.streak = 5
+        self.profile.last_read_date = self.today - timedelta(days=1)
+
+        self.assertFalse(self.profile.reset_streak_if_broken(today=self.today))
+        self.assertEqual(self.profile.streak, 5)
+
+    def test_ler_depois_de_faltar_recomeca_em_1(self):
+        self.profile.streak = 5
+        self.profile.last_read_date = self.today - timedelta(days=3)
+
+        self.profile.register_reading_day(self.today, today=self.today)
+
+        self.assertEqual(self.profile.streak, 1)
+        self.assertEqual(self.profile.last_read_date, self.today)
+
+    def test_data_futura_levanta_erro_e_nao_altera(self):
+        with self.assertRaises(ValueError):
+            self.profile.register_reading_day(
+                self.today + timedelta(days=1), today=self.today)
+
+        self.assertEqual(self.profile.streak, 0)
+        self.assertIsNone(self.profile.last_read_date)
+
+    def test_ofensiva_negativa_e_invalida(self):
+        self.profile.streak = -1
+
+        with self.assertRaises(ValidationError):
+            self.profile.full_clean()
+
+
+# Testes de ofensiva integrados à view de registro de leitura
+class ReadingSessionStreakViewTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor", email="leitor@email.com", password="senha123")
+        self.book = Book.objects.create(
+            isbn="9780590353403", title="Livro de Teste",
+            author="Autor Teste", genre="Ficção", pages=100)
+        self.url = reverse("goals:register_reading_session")
+        self.client.force_login(self.user)
+        self.today = timezone.localdate()
+
+    def post_session(self, page_start, page_end, day=None):
+        return self.client.post(self.url, {
+            "book": self.book.id,
+            "page_start": page_start,
+            "page_end": page_end,
+            "minute_count": 30,
+            "date": (day or self.today).isoformat(),
+        })
+
+    def streak(self):
+        # o Profile é criado sob demanda (get_or_create na view): se nenhuma
+        # leitura foi salva, ele não existe e a ofensiva é 0
+        profile = Profile.objects.filter(user=self.user).first()
+        return profile.streak if profile else 0
+
+    def test_primeira_sessao_define_ofensiva_em_1(self):
+        response = self.post_session(1, 10)
+
+        self.assertEqual(response.status_code, 302)
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.streak, 1)
+        self.assertEqual(profile.last_read_date, self.today)
+
+    def test_ofensiva_incrementa_a_cada_dia(self):
+        self.post_session(1, 10, day=self.today - timedelta(days=1))
+        self.assertEqual(self.streak(), 1)
+
+        self.post_session(11, 20, day=self.today)
+        self.assertEqual(self.streak(), 2)
+
+    def test_varias_sessoes_no_mesmo_dia_contam_uma_vez(self):
+        self.post_session(1, 10)
+        self.post_session(11, 20)
+        self.post_session(21, 30)
+
+        self.assertEqual(ReadingSession.objects.count(), 3)
+        self.assertEqual(self.streak(), 1)
+
+    def test_faltar_um_dia_reseta_a_ofensiva(self):
+        profile = Profile.objects.create(
+            user=self.user, streak=5,
+            last_read_date=self.today - timedelta(days=3))
+
+        self.post_session(1, 10)
+
+        profile.refresh_from_db()
+        # zerou por causa da falta e recomeçou em 1 com a leitura de hoje
+        self.assertEqual(profile.streak, 1)
+        self.assertEqual(profile.last_read_date, self.today)
+
+    def test_data_futura_e_rejeitada_e_nao_altera_ofensiva(self):
+        response = self.post_session(1, 10, day=self.today + timedelta(days=1))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("date", response.context["form"].errors)
+        self.assertEqual(ReadingSession.objects.count(), 0)
+        self.assertEqual(self.streak(), 0)
+
+    def test_sessao_com_data_futura_falha_na_validacao_do_modelo(self):
+        session = ReadingSession(
+            user=self.user, book=self.book, page_start=1, page_end=10,
+            minute_count=30, date=self.today + timedelta(days=1))
+
+        with self.assertRaises(ValidationError) as ctx:
+            session.full_clean()
+
+        self.assertIn("date", ctx.exception.message_dict)
