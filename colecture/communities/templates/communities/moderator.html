@@ -164,5 +164,6 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'communities/js/moderator.js' %}"></script>
+  {# ?v= força o navegador a baixar a versão nova do script #}
+  <script src="{% static 'communities/js/moderator.js' %}?v=2"></script>
 {% endblock %}
