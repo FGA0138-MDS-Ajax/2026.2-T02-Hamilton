@@ -396,6 +396,179 @@ class CT04GoalParticipation(GoalBase):
                          GoalParticipation.State.ACTIVE)
 
 
+class CT04GoalAutoParticipation(GoalBase):
+    """Metas de comunidade inscrevem os membros automaticamente."""
+
+    def create_goal_via_view(self, user, **overrides):
+        self.client.force_login(user)
+        response = self.client.post(
+            self.url_create_community, self.payload(name="Automática", **overrides))
+        self.assertEqual(response.status_code, 302)
+        return Goal.objects.get(name="Automática")
+
+    def active_users(self, goal):
+        return set(GoalParticipation.objects.filter(
+            goal=goal, state=GoalParticipation.State.ACTIVE
+        ).values_list("user__username", flat=True))
+
+    def add_member(self, username, status=Membership.Status.ACTIVE,
+                   role=Membership.Role.MEMBER):
+        user = User.objects.create_user(username, password="x")
+        Profile.objects.create(user=user)
+        Membership.objects.create(
+            user=user, community=self.community, role=role, status=status)
+        return user
+
+    # ---------- criação da meta ----------
+    def test_new_goal_enrolls_every_active_member_and_the_creator_VALID(self):
+        goal = self.create_goal_via_view(self.moderator)
+        self.assertEqual(
+            self.active_users(goal), {"creator", "moderator", "member"})
+
+    def test_new_goal_enrolls_members_when_created_by_the_community_creator_VALID(self):
+        goal = self.create_goal_via_view(self.creator)
+        self.assertEqual(
+            self.active_users(goal), {"creator", "moderator", "member"})
+
+    def test_new_goal_skips_non_active_members_and_outsiders_INVALID(self):
+        self.add_member("pending", status=Membership.Status.PENDING,
+                        role=Membership.Role.NONE)
+        self.add_member("left", status=Membership.Status.LEFT)
+        self.add_member("banned", status=Membership.Status.BANNED)
+        goal = self.create_goal_via_view(self.moderator)
+        users = self.active_users(goal)
+        self.assertNotIn("pending", users)
+        self.assertNotIn("left", users)
+        self.assertNotIn("banned", users)
+        self.assertNotIn("outsider", users)
+
+    def test_new_goal_has_one_participation_per_member_VALID(self):
+        goal = self.create_goal_via_view(self.moderator)
+        # o moderador que criou a meta não é inscrito duas vezes
+        self.assertEqual(goal.participations.count(), 3)
+
+    def test_individual_goal_enrolls_only_its_owner_VALID(self):
+        self.client.force_login(self.member)
+        self.client.post(self.url_create_profile, self.payload())
+        goal = Goal.objects.get(owner_profile=self.member.profile)
+        self.assertEqual(self.active_users(goal), {"member"})
+
+    def test_join_all_members_ignores_goals_that_are_not_active_INVALID(self):
+        for status in (Goal.Status.PAUSED, Goal.Status.CONCLUDED):
+            with self.subTest(status=status):
+                goal = Goal.objects.create(
+                    name=f"Meta {status}", owner_community=self.community,
+                    goal_type=Goal.GoalType.PAGE_COUNT, target=10, status=status)
+                self.assertEqual(GoalService.join_all_members(goal), 0)
+                self.assertFalse(goal.participations.exists())
+
+    def test_join_all_members_keeps_who_left_the_goal_VALID(self):
+        goal = self.make_collective_goal()
+        GoalService.join_all_members(goal)
+        GoalService.leave(self.member, goal)
+        self.assertEqual(GoalService.join_all_members(goal), 0)
+        self.assertEqual(
+            GoalParticipation.objects.get(goal=goal, user=self.member).state,
+            GoalParticipation.State.INACTIVE)
+
+    def test_goal_of_archived_community_enrolls_nobody_INVALID(self):
+        self.community.state = Community.State.ARCHIVED
+        self.community.save()
+        goal = self.make_collective_goal()
+        self.assertEqual(GoalService.join_all_members(goal), 0)
+
+    # ---------- entrada na comunidade com meta ativa ----------
+    def test_new_member_joins_active_goals_automatically_VALID(self):
+        goal = self.make_collective_goal()
+        newcomer = self.add_member("newcomer")
+        self.assertIn("newcomer", self.active_users(goal))
+        self.assertTrue(GoalService.user_participates(newcomer, goal))
+
+    def test_joining_through_the_view_enrolls_in_the_goal_VALID(self):
+        goal = self.make_collective_goal()
+        self.client.force_login(self.outsider)
+        self.client.post(reverse(
+            "communities:join_community", kwargs={"community_id": self.community.id}))
+        self.assertIn("outsider", self.active_users(goal))
+
+    def test_new_member_joins_every_active_goal_of_the_community_VALID(self):
+        first = self.make_collective_goal()
+        second = Goal.objects.create(
+            name="Segunda", owner_community=self.community,
+            goal_type=Goal.GoalType.HOUR_COUNT, target=5)
+        self.add_member("newcomer")
+        self.assertIn("newcomer", self.active_users(first))
+        self.assertIn("newcomer", self.active_users(second))
+
+    def test_new_member_does_not_join_paused_or_concluded_goals_INVALID(self):
+        paused = self.make_collective_goal(status=Goal.Status.PAUSED)
+        concluded = self.make_collective_goal(status=Goal.Status.CONCLUDED)
+        newcomer = self.add_member("newcomer")
+        for goal in (paused, concluded):
+            self.assertFalse(GoalParticipation.objects.filter(
+                goal=goal, user=newcomer).exists())
+
+    def test_new_member_does_not_join_goals_of_other_communities_INVALID(self):
+        other = Community.objects.create(name="Other", creator=self.creator)
+        other_goal = Goal.objects.create(
+            name="Outra", owner_community=other,
+            goal_type=Goal.GoalType.PAGE_COUNT, target=10)
+        self.make_collective_goal()
+        newcomer = self.add_member("newcomer")
+        self.assertFalse(GoalParticipation.objects.filter(
+            goal=other_goal, user=newcomer).exists())
+
+    def test_pending_request_joins_the_goal_only_after_approval_VALID(self):
+        goal = self.make_collective_goal()
+        applicant = self.add_member(
+            "applicant", status=Membership.Status.PENDING, role=Membership.Role.NONE)
+        self.assertNotIn("applicant", self.active_users(goal))
+
+        membership = Membership.objects.get(user=applicant, community=self.community)
+        self.client.force_login(self.moderator)
+        self.client.post(
+            reverse("communities:manage_membership_request", kwargs={
+                "community_id": self.community.id, "membership_id": membership.id}),
+            {"decision": "accept"})
+        self.assertIn("applicant", self.active_users(goal))
+
+    def test_rejected_request_does_not_join_the_goal_INVALID(self):
+        goal = self.make_collective_goal()
+        applicant = self.add_member(
+            "applicant", status=Membership.Status.PENDING, role=Membership.Role.NONE)
+        membership = Membership.objects.get(user=applicant, community=self.community)
+        self.client.force_login(self.moderator)
+        self.client.post(
+            reverse("communities:manage_membership_request", kwargs={
+                "community_id": self.community.id, "membership_id": membership.id}),
+            {"decision": "reject"})
+        self.assertNotIn("applicant", self.active_users(goal))
+
+    def test_returning_to_the_community_reactivates_participation_VALID(self):
+        goal = self.make_collective_goal()
+        GoalService.join(self.member, goal)
+        membership = Membership.objects.get(user=self.member, community=self.community)
+        membership.status = Membership.Status.LEFT
+        membership.save()
+        self.assertNotIn("member", self.active_users(goal))
+
+        membership.status = Membership.Status.ACTIVE
+        membership.save()
+        self.assertIn("member", self.active_users(goal))
+        self.assertEqual(GoalParticipation.objects.filter(
+            goal=goal, user=self.member).count(), 1)
+
+    def test_changing_role_does_not_reenroll_who_left_the_goal_VALID(self):
+        goal = self.make_collective_goal()
+        GoalService.join(self.member, goal)
+        GoalService.leave(self.member, goal)
+
+        membership = Membership.objects.get(user=self.member, community=self.community)
+        membership.role = Membership.Role.MODERATOR
+        membership.save()
+        self.assertNotIn("member", self.active_users(goal))
+
+
 class CT_GoalConclude(GoalBase):
     """F11: marcar a meta como concluída."""
 
