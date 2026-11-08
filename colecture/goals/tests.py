@@ -8,13 +8,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
-from books.models import Book
+from books.models import Book, BookStatus
 from communities.models import Community, Membership
 from forums.models import Forum
 
 from .models import GOAL_DESC_MAX_LENGTH, Goal, GoalParticipation, ReadingSession
 from .forms import GoalForm, ReadingSessionForm
 from .services import GoalService
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -1047,3 +1048,162 @@ class ReadingSessionStreakViewTests(TestCase):
             session.full_clean()
 
         self.assertIn("date", ctx.exception.message_dict)
+
+# Testes de atualização do BookStatus e contribuição nas metas
+class ReadingSessionProgressAndGoalTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor_progresso",
+            password="senha123"
+        )
+
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            genre="Ficção",
+            pages=100
+        )
+
+        self.url = reverse("goals:register_reading_session")
+        self.client.force_login(self.user)
+
+    def post_session(self, current_page, minute_count=30):
+        return self.client.post(self.url, {
+            "book": self.book.id,
+            "current_page": current_page,
+            "minute_count": minute_count,
+            "date": timezone.localdate().isoformat()
+        })
+
+    def test_registro_inicia_bookstatus_com_status_lendo(self):
+        self.post_session(20)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.status,
+            BookStatus.Status.READING
+        )
+
+    def test_progresso_bookstatus_acumula_corretamente(self):
+        self.post_session(20)
+        self.post_session(34)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.reading_progress,
+            Decimal("0.340")
+        )
+
+    def test_bookstatus_muda_para_lido_ao_completar_livro(self):
+        BookStatus.objects.create(
+            user=self.user,
+            book=self.book,
+            status=BookStatus.Status.READING,
+            reading_progress=Decimal("0.900")
+        )
+
+        self.post_session(100)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.reading_progress,
+            Decimal("1.000")
+        )
+
+        self.assertEqual(
+            book_status.status,
+            BookStatus.Status.READ
+        )
+
+    def test_registro_contribui_para_meta_de_paginas(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+
+        self.post_session(20)
+        self.post_session(34)
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 34)
+
+    def test_registro_contribui_para_meta_de_horas(self):
+        goal = Goal.objects.create(
+            name="Ler por 2 horas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.HOUR_COUNT,
+            target=120,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+
+        self.post_session(20, minute_count=30)
+        self.post_session(34, minute_count=40)
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 70)
+
+    def test_leitura_anterior_a_entrada_na_meta_nao_contribui(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now()
+        )
+
+        # Registra uma leitura com data anterior à entrada na meta
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            pages_read=20,
+            minute_count=30,
+            date=timezone.localdate() - timedelta(days=2)
+        )
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 0)

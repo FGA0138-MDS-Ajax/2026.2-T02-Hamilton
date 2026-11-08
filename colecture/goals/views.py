@@ -192,12 +192,14 @@ def register_reading_session(request):
                         #atualiza o percentual total do livro
                         book_status.reading_progress = (
                             Decimal(current_page) / Decimal(book.pages)
-                        ).quantize(
-                            Decimal("0.001"),
-                            rounding=ROUND_HALF_UP
-                        )
+                        ).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
-                        book_status.save(update_fields=["reading_progress"])
+                        if current_page >= book.pages:
+                            book_status.status = BookStatus.Status.READ
+                        else:
+                            book_status.status = BookStatus.Status.READING
+
+                        book_status.save(update_fields=["reading_progress", "status"])
 
                         return redirect("goals:register_reading_session")
 
