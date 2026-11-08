@@ -1,0 +1,720 @@
+/* Aba "Registrar leitura" (R18). Usa main/css/variables.css (carregue antes).
+   Tudo fica sob .rs para não brigar com o CSS da página R18. */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+body {
+  background: var(--gradient-bg);
+  background-color: var(--bg-base);
+  background-attachment: fixed;
+}
+
+.rs-page {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.rs {
+  container-type: inline-size;
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-primary);
+}
+
+.rs *,
+.rs *::before,
+.rs *::after { box-sizing: border-box; }
+
+.rs [hidden] { display: none !important; }
+
+.rs-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rs-status { color: var(--text-muted); padding: 24px 0; }
+
+/* ---------- Layout: empilhado; duas colunas quando o container é largo ---------- */
+.rs-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.rs-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+@container (min-width: 820px) {
+  .rs-layout {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .rs-history { grid-column: 1 / -1; }
+}
+
+.rs-card {
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+@container (min-width: 820px) {
+  .rs-card { padding: 28px 32px; }
+}
+
+/* ---------- Resumo do livro ---------- */
+.rs-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rs-book {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.rs-cover {
+  width: 96px;
+  height: 140px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+@container (min-width: 820px) {
+  .rs-cover { width: 120px; height: 176px; }
+}
+
+.rs-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--purple-400);
+}
+
+.rs-book-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rs-book-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rs-book-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.rs-badge {
+  flex-shrink: 0;
+  padding: 3px 12px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--purple-100);
+  background: var(--purple-900);
+  border: 1px solid var(--purple-600);
+  border-radius: 999px;
+}
+
+.rs-book-author {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: .95rem;
+}
+
+.rs-book-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+
+.rs-chip {
+  padding: 4px 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ---------- Progresso ---------- */
+.rs-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.rs-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  color: var(--text-secondary);
+  font-size: .9rem;
+  font-weight: 500;
+}
+
+.rs-percent {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.rs-bar-fill,
+.rs-bar-preview {
+  position: absolute;
+  top: 0; bottom: 0;
+  transition: width .5s ease, left .5s ease;
+}
+
+.rs-bar-fill {
+  left: 0;
+  width: 0;
+  background: var(--purple-500);
+  border-radius: 999px;
+}
+
+/* Prévia do que a sessão digitada vai somar */
+.rs-bar-preview {
+  width: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(196, 181, 253, .55) 0 5px,
+    rgba(196, 181, 253, .25) 5px 10px
+  );
+}
+
+.rs-bar.is-complete .rs-bar-fill { box-shadow: var(--glow); }
+
+.rs-progress-detail {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .85rem;
+}
+
+/* ---------- Estatísticas (2 caixinhas) ---------- */
+.rs-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.rs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.rs-stat-label {
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+
+.rs-stat-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: .95rem;
+}
+
+.rs-stat-value i {
+  font-size: 1.1rem;
+  color: var(--purple-400);
+}
+
+.rs-stat-value .is-muted {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: .8rem;
+}
+
+/* ---------- Livro concluído ---------- */
+.rs-finished {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: rgba(52, 211, 153, .07);
+  border: 1px solid rgba(52, 211, 153, .35);
+  border-radius: 16px;
+}
+
+.rs-finished:focus { outline: none; }
+
+.rs-finished-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  color: var(--success);
+  background: rgba(52, 211, 153, .12);
+  border-radius: 10px;
+}
+
+.rs-finished-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: .85rem;
+  color: var(--text-secondary);
+}
+
+.rs-finished-text strong {
+  color: var(--success);
+  font-size: .95rem;
+}
+
+@container (max-width: 480px) {
+  .rs-finished { flex-wrap: wrap; }
+  .rs-finished .rs-btn { width: 100%; }
+}
+
+/* ---------- Formulário ---------- */
+.rs-form-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rs-form-title { margin: 0 0 4px; font-size: 1.35rem; font-weight: 700; }
+
+.rs-form-sub {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: .9rem;
+}
+
+.rs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  font: 500 .85rem 'Poppins', sans-serif;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rs-link:hover { color: var(--purple-300); }
+
+.rs-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.rs-fieldset:disabled { opacity: .5; }
+
+.rs-field { display: flex; flex-direction: column; min-width: 0; }
+
+.rs-field label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rs-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rs-label-aside {
+  margin-bottom: 10px;
+  font-size: .8rem;
+  color: var(--purple-400);
+}
+
+.rs-optional { color: var(--text-muted); font-weight: 400; font-size: .85rem; }
+
+/* Botões "Páginas lidas" / "Percentual" */
+.rs-field-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rs-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rs-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rs-field .rs-toggle label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.rs-toggle label i { font-size: 1.15rem; }
+
+.rs-field .rs-toggle label:hover { border-color: var(--purple-400); }
+
+.rs-field .rs-toggle input:checked + label {
+  color: var(--text-primary);
+  background: var(--purple-900);
+  border-color: var(--purple-500);
+}
+
+.rs-toggle input:focus-visible + label {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+.rs-field .rs-toggle input:disabled + label {
+  opacity: .4;
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+
+/* Campos */
+.rs-input {
+  width: 100%;
+  padding: 14px 16px;
+  font: 1rem 'Poppins', sans-serif; /* 16px evita zoom no iOS */
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.rs-input::placeholder { color: var(--text-muted); }
+
+.rs-input:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, .25);
+}
+
+.rs-input[aria-invalid="true"] { border-color: var(--danger); }
+
+/* Select com ícone e seta */
+.rs-select-wrap { position: relative; }
+
+.rs-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 44px;
+  font-weight: 600;
+  cursor: pointer;
+  border-color: var(--purple-700);
+}
+
+.rs-select--icon { padding-left: 46px; }
+
+.rs-select option { background: var(--bg-surface); color: var(--text-primary); }
+
+.rs-select-icon,
+.rs-select-caret {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.rs-select-icon { left: 16px; }
+.rs-select-caret { right: 14px; }
+
+/* Input com "caixinha" de unidade à direita */
+.rs-input-group {
+  display: flex;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.rs-input-group:focus-within {
+  border-color: var(--purple-500);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, .25);
+}
+
+.rs-input-group:has([aria-invalid="true"]) { border-color: var(--danger); }
+
+.rs-input-group .rs-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.rs-addon {
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  font-size: .9rem;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+}
+
+.rs-hint {
+  margin: 8px 0 0;
+  font-size: .8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.rs-error {
+  margin: 6px 0 0;
+  font-size: .85rem;
+  color: var(--danger);
+  line-height: 1.5;
+}
+
+/* ---------- Botões ---------- */
+.rs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  font: 600 .95rem 'Poppins', sans-serif;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--purple-600);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s, box-shadow .15s;
+}
+
+.rs-btn:hover { box-shadow: var(--glow); }
+
+.rs-btn--primary {
+  color: #fff;
+  background: var(--purple-600);
+  border-color: var(--purple-600);
+}
+
+.rs-btn--primary:hover { background: var(--purple-500); }
+
+.rs-btn--success {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: .85rem;
+  color: #052e1f;
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.rs-btn--success:hover { box-shadow: 0 0 20px rgba(52, 211, 153, .35); }
+
+.rs-btn:focus-visible,
+.rs-link:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 3px;
+}
+
+.rs-submit {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(109, 40, 217, .35);
+}
+
+.rs-submit i { font-size: 1.2rem; }
+
+/* ---------- Histórico ---------- */
+.rs-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rs-history-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.rs-history-head h3 i { color: var(--purple-400); }
+
+.rs-history-note { font-size: .8rem; color: var(--text-muted); }
+
+.rs-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rs-history-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.rs-history-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--purple-300);
+  background: var(--purple-900);
+  border-radius: 10px;
+}
+
+.rs-history-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.rs-history-text strong { font-size: .95rem; }
+.rs-history-text span { font-size: .8rem; color: var(--text-muted); }
+
+.rs-history-pill {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--purple-100);
+  background: var(--purple-900);
+  border-radius: 999px;
+}
+
+/* ---------- Sem livros / erro ---------- */
+.rs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 18px;
+}
+
+.rs-empty h3 { margin: 0; font-size: 1.2rem; }
+.rs-empty p { margin: 0 0 8px; color: var(--text-secondary); max-width: 40ch; }
+
+.rs-empty-icon {
+  font-size: 40px;
+  color: var(--purple-400);
+}
+
+@media (max-width: 600px) {
+  .rs-book { flex-direction: column; align-items: center; text-align: center; }
+  .rs-book-top { flex-direction: column; align-items: center; }
+  .rs-book-meta { justify-content: center; }
+  .rs-page { padding: 20px 16px 96px; } /* espaço para a barra inferior do celular */
+  .rs-book-title { font-size: 1.25rem; }
+}
+
+@container (max-width: 420px) {
+  .rs-stats { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-bar-fill, .rs-bar-preview, .rs-input, .rs-input-group, .rs-btn { transition: none; }
+}
