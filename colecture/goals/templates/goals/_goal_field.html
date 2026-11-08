@@ -1,0 +1,9 @@
+{# Campo genérico do formulário de meta: label, input, ajuda e erros #}
+<div class="field {% if field.errors %}field--error{% endif %}">
+  <label for="{{ field.id_for_label }}">
+    {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
+  </label>
+  {{ field }}
+  {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+  {% for error in field.errors %}<span class="error">{{ error }}</span>{% endfor %}
+</div>
