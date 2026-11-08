@@ -6,14 +6,19 @@ from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.db.models import Sum
 
 from accounts.models import Profile
 from communities.models import Community
 from communities.services import MembershipService
 
 from .forms import GoalForm, ReadingSessionForm
-from .models import Goal
+from .models import Goal, ReadingSession
 from .services import GoalService
+
+from decimal import Decimal, ROUND_HALF_UP
+from books.models import BookStatus
+
 
 
 def _redirect_after_goal(goal):
@@ -117,13 +122,79 @@ def register_reading_session(request):
         form = ReadingSessionForm(request.POST, user=request.user)
 
         if form.is_valid():
-            # sessão e ofensiva são salvas juntas: ou as duas, ou nenhuma
-            with transaction.atomic():
-                reading_session = form.save()
-                profile, _ = Profile.objects.get_or_create(user=request.user)
-                if profile.register_reading_day(reading_session.date):
-                    profile.save(update_fields=["streak", "last_read_date"])
-            return redirect("goals:register_reading_session")
+            book = form.cleaned_data["book"]
+            current_page = form.cleaned_data.get("current_page")
+            current_percentage = form.cleaned_data.get("current_percentage")
+
+            if not book.pages:
+                form.add_error(
+                    "book",
+                    "O livro precisa ter a quantidade de páginas informada."
+                )
+
+            else:
+                with transaction.atomic():
+
+                    #busca ou cria o status do livro
+                    book_status, created = BookStatus.objects.get_or_create(
+                        user=request.user,
+                        book=book,
+                    )
+
+                    #busca a quantidade de páginas já lidas
+                    previous_page = (
+                        ReadingSession.objects.filter(
+                            user=request.user,
+                            book=book
+                        ).aggregate(total=Sum("pages_read"))["total"] or 0
+                    )
+
+                    #Converte o percentual informado para página atual
+                    if current_percentage is not None:
+                        current_page = int(
+                            (
+                                current_percentage * book.pages
+                                / Decimal("100")
+                            ).quantize(
+                                Decimal("1"),
+                                rounding=ROUND_HALF_UP
+                            )
+                        )
+
+                    #valida se houve avanço na leitura
+                    if current_page <= previous_page:
+                        field = (
+                            "current_page"
+                            if form.cleaned_data.get("current_page") is not None
+                            else "current_percentage"
+                        )
+
+                        form.add_error(
+                            field,
+                            "O progresso informado deve ser maior que o anterior."
+                        )
+
+                    else:
+                        #calcula as páginas lidas nesta sessão
+                        pages_read = current_page - previous_page
+
+                        reading_session = form.save(commit=False)
+                        reading_session.pages_read = pages_read
+                        reading_session.user = request.user
+                        reading_session.full_clean()
+                        reading_session.save()
+
+                        #atualiza o percentual total do livro
+                        book_status.reading_progress = (
+                            Decimal(current_page) / Decimal(book.pages)
+                        ).quantize(
+                            Decimal("0.001"),
+                            rounding=ROUND_HALF_UP
+                        )
+
+                        book_status.save(update_fields=["reading_progress"])
+
+                        return redirect("goals:register_reading_session")
 
     else:
         form = ReadingSessionForm(user=request.user)

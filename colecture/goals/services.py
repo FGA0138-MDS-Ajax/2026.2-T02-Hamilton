@@ -9,8 +9,10 @@ from communities.models import Community, Membership
 from communities.services import MembershipService
 from forums.models import Forum
 
-from .models import Goal, GoalParticipation
+from .models import Goal, GoalParticipation, ReadingSession
 
+from django.db.models import Sum
+from goals.models import ReadingSession
 
 GOAL_UNIT_LABELS = {
     Goal.GoalType.PAGE_COUNT: "páginas",
@@ -249,18 +251,35 @@ class GoalService:
             })
         return cards
 
-    # ---------- contribuição / progresso ----------
-    @staticmethod
-    def get_user_contribution(participation) -> int:
-        # TODO (Sprint 5, R16): ReadingSession ainda não existe.
-        # Quando existir (campos hipotéticos user, book, pages_read, minutes):
-        #   sessions = ReadingSession.objects.filter(
-        #       user=participation.user, book=participation.goal.book)
-        #   PAGE_COUNT -> sessions.aggregate(Sum("pages_read"))["pages_read__sum"] or 0
-        #   HOUR_COUNT -> sessions.aggregate(Sum("minutes"))["minutes__sum"] or 0
-        #   (o alvo de HOUR_COUNT é guardado em minutos)
+ # ---------- contribuição / progresso ----------
+@staticmethod
+def get_user_contribution(participation) -> int:
+    goal = participation.goal
+
+    if not goal.book:
         return 0
 
+    sessions = ReadingSession.objects.filter(
+        user=participation.user,
+        book=goal.book,
+        date__gte=participation.joined_at.date()
+    )
+
+    if goal.goal_type == Goal.GoalType.PAGE_COUNT:
+        contribution = sessions.aggregate(
+            total=Sum("pages_read")
+        )["total"]
+
+    elif goal.goal_type == Goal.GoalType.HOUR_COUNT:
+        contribution = sessions.aggregate(
+            total=Sum("minute_count")
+        )["total"]
+
+    else:
+        return 0
+
+    return contribution or 0
+    
     @staticmethod
     def get_progress(goal) -> dict:
         total = sum(
