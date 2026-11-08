@@ -118,7 +118,9 @@
                     Quantidade de páginas <span class="required">*</span>
                   </label>
                   {{ form.target }}
-                  <small class="help">Total de páginas a ler.</small>
+                  <small class="help">
+                    Total de páginas a ler.{% if form.max_pages %} Máximo: {{ form.max_pages }} (páginas do livro).{% endif %}
+                  </small>
                   {% for error in form.target.errors %}<span class="error">{{ error }}</span>{% endfor %}
                 </div>
 

@@ -35,6 +35,14 @@ class BookForm(forms.ModelForm):
         })
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # obrigatório no formulário: as metas de páginas usam esse número
+        # como limite. No banco continua opcional para não quebrar livros
+        # antigos cadastrados sem páginas.
+        self.fields['pages'].required = True
+        self.fields['pages'].widget.attrs.setdefault('min', 1)
+
     def clean_isbn(self):
         isbn = self.cleaned_data['isbn']
         isbn = isbn.replace('-', '').replace(' ', '')

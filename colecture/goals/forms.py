@@ -6,6 +6,9 @@ from django.utils import timezone
 
 from .models import GOAL_DESC_MAX_LENGTH, Goal, ReadingSession
 
+# teto de páginas quando não há livro (ou o livro não tem nº de páginas)
+MAX_GOAL_PAGES = 100_000
+
 
 class GoalForm(forms.ModelForm):
     # só a data: o prazo vale até o fim do dia escolhido (ver clean_deadline)
@@ -87,6 +90,29 @@ class GoalForm(forms.ModelForm):
         # na criação o status é sempre ACTIVE (default do model)
         if not self.instance.pk:
             del self.fields["status"]
+        # meta de comunidade: o limite de páginas já é conhecido (livro da
+        # comunidade), então o navegador também já avisa pelo atributo max
+        self.max_pages = self._community_book_pages()
+        if self.max_pages:
+            self.fields["target"].widget.attrs["max"] = self.max_pages
+
+    def _community_book_pages(self):
+        """Nº de páginas do livro da meta de comunidade (ou None)."""
+        if self.instance.owner_community_id is None:
+            return None
+        # na edição vale o livro gravado na meta; na criação, o da comunidade
+        book = self.instance.book or self.instance.owner_community.book
+        return book.pages if book else None
+
+    def _page_limit(self, cleaned):
+        """(limite, livro) para o alvo de páginas."""
+        if self.instance.owner_community_id is not None:
+            book = self.instance.book or self.instance.owner_community.book
+        else:
+            book = cleaned.get("book")
+        if book and book.pages:
+            return book.pages, book
+        return MAX_GOAL_PAGES, None
 
     def clean_deadline(self):
         deadline = self.cleaned_data.get("deadline")
@@ -125,9 +151,18 @@ class GoalForm(forms.ModelForm):
                 self.add_error("target_time", "Informe o tempo de leitura.")
             # sem target_time mas com target: alvo já em minutos (ex.: testes)
 
-        elif goal_type == Goal.GoalType.PAGE_COUNT:
-            if "target" not in self.errors and cleaned.get("target") is None:
+        elif goal_type == Goal.GoalType.PAGE_COUNT and "target" not in self.errors:
+            target = cleaned.get("target")
+            if target is None:
                 self.add_error("target", "Informe a quantidade de páginas.")
+            else:
+                limit, book = self._page_limit(cleaned)
+                if target > limit:
+                    self.add_error("target", (
+                        f'O livro "{book.title}" tem {limit} páginas; a meta pode ter no máximo isso.'
+                        if book else
+                        f"A meta pode ter no máximo {limit:,} páginas.".replace(",", ".")
+                    ))
 
         return cleaned
 

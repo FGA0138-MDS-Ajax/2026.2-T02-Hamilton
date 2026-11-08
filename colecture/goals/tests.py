@@ -125,6 +125,39 @@ class CT04GoalCreation(GoalBase):
                 self.assertEqual(response.status_code, 200)  # reexibe o form
         self.assertEqual(Goal.objects.count(), 0)
 
+    def test_page_goal_limited_to_community_book_pages(self):
+        self.set_community_book(pages=200)
+        self.client.force_login(self.moderator)
+        for target, created in ((201, False), (200, True)):
+            with self.subTest(target=target):
+                self.client.post(self.url_create_community,
+                                 self.payload(name=f"Meta {target}", target=target))
+                self.assertEqual(Goal.objects.filter(name=f"Meta {target}").exists(), created)
+
+    def test_page_goal_limited_to_individual_book_pages(self):
+        self.book.pages = 300
+        self.book.save()
+        self.client.force_login(self.member)
+        response = self.client.post(self.url_create_profile, self.payload(target=301))
+        self.assertEqual(response.status_code, 200)  # reexibe o form
+        self.assertContains(response, "tem 300 páginas")
+        self.assertEqual(Goal.objects.count(), 0)
+
+    def test_page_goal_without_book_pages_has_general_cap(self):
+        # livro antigo, cadastrado sem nº de páginas: vale o teto geral
+        self.client.force_login(self.member)
+        self.client.post(self.url_create_profile, self.payload(target=50_000_000_000))
+        self.assertEqual(Goal.objects.count(), 0)
+
+    def test_hour_goal_target_saved_in_minutes(self):
+        self.client.force_login(self.member)
+        response = self.client.post(self.url_create_profile, self.payload(
+            goal_type=Goal.GoalType.HOUR_COUNT, target="", target_time="1:30"))
+        self.assertEqual(response.status_code, 302)
+        goal = Goal.objects.get()
+        self.assertEqual(goal.target, 90)
+        self.assertEqual(goal.target_display, "1h30")
+
     def test_create_goal_without_deadline_and_book_VALID(self):
         self.client.force_login(self.member)
         data = self.payload()
