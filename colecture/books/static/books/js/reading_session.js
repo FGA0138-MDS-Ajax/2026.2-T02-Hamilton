@@ -187,25 +187,38 @@
     return v === '' ? null : Number(v);
   }
 
+  // Por páginas, o usuário informa EM QUAL PÁGINA PAROU; aqui isso vira
+  // quantas páginas leu na sessão (página atual - páginas já lidas).
+  // Retorna a quantidade lida (páginas ou %) ou null se inválido.
   function validateAmount() {
     var type = currentType();
     var sum = summaryOf(current);
     var value = parseNumber(el.amount);
-    var remaining = remainingFor(current, sum, type);
     var msg = '';
 
+    if (type === 'pages') {
+      if (value === null || isNaN(value)) {
+        msg = 'Informe em qual página você parou.';
+      } else if (!Number.isInteger(value) || value <= 0) {
+        msg = 'Use um número inteiro de página.';
+      } else if (value <= sum.pagesRead) {
+        msg = 'Você já está na página ' + sum.pagesRead + '. Informe uma página maior.';
+      } else if (value > current.pages) {
+        msg = 'Este livro tem ' + current.pages + ' páginas.';
+      }
+      setError(el.amount, el.amountError, msg);
+      return msg ? null : value - sum.pagesRead;
+    }
+
+    var remaining = remainingFor(current, sum, type);
     if (value === null || isNaN(value)) {
-      msg = type === 'pages' ? 'Informe quantas páginas você leu hoje.' : 'Informe o percentual lido hoje.';
+      msg = 'Informe o percentual lido hoje.';
     } else if (value <= 0) {
       msg = 'A quantidade precisa ser maior que zero.';
-    } else if (type === 'pages' && !Number.isInteger(value)) {
-      msg = 'Use um número inteiro de páginas.';
-    } else if (type === 'percent' && !Number.isInteger(value)) {
+    } else if (!Number.isInteger(value)) {
       msg = 'Use um número inteiro de percentual (ex.: 12).';
     } else if (value > remaining) {
-      msg = type === 'pages'
-        ? 'Faltam só ' + remaining + ' páginas para terminar (total: ' + current.pages + ').'
-        : 'Faltam só ' + formatPercent(remaining) + ' para terminar o livro.';
+      msg = 'Faltam só ' + formatPercent(remaining) + ' para terminar o livro.';
     }
 
     setError(el.amount, el.amountError, msg);
@@ -277,16 +290,20 @@
     var remaining = remainingFor(current, sum, type);
 
     if (type === 'pages') {
-      el.amountLabel.textContent = 'Páginas lidas';
-      el.suffix.textContent = 'págs';
+      el.amountLabel.textContent = 'Em qual página você parou?';
+      el.suffix.textContent = 'pág.';
       el.amount.step = '1';
-      el.amount.max = String(remaining);
+      el.amount.min = String(sum.pagesRead + 1);
+      el.amount.max = String(current.pages);
       el.amount.setAttribute('inputmode', 'numeric');
-      el.remaining.textContent = 'Restam ' + remaining + ' de ' + current.pages + ' páginas para concluir o livro.';
+      el.remaining.textContent = sum.pagesRead
+        ? 'Você está na página ' + sum.pagesRead + ' de ' + current.pages + '. Restam ' + remaining + ' páginas.'
+        : 'Você ainda não registrou nenhuma página (total: ' + current.pages + ').';
     } else {
       el.amountLabel.textContent = 'Percentual lido';
       el.suffix.textContent = '%';
       el.amount.step = '1';
+      el.amount.min = '1';
       el.amount.max = String(remaining);
       el.amount.setAttribute('inputmode', 'numeric');
       el.remaining.textContent = 'Restam ' + formatPercent(remaining) +
@@ -362,9 +379,11 @@
       var text = document.createElement('div');
       text.className = 'rs-history-text';
       var title = document.createElement('strong');
-      title.textContent = s.type === 'pages'
-        ? 'Registrou ' + s.amount + (s.amount === 1 ? ' página' : ' páginas')
-        : 'Registrou ' + s.amount + '%';
+      title.textContent = s.type !== 'pages'
+        ? 'Registrou ' + s.amount + '%'
+        : (s.page
+            ? 'Parou na página ' + s.page
+            : 'Registrou ' + s.amount + (s.amount === 1 ? ' página' : ' páginas')); // sessões antigas
       var meta = document.createElement('span');
       var date = new Date(s.date);
       meta.textContent = (isNaN(date) ? '' : date.toLocaleDateString('pt-BR')) +
@@ -396,6 +415,9 @@
     var value = parseNumber(el.amount);
     var add = 0;
     var type = currentType();
+
+    // por páginas o campo é a página onde parou -> converte para páginas lidas
+    if (type === 'pages' && value !== null) value = value - sum.pagesRead;
 
     if (value !== null && !isNaN(value) && value > 0 && value <= remainingFor(current, sum, type)) {
       add = Math.max(0, sessionPercent(current, sum, type, value));
@@ -530,7 +552,8 @@
     var session = {
       date: new Date().toISOString(),
       type: type,
-      amount: amount,
+      amount: amount, // páginas lidas na sessão (ou %)
+      page: type === 'pages' ? sum.pagesRead + amount : null, // página onde parou
       percent: sessionPercent(current, sum, type, amount),
       minutes: minutes || null
     };
