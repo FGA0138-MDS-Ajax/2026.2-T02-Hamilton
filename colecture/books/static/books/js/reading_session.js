@@ -190,8 +190,6 @@
         msg = 'Informe em qual página você parou.';
       } else if (!Number.isInteger(value) || value <= 0) {
         msg = 'Use um número inteiro de página.';
-      } else if (value <= sum.pagesRead) {
-        msg = 'Você já está na página ' + sum.pagesRead + '. Informe uma página maior.';
       } else if (value > current.pages) {
         msg = 'Este livro tem ' + current.pages + ' páginas.';
       }
@@ -289,7 +287,7 @@
       el.amountLabel.textContent = 'Digite seu progresso ';
       el.suffix.textContent = 'pág.';
       el.amount.step = '1';
-      el.amount.min = String(sum.pagesRead + 1);
+      el.amount.min = '1'; // pode registrar uma página menor que a atual
       el.amount.max = String(current.pages);
       el.amount.setAttribute('inputmode', 'numeric');
       el.remaining.textContent = sum.pagesRead
