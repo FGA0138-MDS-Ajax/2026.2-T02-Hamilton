@@ -51,7 +51,8 @@ class Goal(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE,
     )
-    # Quantidade do goal_type a ser atingida (ex.: 10000 páginas).
+    # Quantidade do goal_type a ser atingida: páginas (PAGE_COUNT) ou
+    # MINUTOS (HOUR_COUNT; o form recebe HH:MM e converte).
     target = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     # Livro relacionado à meta. Opcional: se o livro for excluído, a meta continua.
     book = models.ForeignKey(
@@ -98,6 +99,14 @@ class Goal(models.Model):
         if self.deadline is None:
             return None
         return max(self.deadline - timezone.now(), timedelta(0))
+
+    @property
+    def target_display(self) -> str:
+        """Alvo legível: '300 páginas' ou '22h10' / '10h'."""
+        if self.goal_type == self.GoalType.HOUR_COUNT:
+            hours, minutes = divmod(self.target, 60)
+            return f"{hours}h{minutes:02d}" if minutes else f"{hours}h"
+        return f"{self.target} páginas"
 
     def __str__(self):
         return self.name

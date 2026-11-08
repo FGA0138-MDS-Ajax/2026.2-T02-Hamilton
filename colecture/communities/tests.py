@@ -835,6 +835,52 @@ class MembershipRequestTest(TestCase):
         self.assertEqual(membership.status, Membership.Status.ACTIVE)
         self.assertEqual(membership.role, Membership.Role.MEMBER)
 
+    # ---------- código fixo da comunidade ----------
+
+    # toda comunidade nasce com um código fixo
+    def test_community_gets_fixed_code(self):
+        self.assertEqual(len(self.community.code), 8)
+        code = self.community.code
+        self.community.save()
+        self.community.refresh_from_db()
+        self.assertEqual(self.community.code, code)
+
+    # código certo pela home: vira solicitação PENDENTE (não entra direto)
+    def test_join_by_code_creates_pending_request(self):
+        self.client.force_login(self.outsider)
+        response = self.client.post(
+            reverse("communities:join_by_code"),
+            {"codigo": self.community.code.lower()},
+        )
+        # continua na home (não vai para a página da comunidade)
+        self.assertRedirects(
+            response, reverse("communities:home_community"), fetch_redirect_response=False
+        )
+        membership = Membership.objects.get(user=self.outsider, community=self.community)
+        self.assertEqual(membership.status, Membership.Status.PENDING)
+        self.assertEqual(membership.role, Membership.Role.NONE)
+
+    # código errado: volta para a home e não cria nada
+    def test_join_by_wrong_code_does_nothing(self):
+        self.client.force_login(self.outsider)
+        response = self.client.post(
+            reverse("communities:join_by_code"), {"codigo": "ERRADO00"}
+        )
+        self.assertRedirects(
+            response, reverse("communities:home_community"), fetch_redirect_response=False
+        )
+        self.assertFalse(
+            Membership.objects.filter(user=self.outsider, community=self.community).exists()
+        )
+
+    # o código aparece para membros e fica escondido de quem é de fora
+    def test_code_shown_to_members_only(self):
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.community_url), self.community.code)
+
+        self.client.force_login(self.outsider)
+        self.assertNotContains(self.client.get(self.community_url), self.community.code)
+
     # ---------- restrição de perfil ----------
 
     # membro comum, forasteiro e o próprio solicitante não decidem solicitações

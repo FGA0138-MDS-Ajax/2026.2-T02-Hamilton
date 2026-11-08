@@ -257,7 +257,8 @@ class GoalService:
         #   sessions = ReadingSession.objects.filter(
         #       user=participation.user, book=participation.goal.book)
         #   PAGE_COUNT -> sessions.aggregate(Sum("pages_read"))["pages_read__sum"] or 0
-        #   HOUR_COUNT -> (sessions.aggregate(Sum("minutes"))["minutes__sum"] or 0) // 60
+        #   HOUR_COUNT -> sessions.aggregate(Sum("minutes"))["minutes__sum"] or 0
+        #   (o alvo de HOUR_COUNT é guardado em minutos)
         return 0
 
     @staticmethod

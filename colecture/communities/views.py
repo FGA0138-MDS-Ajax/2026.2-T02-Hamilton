@@ -12,8 +12,22 @@ from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from forums.models import Forum
 from goals.services import GoalService
+
+
+def _redirect_back(request, community):
+    """Volta para o `next` enviado pelo form (ex.: página de gerenciar),
+    se for uma URL local segura; senão, para a página da comunidade."""
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("communities:view_community", community_id=community.id)
 
 
 # Create your views here.
@@ -150,6 +164,43 @@ class JoinCommunityView(LoginRequiredMixin, View):
             );
 
         return self.redirect_to_community();
+
+class JoinByCodeView(JoinCommunityView):
+    """
+    Pedido de entrada feito pelo modal "Entrar em comunidade privada"
+    da home. O usuário digita só o código; aqui descobrimos de qual
+    comunidade ele é e seguimos o mesmo fluxo da JoinCommunityView
+    (a solicitação fica PENDENTE até o moderador aceitar).
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission();
+
+        code = request.POST.get('codigo', '').strip().upper();
+        community = code and Community.objects.filter(
+            code=code,
+            access=Community.Access.PRIVATE,
+        ).first();
+
+        if not community:
+            messages.error(request, "Código inválido. Confira com o moderador.");
+            return redirect("communities:home_community");
+
+        kwargs['community_id'] = community.id;
+        return super().dispatch(request, *args, **kwargs);
+
+    def join_community(self):
+        # cria a solicitação (PENDENTE), mas mantém o usuário na home
+        super().join_community();
+        messages.success(self.request, "Solicitação enviada! Aguarde o moderador aceitar.");
+        return redirect("communities:home_community");
+
+    def request_is_pending(self):
+        # já tinha pedido antes: só avisa, também sem sair da home
+        if super().request_is_pending():
+            messages.info(self.request, "Você já pediu para entrar. Aguarde o moderador.");
+            return redirect("communities:home_community");
+
 
 class LeaveCommunityView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
@@ -300,6 +351,8 @@ def view_community(request, community_id):
         'creator_name': community.creator.username,
         'creator_id': community.creator.id,
         'is_private': community.access == Community.Access.PRIVATE,
+        # só quem participa ou gerencia recebe o código para compartilhar
+        'code': community.code if can_see_content else '',
     }
 
     return render(request, "communities/community_view.html", {
@@ -478,10 +531,7 @@ def edit_member_role(request, community_id, membership_id):
     membership.role = new_role
     membership.save(update_fields=["role"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 @login_required
 def manage_membership_request(request, community_id, membership_id):
@@ -534,10 +584,7 @@ def manage_membership_request(request, community_id, membership_id):
     # Salva a alteração no banco
     membership.save(update_fields=["status", "role", "joined_at"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 @login_required
 def manage_member_ban(request, community_id, membership_id):
@@ -597,10 +644,7 @@ def manage_member_ban(request, community_id, membership_id):
     # Salva somente o status
     membership.save(update_fields=["status"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 
 
@@ -619,6 +663,27 @@ def archive_community(request, community_id):
     community.save()
 
     messages.success(request, f'Comunidade "{community.name}" arquivada.')
+    return redirect("communities:home_community")
+
+
+@login_required
+def unarchive_community(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    if not _can_manage(request.user, community):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    if community.state != Community.State.ARCHIVED:
+        return HttpResponseForbidden()
+
+    # o save() do model limpa archived_at ao sair do estado arquivado
+    community.state = Community.State.ACTIVE
+    community.save()
+
+    messages.success(request, f'Comunidade "{community.name}" desarquivada.')
     return redirect("communities:home_community")
 
 
@@ -670,10 +735,16 @@ def home_community(request):
         .values_list("community_id", "role")
     )
 
+    # comunidades em que o usuário modera (o criador também é moderador)
+    moderated = Q(creator=user) | Q(
+        id__in=[cid for cid, role in roles.items() if role == Membership.Role.MODERATOR]
+    )
+
+    # arquivadas só aparecem para quem modera; membros comuns não as veem
     communities = (
         Community.objects
         .filter(Q(creator=user) | Q(id__in=roles.keys()))
-        .exclude(state=Community.State.ARCHIVED)
+        .filter(~Q(state=Community.State.ARCHIVED) | moderated)
         .order_by("name")
     )
 
@@ -700,9 +771,18 @@ def home_community(request):
             "membros_count": counts.get(c.id, 0) + 1,  # +1 = criador
             "privada": c.access == Community.Access.PRIVATE,
             "papel": papel,
+            # o criador também é moderador
+            "is_moderator": papel in ("Criador", "Moderador"),
+            "arquivada": c.state == Community.State.ARCHIVED,
         })
 
-    return render(request, "communities/home_community.html", {"comunidades": comunidades})
+    # arquivadas vão para o fim da lista (sort é estável: mantém a ordem por nome)
+    comunidades.sort(key=lambda c: c["arquivada"])
+
+    return render(request, "communities/home_community.html", {
+        "comunidades": comunidades,
+        "ativas_count": sum(1 for c in comunidades if not c["arquivada"]),
+    })
 
 @login_required
 def forum_page(request, community_id):

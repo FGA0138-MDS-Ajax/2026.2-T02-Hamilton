@@ -7,7 +7,6 @@
   box-sizing: border-box;
 }
 
-/* Layout Principal aproveitando o espaço horizontal (Max Width 1200px) */
 .goal-page {
   display: flex;
   flex-direction: column;
@@ -211,10 +210,167 @@
   color: #fff;
 }
 
+/* Aviso de comunidade sem livro: ícone na frente do título, texto e botão abaixo */
+.goal-page .notice {
+  padding: 24px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid var(--purple-500);
+  border-radius: 16px;
+}
+
+.goal-page .notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-page .notice-title .bx {
+  flex-shrink: 0;
+  font-size: 24px;
+  color: var(--purple-300);
+}
+
+.goal-page .notice-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.goal-page .notice-body p {
+  color: var(--text-secondary);
+}
+
+.goal-page .notice-body .btn-outline {
+  margin-top: 12px;
+}
+
+/* Descrição ocupa a altura da coluna da esquerda */
+.goal-page .form-col .field:has(textarea) {
+  flex: 1;
+}
+
+.goal-page .form-col .field textarea {
+  flex: 1;
+}
+
+/* Tipo de meta: cards de rádio lado a lado */
+.goal-page .type-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.goal-page .type-field legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.goal-page .type-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.goal-page .type-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.goal-page .type-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.goal-page .type-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--text-secondary);
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+}
+
+.goal-page .type-option span .bx {
+  font-size: 20px;
+}
+
+.goal-page .type-option:hover span {
+  border-color: var(--purple-400);
+}
+
+.goal-page .type-option input:checked + span {
+  background: var(--bg-elevated);
+  border-color: var(--purple-500);
+  color: var(--text-primary);
+  box-shadow: var(--glow);
+}
+
+.goal-page .type-option input:focus-visible + span {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+.goal-page .type-field.field--error .type-option span {
+  border-color: var(--danger);
+}
+
+/* Alvo com a unidade (páginas/horas) dentro do campo, à direita */
+.goal-page .unit-input {
+  position: relative;
+}
+
+.goal-page .unit-input input {
+  padding-right: 90px;
+}
+
+/* tempo de leitura: campo curto, como no modelo */
+.goal-page .unit-input--short {
+  max-width: 240px;
+}
+
+.goal-page .field[hidden] {
+  display: none;
+}
+
+.goal-page .unit-input span {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
 /* Ajuste Responsivo (Em telas menores, volta a ser 1 coluna) */
 @media (max-width: 900px) {
   .goal-page .form-grid {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .goal-page {
+    padding: 20px;
+  }
+
+  .goal-page .type-options {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-page .form-actions {
+    flex-direction: column-reverse;
   }
 }

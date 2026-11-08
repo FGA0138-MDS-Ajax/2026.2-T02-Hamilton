@@ -177,7 +177,7 @@
             {% endif %}
           </section>
 
-          {% if community.is_private and is_member %}
+          {% if community.is_private and community.code %}
             <section class="card" aria-labelledby="code-title">
               <h2 id="code-title">Código da comunidade</h2>
               <p class="muted code-hint">Compartilhe para convidar alguém para esta comunidade privada.</p>
