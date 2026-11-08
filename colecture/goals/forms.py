@@ -1,3 +1,6 @@
+import re
+from datetime import datetime, time
+
 from django import forms
 from django.utils import timezone
 
@@ -5,14 +8,27 @@ from .models import GOAL_DESC_MAX_LENGTH, Goal, ReadingSession
 
 
 class GoalForm(forms.ModelForm):
-    deadline = forms.DateTimeField(
+    # só a data: o prazo vale até o fim do dia escolhido (ver clean_deadline)
+    deadline = forms.DateField(
         label="Prazo",
         required=False,
-        input_formats=["%Y-%m-%dT%H:%M"],
-        widget=forms.DateTimeInput(
-            attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
-        ),
+        # aceita também data e hora, formato antigo do campo
+        input_formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M"],
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         help_text="Opcional. Sem prazo, a meta fica aberta até ser concluída.",
+    )
+    # meta de tempo: o usuário digita HH:MM e o clean() converte em minutos,
+    # que é a unidade em que o alvo de HOUR_COUNT é guardado
+    target_time = forms.CharField(
+        label="Tempo de leitura",
+        required=False,
+        max_length=6,
+        widget=forms.TextInput(attrs={
+            "inputmode": "numeric",
+            "placeholder": "00:00",
+            "autocomplete": "off",
+        }),
+        help_text="Horas e minutos, ex.: 1:30",
     )
 
     class Meta:
@@ -32,7 +48,7 @@ class GoalForm(forms.ModelForm):
         }
         help_texts = {
             "description": "Opcional. Explique o objetivo da meta.",
-            "target": "Quantidade de páginas ou horas a atingir, conforme o tipo escolhido.",
+            "target": "Total de páginas a ler.",
             "book": "Opcional. Livro ao qual a meta se refere.",
         }
         widgets = {
@@ -44,11 +60,22 @@ class GoalForm(forms.ModelForm):
                 "maxlength": GOAL_DESC_MAX_LENGTH,
                 "placeholder": "Descreva a meta (opcional)...",
             }),
-            "target": forms.NumberInput(attrs={"placeholder": "Ex.: 1000"}),
+            "target": forms.NumberInput(attrs={"placeholder": "Ex.: 300", "min": 1}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # o alvo vem de "target" (páginas) ou de "target_time" (tempo);
+        # quem é obrigatório depende do tipo, então a checagem fica no clean()
+        self.fields["target"].required = False
+        # na edição de meta de tempo, mostra os minutos guardados como HH:MM
+        if self.instance.pk and self.instance.goal_type == Goal.GoalType.HOUR_COUNT:
+            hours, minutes = divmod(self.instance.target, 60)
+            self.initial["target_time"] = f"{hours}:{minutes:02d}"
+            self.initial["target"] = None
+        # na edição, mostra a data no fuso local (o banco guarda em UTC)
+        if self.instance.deadline:
+            self.initial["deadline"] = timezone.localtime(self.instance.deadline).date()
         if self.instance.owner_community_id is not None:
             # meta de comunidade: o livro é sempre o da comunidade e é
             # atribuído em GoalService.create_goal, então o campo não aparece
@@ -63,11 +90,46 @@ class GoalForm(forms.ModelForm):
 
     def clean_deadline(self):
         deadline = self.cleaned_data.get("deadline")
-        # só valida "futuro" se o prazo foi enviado/alterado; assim editar
-        # outros campos de uma meta com prazo já vencido não é bloqueado
-        if deadline and "deadline" in self.changed_data and deadline <= timezone.now():
-            raise forms.ValidationError("O prazo deve estar no futuro.")
-        return deadline
+        if not deadline:
+            return None
+        # só valida se o prazo foi enviado/alterado; assim editar outros
+        # campos de uma meta com prazo já vencido não é bloqueado
+        if "deadline" in self.changed_data and deadline < timezone.localdate():
+            raise forms.ValidationError("O prazo não pode estar no passado.")
+        # o model guarda data e hora: o prazo vale até o fim do dia escolhido
+        return timezone.make_aware(
+            datetime.combine(deadline, time(23, 59))
+        )
+
+    def clean_target_time(self):
+        """'1:30' -> 90 minutos. Só dígitos ('2') conta como horas."""
+        raw = (self.cleaned_data.get("target_time") or "").strip()
+        if not raw:
+            return None
+        match = re.fullmatch(r"(\d{1,3})(?::([0-5]\d))?", raw)
+        if not match:
+            raise forms.ValidationError("Use o formato horas:minutos, ex.: 1:30.")
+        minutes = int(match.group(1)) * 60 + int(match.group(2) or 0)
+        if minutes < 1:
+            raise forms.ValidationError("O tempo deve ser maior que zero.")
+        return minutes
+
+    def clean(self):
+        cleaned = super().clean()
+        goal_type = cleaned.get("goal_type")
+
+        if goal_type == Goal.GoalType.HOUR_COUNT:
+            if cleaned.get("target_time"):
+                cleaned["target"] = cleaned["target_time"]
+            elif "target_time" not in self.errors and cleaned.get("target") is None:
+                self.add_error("target_time", "Informe o tempo de leitura.")
+            # sem target_time mas com target: alvo já em minutos (ex.: testes)
+
+        elif goal_type == Goal.GoalType.PAGE_COUNT:
+            if "target" not in self.errors and cleaned.get("target") is None:
+                self.add_error("target", "Informe a quantidade de páginas.")
+
+        return cleaned
 
 
 class ReadingSessionForm(forms.ModelForm):

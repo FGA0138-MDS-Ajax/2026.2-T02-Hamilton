@@ -108,7 +108,8 @@ class CT04GoalCreation(GoalBase):
         self.assertEqual(Goal.objects.count(), 0)
 
     def test_create_goal_INVALID_data(self):
-        past = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        # o prazo é só a data (vale até o fim do dia), então "passado" é ontem
+        past = (timezone.localdate() - timedelta(days=1)).strftime("%Y-%m-%d")
         invalid = [
             {"name": ""},
             {"target": 0},
@@ -159,6 +160,7 @@ class CT04GoalCreation(GoalBase):
             "target": "Quantidade-alvo",
             "deadline": "Prazo",
             "book": "Livro",
+            "target_time": "Tempo de leitura",
         })
         # a primeira opção é o texto em branco do Django (varia por versão)
         self.assertEqual(
