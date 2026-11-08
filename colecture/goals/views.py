@@ -184,6 +184,11 @@ def register_reading_session(request):
                         reading_session.full_clean()
                         reading_session.save()
 
+                        #sessão e ofensiva são salvas juntas (mesma transação)
+                        profile, _ = Profile.objects.get_or_create(user=request.user)
+                        if profile.register_reading_day(reading_session.date):
+                            profile.save(update_fields=["streak", "last_read_date"])
+
                         #atualiza o percentual total do livro
                         book_status.reading_progress = (
                             Decimal(current_page) / Decimal(book.pages)

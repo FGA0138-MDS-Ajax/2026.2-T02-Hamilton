@@ -2,6 +2,7 @@ import math
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from django.contrib.auth import get_user_model;
 
@@ -10,9 +11,6 @@ from communities.services import MembershipService
 from forums.models import Forum
 
 from .models import Goal, GoalParticipation, ReadingSession
-
-from django.db.models import Sum
-from goals.models import ReadingSession
 
 GOAL_UNIT_LABELS = {
     Goal.GoalType.PAGE_COUNT: "páginas",
@@ -251,35 +249,40 @@ class GoalService:
             })
         return cards
 
- # ---------- contribuição / progresso ----------
-@staticmethod
-def get_user_contribution(participation) -> int:
-    goal = participation.goal
+    # ---------- contribuição / progresso ----------
+    @staticmethod
+    def get_user_contribution(participation) -> int:
+        """Total lido pelo participante, desde que entrou na meta, no livro
+        da meta: páginas (PAGE_COUNT) ou minutos (HOUR_COUNT)."""
+        goal = participation.goal
 
-    if not goal.book:
-        return 0
+        if not goal.book:
+            return 0
 
-    sessions = ReadingSession.objects.filter(
-        user=participation.user,
-        book=goal.book,
-        date__gte=participation.joined_at.date()
-    )
+        # session.date é uma data local; joined_at é UTC, então converte
+        # antes de pegar a data (senão a leitura do dia da entrada, feita à
+        # noite, ficaria de fora)
+        sessions = ReadingSession.objects.filter(
+            user=participation.user,
+            book=goal.book,
+            date__gte=timezone.localtime(participation.joined_at).date()
+        )
 
-    if goal.goal_type == Goal.GoalType.PAGE_COUNT:
-        contribution = sessions.aggregate(
-            total=Sum("pages_read")
-        )["total"]
+        if goal.goal_type == Goal.GoalType.PAGE_COUNT:
+            contribution = sessions.aggregate(
+                total=Sum("pages_read")
+            )["total"]
 
-    elif goal.goal_type == Goal.GoalType.HOUR_COUNT:
-        contribution = sessions.aggregate(
-            total=Sum("minute_count")
-        )["total"]
+        elif goal.goal_type == Goal.GoalType.HOUR_COUNT:
+            contribution = sessions.aggregate(
+                total=Sum("minute_count")
+            )["total"]
 
-    else:
-        return 0
+        else:
+            return 0
 
-    return contribution or 0
-    
+        return contribution or 0
+
     @staticmethod
     def get_progress(goal) -> dict:
         total = sum(
