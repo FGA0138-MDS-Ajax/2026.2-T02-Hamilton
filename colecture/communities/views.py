@@ -32,6 +32,13 @@ def _redirect_back(request, community):
 
 # Create your views here.
 
+def _render_banned(request):
+    """Página estilizada (status 403) para usuário banido da comunidade."""
+    return render(request, "communities/community_blocked.html", {
+        "title": "Você foi banido",
+        "message": "Você foi banido desta comunidade e não pode mais acessá-la.",
+    }, status=403)
+
 """
 JoinCommunityView é uma CBV (class based view) para 
 manter a legibilidade dado que é uma view
@@ -114,7 +121,7 @@ class JoinCommunityView(LoginRequiredMixin, View):
     def user_is_banned(self):
         return (self.membership and
             self.membership.status == Membership.Status.BANNED and
-                HttpResponseForbidden("You've been banned from this community.")) or None;
+                _render_banned(self.request)) or None;
 
     def request_is_pending(self):
         return (self.community.access == Community.Access.PRIVATE and
@@ -310,7 +317,7 @@ def view_community(request, community_id):
 
     if not can_manage:  # não é admin, dono nem moderador
         if is_banned:
-            return HttpResponseForbidden("You've been banned from this community.")
+            return _render_banned(request)
         elif community_is_archived:
             return HttpResponseForbidden("This community is archived.")
 
