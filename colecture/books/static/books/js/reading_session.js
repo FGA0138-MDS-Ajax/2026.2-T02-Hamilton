@@ -48,6 +48,10 @@
     pagesTotal: $('[data-rs-pages-total]'),
     history: $('[data-rs-history]'),
     historyEmpty: $('[data-rs-history-empty]'),
+    historyOpen: $('[data-rs-history-open]'),
+    historyModal: $('[data-rs-history-modal]'),
+    historyClose: $('[data-rs-history-close]'),
+    historyBook: $('[data-rs-history-book]'),
     clear: $('[data-rs-clear]'),
     percent: $('[data-rs-percent]'),
     bar: $('[data-rs-bar]'),
@@ -55,7 +59,6 @@
     preview: $('[data-rs-preview]'),
     detail: $('[data-rs-detail]'),
     eta: $('[data-rs-eta]'),
-    count: $('[data-rs-count]'),
     finished: $('[data-rs-finished]'),
     markRead: $('[data-rs-mark-read]'),
     form: $('[data-rs-form]'),
@@ -89,7 +92,7 @@
   }
 
   function writeStore(key, data) {
-    localStorage.setItem(key, JSON.stringify(data)); // pode lançar erro (cota/privado)
+    localStorage.setItem(key, JSON.stringify(data)); 
   }
 
   function readingIds() {
@@ -109,7 +112,6 @@
     writeStore(SESSIONS_KEY, all);
   }
 
-  // ---------- Cálculos ----------
 
   function summaryOf(book) {
     var list = sessionsOf(book.id);
@@ -126,10 +128,6 @@
 
     var pagesRead = book.pages ? Math.min(book.pages, Math.round(percent * book.pages / 100)) : null;
 
-    // Tempo para terminar:
-    //  - se alguma sessão tem tempo informado, usa a média real do usuário (minutos por 1%);
-    //  - senão, estima pelas páginas que faltam × velocidade média (MINUTES_PER_PAGE);
-    //  - livro sem páginas e sem tempo informado: não dá para estimar (null).
     var eta = null;
     if (minutes > 0 && timedPercent > 0) {
       eta = Math.max(0, Math.round((100 - percent) * minutes / timedPercent));
@@ -141,7 +139,6 @@
   }
 
   function formatPercent(p) {
-    // sempre inteiro; arredonda para baixo para não mostrar 100% antes de terminar
     return Math.floor(p) + '%';
   }
 
@@ -150,14 +147,13 @@
     var h = Math.floor(total / 60);
     var m = total % 60;
     if (!h) return '~' + m + ' min';
-    return '~' + h + ' h' + (m ? ' ' + m + ' min' : '');
+    return h + ' h' + (m ? ' ' + m + ' min' : '');
   }
 
   function currentType() {
     return el.typePercent.checked ? 'percent' : 'pages';
   }
 
-  // Limpa os campos mantendo o tipo de registro escolhido
   function resetForm() {
     var type = currentType();
     el.form.reset();
@@ -168,28 +164,21 @@
 
   function remainingFor(book, sum, type) {
     if (type === 'pages') return book.pages - sum.pagesRead;
-    // inteiro e coerente com o progresso exibido (37% lido -> restam 63%)
     return 100 - Math.floor(sum.percent);
   }
 
-  // Quanto (em %) a quantidade digitada soma ao livro
   function sessionPercent(book, sum, type, amount) {
     if (type === 'pages') {
-      // Calcula pelo total de páginas depois da sessão para fechar 100% sem erro de arredondamento
       return ((sum.pagesRead + amount) / book.pages) * 100 - sum.percent;
     }
     return amount;
   }
 
-  // ---------- Validação (F04) ----------
   function parseNumber(input) {
     var v = input.value.trim().replace(',', '.');
     return v === '' ? null : Number(v);
   }
 
-  // Por páginas, o usuário informa EM QUAL PÁGINA PAROU; aqui isso vira
-  // quantas páginas leu na sessão (página atual - páginas já lidas).
-  // Retorna a quantidade lida (páginas ou %) ou null se inválido.
   function validateAmount() {
     var type = currentType();
     var sum = summaryOf(current);
@@ -225,18 +214,16 @@
     return msg ? null : value;
   }
 
-  // Máscara "h:mm": o usuário digita só números e os dois últimos viram os minutos.
-  // Ex.: "45" -> 45 (min) | "130" -> "1:30" | "1230" -> "12:30".
-  // (o teclado numérico do celular não tem ":", por isso a máscara)
+
   function maskDuration(value) {
     var d = value.replace(/\D/g, '').replace(/^0+(?=\d{3})/, '').slice(0, 4);
     return d.length > 2 ? d.slice(0, -2) + ':' + d.slice(-2) : d;
   }
 
-  // Tempo da sessão em "h:mm" (ou só minutos, ex.: "45").
-  // Retorna o total em minutos (0 se vazio) ou false se inválido.
-  function validateMinutes() {
-    var raw = el.minutes.value.trim();
+  // Lê o tempo no formato "h:mm" (ou só minutos). Vazio = 0.
+  // Retorna { total: minutos, msg: mensagem de erro ou '' }.
+  function parseDuration(raw) {
+    raw = (raw || '').trim();
     var msg = '';
     var total = 0;
 
@@ -254,11 +241,20 @@
       }
     }
 
-    setError(el.minutes, el.minutesError, msg);
-    return msg ? false : total;
+    return { total: total, msg: msg };
   }
 
-  // Ex.: 90 -> "1 h 30 min"
+  function validateMinutes() {
+    var result = parseDuration(el.minutes.value);
+    setError(el.minutes, el.minutesError, result.msg);
+    return result.msg ? false : result.total;
+  }
+
+  // Ex.: 90 -> "1:30" (usado para preencher o campo na edição)
+  function formatHM(total) {
+    return Math.floor(total / 60) + ':' + pad2(total % 60);
+  }
+
   function formatDuration(total) {
     var h = Math.floor(total / 60);
     var m = total % 60;
@@ -290,17 +286,17 @@
     var remaining = remainingFor(current, sum, type);
 
     if (type === 'pages') {
-      el.amountLabel.textContent = 'Em qual página você parou?';
+      el.amountLabel.textContent = 'Digite seu progresso ';
       el.suffix.textContent = 'pág.';
       el.amount.step = '1';
       el.amount.min = String(sum.pagesRead + 1);
       el.amount.max = String(current.pages);
       el.amount.setAttribute('inputmode', 'numeric');
       el.remaining.textContent = sum.pagesRead
-        ? 'Você está na página ' + sum.pagesRead + ' de ' + current.pages + '. Restam ' + remaining + ' páginas.'
+        ? 'Restam ' + remaining + ' páginas para finalizar o livro.'
         : 'Você ainda não registrou nenhuma página (total: ' + current.pages + ').';
     } else {
-      el.amountLabel.textContent = 'Percentual lido';
+      el.amountLabel.textContent = 'Digite o seu progresso';
       el.suffix.textContent = '%';
       el.amount.step = '1';
       el.amount.min = '1';
@@ -353,7 +349,6 @@
       el.eta.classList.remove('is-muted');
     }
 
-    el.count.textContent = String(sum.count);
 
     el.finished.hidden = !done;
     el.fields.disabled = done;
@@ -362,51 +357,217 @@
     renderHistory();
   }
 
-  // Lista das sessões do livro selecionado (mais recente primeiro)
+  // ---------- Histórico (pop-up) ----------
+  var MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  var editingIndex = null; // registro sendo editado (índice na lista cronológica)
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  // Ex.: "08/nov/2026 15:00"
+  function formatDateTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    return pad2(d.getDate()) + '/' + MONTHS[d.getMonth()] + '/' + d.getFullYear() +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  // Progresso acumulado ao fim de cada sessão (ordem cronológica): { percent, pages }
+  function timelineOf(book, list) {
+    var cum = 0;
+    return list.map(function (s) {
+      cum = Math.min(100, cum + (Number(s.percent) || 0));
+      var pages = null;
+      if (book.pages) {
+        pages = (s.type === 'pages' && s.page) ? s.page : Math.min(book.pages, Math.round(cum * book.pages / 100));
+      }
+      return { percent: cum, pages: pages };
+    });
+  }
+
+  // Recalcula a quantidade lida (amount) do registro j depois de uma edição
+  function refreshAmount(book, list, j) {
+    var tl = timelineOf(book, list);
+    var s = list[j];
+    if (s.type === 'pages' && book.pages) {
+      s.amount = tl[j].pages - (j > 0 ? tl[j - 1].pages : 0);
+    } else {
+      s.amount = Math.round(Number(s.percent) || 0);
+    }
+  }
+
+  function writeSessions(bookId, list) {
+    var all = readStore(SESSIONS_KEY);
+    all[bookId] = list;
+    writeStore(SESSIONS_KEY, all);
+  }
+
+  // Lista do pop-up (mais recente primeiro)
   function renderHistory() {
-    var list = sessionsOf(current.id).slice().reverse();
+    var list = sessionsOf(current.id);
+    var tl = timelineOf(current, list);
+
+    el.historyBook.textContent = current.title;
     el.history.innerHTML = '';
     el.historyEmpty.hidden = list.length > 0;
 
-    list.forEach(function (s) {
-      var li = document.createElement('li');
-      li.className = 'rs-history-item';
+    for (var i = list.length - 1; i >= 0; i--) {
+      if (i === editingIndex) el.history.appendChild(editItem(list, tl, i));
+      else el.history.appendChild(historyItem(list[i], tl, i));
+    }
+  }
 
-      var icon = document.createElement('span');
-      icon.className = 'rs-history-icon';
-      icon.innerHTML = '<i class="bx ' + (s.type === 'pages' ? 'bx-book-open' : 'bx-pie-chart-alt') + '" aria-hidden="true"></i>';
+  // Ex.: "263/433 pág. (60%)" + "08/nov/2026 15:00 · +32 págs · 1 h 30 min"
+  function historyItem(s, tl, i) {
+    var li = document.createElement('li');
+    li.className = 'rs-history-item';
+    li.dataset.index = i;
 
-      var text = document.createElement('div');
-      text.className = 'rs-history-text';
-      var title = document.createElement('strong');
-      title.textContent = s.type !== 'pages'
-        ? 'Registrou ' + s.amount + '%'
-        : (s.page
-            ? 'Parou na página ' + s.page
-            : 'Registrou ' + s.amount + (s.amount === 1 ? ' página' : ' páginas')); // sessões antigas
-      var meta = document.createElement('span');
-      var date = new Date(s.date);
-      meta.textContent = (isNaN(date) ? '' : date.toLocaleDateString('pt-BR')) +
-        (s.minutes ? ' · ' + formatDuration(s.minutes) : '');
-      text.appendChild(title);
-      text.appendChild(meta);
+    var text = document.createElement('div');
+    text.className = 'rs-history-text';
 
-      var pill = document.createElement('span');
-      pill.className = 'rs-history-pill';
-      // Mostra as páginas lidas na sessão; registro por % é convertido pelo total do livro
-      var pagesInSession = s.type === 'pages'
-        ? s.amount
-        : (current.pages ? Math.round((Number(s.percent) || 0) * current.pages / 100) : null);
-      pill.textContent = pagesInSession !== null
-        ? '+' + pagesInSession + ' págs'
-        : '+' + Math.round(Number(s.percent) || 0) + '%'; // livro sem nº de páginas
+    var title = document.createElement('strong');
+    title.textContent = current.pages
+      ? tl[i].pages + '/' + current.pages + ' pág. (' + formatPercent(tl[i].percent) + ')'
+      : formatPercent(tl[i].percent);
 
+    // Pode ser negativo se a atualização foi editada para uma página menor que a anterior
+    var diff = current.pages
+      ? tl[i].pages - (i > 0 ? tl[i - 1].pages : 0)
+      : Math.round(Number(s.percent) || 0);
+    var read = (diff < 0 ? '−' : '+') + Math.abs(diff) + (current.pages ? ' págs' : '%');
 
-      li.appendChild(icon);
-      li.appendChild(text);
-      li.appendChild(pill);
-      el.history.appendChild(li);
-    });
+    var meta = document.createElement('span');
+    meta.textContent = [formatDateTime(s.date), read, s.minutes ? formatDuration(s.minutes) : '']
+      .filter(Boolean).join(' · ');
+
+    text.appendChild(title);
+    text.appendChild(meta);
+
+    // Menu ⋮ (conteúdo fixo, sem dados do usuário)
+    var menu = document.createElement('div');
+    menu.className = 'rs-menu';
+    menu.innerHTML =
+      '<button type="button" class="rs-icon-btn" data-action="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Opções da atualização">' +
+        '<i class="bx bx-dots-vertical-rounded" aria-hidden="true"></i></button>' +
+      '<div class="rs-menu-list" role="menu" hidden>' +
+        '<button type="button" role="menuitem" data-action="edit"><i class="bx bx-edit-alt" aria-hidden="true"></i> Editar atualização</button>' +
+      '</div>';
+
+    li.appendChild(text);
+    li.appendChild(menu);
+    return li;
+  }
+
+  // Formulário de edição dentro do próprio item
+  function editItem(list, tl, i) {
+    var s = list[i];
+    var byPages = s.type === 'pages' && !!current.pages;
+
+    var li = document.createElement('li');
+    li.className = 'rs-history-item rs-history-item--form';
+    li.dataset.index = i;
+    li.innerHTML =
+      '<form class="rs-edit" novalidate>' +
+        '<div class="rs-edit-grid">' +
+          '<div>' +
+            '<label for="rsEditAmount">' + (byPages ? 'Página em que parou' : 'Percentual lido na sessão') + '</label>' +
+            '<div class="rs-input-group">' +
+              '<input id="rsEditAmount" name="amount" class="rs-input" type="number" inputmode="numeric" min="1" step="1" />' +
+              '<span class="rs-addon" aria-hidden="true">' + (byPages ? 'pág.' : '%') + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label for="rsEditDuration">Tempo da sessão</label>' +
+            '<div class="rs-input-group">' +
+              '<input id="rsEditDuration" name="duration" class="rs-input" type="text" inputmode="numeric" maxlength="5" placeholder="Ex.: 1:30" autocomplete="off" />' +
+              '<span class="rs-addon" aria-hidden="true">h:min</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<p class="rs-error" role="alert" hidden></p>' +
+        '<div class="rs-edit-actions">' +
+          '<button type="button" class="rs-btn" data-action="cancel">Cancelar</button>' +
+          '<button type="submit" class="rs-btn rs-btn--primary">Salvar</button>' +
+        '</div>' +
+      '</form>';
+
+    var form = li.querySelector('form');
+    form.elements.amount.value = byPages ? tl[i].pages : s.amount;
+    form.elements.duration.value = s.minutes ? formatHM(s.minutes) : '';
+    return li;
+  }
+
+  // Salva a edição: o registro seguinte é ajustado para manter o progresso dele
+  function saveEdit(i, form) {
+    var list = sessionsOf(current.id);
+    var tl = timelineOf(current, list);
+    var s = list[i];
+    if (!s) return;
+
+    var byPages = s.type === 'pages' && !!current.pages;
+    var prev = i > 0 ? tl[i - 1] : { percent: 0, pages: 0 };
+    var next = i < list.length - 1 ? tl[i + 1] : null;
+    var raw = form.elements.amount.value.trim();
+    var value = Number(raw);
+    var msg = '';
+    var newCum = 0;
+
+    if (raw === '' || isNaN(value) || !Number.isInteger(value) || value <= 0) {
+      msg = byPages ? 'Informe a página em que parou (número inteiro).' : 'Informe o percentual como número inteiro maior que zero.';
+    } else if (byPages) {
+      // Pode ser qualquer página do livro, inclusive menor que a da atualização anterior
+      if (value > current.pages) msg = 'Este livro tem ' + current.pages + ' páginas.';
+      newCum = value === current.pages ? 100 : value / current.pages * 100;
+    } else {
+      newCum = prev.percent + value;
+      if (newCum > 100) msg = 'Com esse valor o progresso passaria de 100%.';
+    }
+
+    var dur = parseDuration(form.elements.duration.value);
+    if (!msg) msg = dur.msg;
+
+    if (msg) {
+      var box = form.querySelector('.rs-error');
+      box.textContent = msg;
+      box.hidden = false;
+      return;
+    }
+
+    s.percent = newCum - prev.percent;
+    if (byPages) s.page = value;
+    s.minutes = dur.total || null;
+    if (next) list[i + 1].percent = next.percent - newCum;
+
+    refreshAmount(current, list, i);
+    if (next) refreshAmount(current, list, i + 1);
+
+    try {
+      writeSessions(current.id, list);
+    } catch (err) {
+      notify('error', 'Não foi possível salvar a edição. Tente de novo.');
+      return;
+    }
+
+    editingIndex = null;
+    renderTypeUI();
+    renderSummary();
+    notify('success', 'Atualização editada.');
+  }
+
+  function closeMenus() {
+    root.querySelectorAll('.rs-menu-list').forEach(function (m) { m.hidden = true; });
+    root.querySelectorAll('[data-action="menu"]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+  }
+
+  function toggleMenu(btn) {
+    var list = btn.nextElementSibling;
+    var willOpen = list.hidden;
+    closeMenus();
+    if (willOpen) {
+      list.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      list.querySelector('button').focus();
+    }
   }
 
   // Faixa listrada mostrando o que a sessão digitada vai somar
@@ -595,6 +756,70 @@
     if (!books.length) { show('empty'); return; }
     current = books[0];
     renderAll();
+  });
+
+  // ---------- Pop-up do histórico ----------
+  el.historyOpen.addEventListener('click', function () {
+    editingIndex = null;
+    renderHistory();
+    el.historyModal.showModal();
+  });
+
+  el.historyClose.addEventListener('click', function () { el.historyModal.close(); });
+
+  // Clique fora da caixa (no fundo escuro) fecha
+  el.historyModal.addEventListener('click', function (e) {
+    if (e.target === el.historyModal) el.historyModal.close();
+  });
+
+  // Esc: se houver menu aberto, fecha só o menu
+  el.historyModal.addEventListener('cancel', function (e) {
+    if (root.querySelector('.rs-menu-list:not([hidden])')) {
+      e.preventDefault();
+      closeMenus();
+    }
+  });
+
+  el.historyModal.addEventListener('close', function () {
+    editingIndex = null;
+    closeMenus();
+  });
+
+  // Ações dos itens (menu ⋮, editar, excluir, cancelar)
+  el.history.addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var item = btn.closest('[data-index]');
+    var i = item ? Number(item.dataset.index) : null;
+    var action = btn.dataset.action;
+
+    if (action === 'menu') { toggleMenu(btn); return; }
+    closeMenus();
+
+    if (action === 'edit') {
+      editingIndex = i;
+      renderHistory();
+      el.history.querySelector('#rsEditAmount').focus();
+    } else if (action === 'cancel') {
+      editingIndex = null;
+      renderHistory();
+    }
+  });
+
+  el.history.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var item = e.target.closest('[data-index]');
+    if (item) saveEdit(Number(item.dataset.index), e.target);
+  });
+
+  // Máscara h:mm também no campo de tempo da edição
+  el.history.addEventListener('input', function (e) {
+    if (e.target.name === 'duration') e.target.value = maskDuration(e.target.value);
+  });
+
+  // Clique fora de um menu ⋮ fecha os menus
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.rs-menu')) closeMenus();
   });
 
   el.retry.addEventListener('click', load);

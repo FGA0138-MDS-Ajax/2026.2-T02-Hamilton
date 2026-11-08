@@ -86,14 +86,11 @@
                   <span data-rs-eta></span>
                 </span>
               </div>
-              <div class="rs-stat">
-                <span class="rs-stat-label">Sessões registradas</span>
-                <span class="rs-stat-value">
-                  <i class="bx bx-book-open" aria-hidden="true"></i>
-                  <span data-rs-count></span>
-                </span>
-              </div>
             </div>
+
+            <button type="button" class="rs-btn rs-history-open" data-rs-history-open aria-haspopup="dialog">
+              <i class="bx bx-history" aria-hidden="true"></i> Ver histórico de leitura
+            </button>
           </aside>
 
           {# 100%: sugerir marcar como lido #}
@@ -107,12 +104,11 @@
           </div>
         </div>
 
-        {# F01: formulário #}
         <form class="rs-card rs-form" data-rs-form novalidate>
           <header class="rs-form-head">
             <div>
               <h3 class="rs-form-title">Registrar sessão</h3>
-              <p class="rs-form-sub">Informe a quantidade lida hoje para atualizar seu histórico.</p>
+              <p class="rs-form-sub">Informe em qual página parou hoje para atualizar seu histórico.</p>
             </div>
             <button type="button" class="rs-link" data-rs-clear>
               <i class="bx bx-reset" aria-hidden="true"></i> Limpar
@@ -147,8 +143,7 @@
 
             <div class="rs-field">
               <div class="rs-label-row">
-                <label for="rsMinutes">Tempo da sessão <span class="rs-optional"></span></label>
-                <span class="rs-label-aside">Calcula a média de término</span>
+                <label for="rsMinutes">Tempo da leitura <span class="rs-optional"></span></label>
               </div>
               <div class="rs-input-group">
                 <input id="rsMinutes" name="duration" class="rs-input" type="text"
@@ -165,16 +160,22 @@
           </fieldset>
         </form>
 
-        {# Histórico das sessões do livro selecionado #}
-        <section class="rs-card rs-history" aria-labelledby="rsHistoryTitle">
-          <header class="rs-history-head">
-            <h3 id="rsHistoryTitle"><i class="bx bx-history" aria-hidden="true"></i> Histórico de sessões</h3>
-            <span class="rs-history-note">Registros salvos localmente</span>
+      </div>
+
+      {# Pop-up com o histórico de sessões do livro selecionado #}
+      <dialog class="rs-modal" data-rs-history-modal aria-labelledby="rsHistoryTitle">
+        <div class="rs-modal-box">
+          <header class="rs-modal-head">
+            <h3 id="rsHistoryTitle">Histórico de leitura</h3>
+            <button type="button" class="rs-icon-btn" data-rs-history-close aria-label="Fechar histórico">
+              <i class="bx bx-x" aria-hidden="true"></i>
+            </button>
           </header>
+          <p class="rs-modal-book">Livro: <strong data-rs-history-book></strong></p>
           <p class="rs-hint" data-rs-history-empty>Nenhuma sessão registrada para este livro ainda.</p>
           <ul class="rs-history-list" data-rs-history></ul>
-        </section>
-      </div>
+        </div>
+      </dialog>
     </section>
   </div>
 {% endblock %}

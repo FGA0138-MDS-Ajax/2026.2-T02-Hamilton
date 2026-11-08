@@ -1,5 +1,3 @@
-/* Aba "Registrar leitura" (R18). Usa main/css/variables.css (carregue antes).
-   Tudo fica sob .rs para não brigar com o CSS da página R18. */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
@@ -10,9 +8,9 @@ body {
 }
 
 .rs-page {
-  max-width: 1600px;
+  max-width: 1800px;
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 40px 32px 56px;
 }
 
 .rs {
@@ -37,7 +35,7 @@ body {
 
 .rs-status { color: var(--text-muted); padding: 24px 0; }
 
-/* ---------- Layout: empilhado; duas colunas quando o container é largo ---------- */
+
 .rs-layout {
   display: grid;
   gap: 20px;
@@ -53,9 +51,10 @@ body {
 @container (min-width: 820px) {
   .rs-layout {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 24px;
-    align-items: start;
+    gap: 32px;
+    align-items: stretch; /* os dois cards ficam com a mesma altura */
   }
+  .rs-col > .rs-summary { flex: 1; }
   .rs-history { grid-column: 1 / -1; }
 }
 
@@ -67,14 +66,14 @@ body {
 }
 
 @container (min-width: 820px) {
-  .rs-card { padding: 28px 32px; }
+  .rs-card { padding: 70px 44px; }
 }
 
 /* ---------- Resumo do livro ---------- */
 .rs-summary {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 30px;
 }
 
 .rs-book {
@@ -94,7 +93,7 @@ body {
 }
 
 @container (min-width: 820px) {
-  .rs-cover { width: 120px; height: 176px; }
+  .rs-cover { width: 150px; height: 220px; }
 }
 
 .rs-cover--empty {
@@ -230,10 +229,10 @@ body {
   font-size: .85rem;
 }
 
-/* ---------- Estatísticas (2 caixinhas) ---------- */
+/* ---------- Estatística (tempo estimado) ---------- */
 .rs-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   padding-top: 22px;
   border-top: 1px solid var(--border);
@@ -356,7 +355,7 @@ body {
 .rs-fieldset {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 30px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -463,6 +462,18 @@ body {
 }
 
 .rs-input::placeholder { color: var(--text-muted); }
+
+/* Esconde as setinhas de aumentar/diminuir dos campos numéricos */
+.rs input[type="number"]::-webkit-outer-spin-button,
+.rs input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rs input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 
 .rs-input:focus {
   outline: none;
@@ -607,79 +618,179 @@ body {
 
 .rs-submit i { font-size: 1.2rem; }
 
-/* ---------- Histórico ---------- */
-.rs-history-head {
+/* ---------- Histórico (pop-up) ---------- */
+.rs-history-open { width: 100%; }
+
+.rs-modal {
+  /* centraliza na tela (o "* { margin: 0 }" do sidebar.css tira o centro padrão do <dialog>) */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(820px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: min(85vh, 800px);
+  padding: 0;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  overflow: visible; /* deixa o menu ⋮ aparecer por cima */
+}
+
+.rs-modal::backdrop {
+  background: rgba(5, 4, 10, .7);
+  backdrop-filter: blur(2px);
+}
+
+.rs-modal-box {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  padding: 32px 36px 36px;
+}
+
+.rs-modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 12px;
 }
 
-.rs-history-head h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
+.rs-modal-head h3 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+
+.rs-modal-book {
+  margin: 12px 0 0;
+  padding-bottom: 20px;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
-.rs-history-head h3 i { color: var(--purple-400); }
+.rs-modal-book strong { color: var(--text-primary); }
 
-.rs-history-note { font-size: .8rem; color: var(--text-muted); }
-
-.rs-history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rs-history-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-.rs-history-icon {
-  display: flex;
+.rs-icon-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-  font-size: 1.1rem;
-  color: var(--purple-300);
-  background: var(--purple-900);
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.rs-icon-btn:hover,
+.rs-icon-btn[aria-expanded="true"] {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.rs-icon-btn:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+.rs-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.rs-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .rs-history-text {
   display: flex;
   flex-direction: column;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
-.rs-history-text strong { font-size: .95rem; }
-.rs-history-text span { font-size: .8rem; color: var(--text-muted); }
+.rs-history-text strong { font-size: 1.1rem; }
+.rs-history-text span { font-size: .9rem; color: var(--text-muted); }
 
-.rs-history-pill {
-  flex-shrink: 0;
-  padding: 3px 10px;
+/* Menu ⋮ */
+.rs-menu { position: relative; }
+
+.rs-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+}
+
+.rs-menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font: 500 .9rem 'Poppins', sans-serif;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.rs-menu-list button:hover,
+.rs-menu-list button:focus-visible { background: var(--bg-surface); outline: none; }
+
+.rs-menu-list i { font-size: 1.1rem; color: var(--info); }
+/* Edição dentro do item */
+.rs-history-item--form { flex-direction: column; align-items: stretch; }
+
+.rs-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rs-edit-grid label {
+  display: block;
+  margin-bottom: 6px;
   font-size: .8rem;
   font-weight: 600;
-  color: var(--purple-100);
-  background: var(--purple-900);
-  border-radius: 999px;
+  color: var(--text-secondary);
+}
+
+.rs-edit-grid .rs-input { padding: 10px 12px; }
+.rs-edit-grid .rs-addon { padding: 0 12px; }
+
+.rs-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rs-edit-actions .rs-btn { min-height: 38px; padding: 0 16px; font-size: .85rem; }
+
+@media (max-width: 600px) {
+  .rs-modal-box { padding: 20px 18px 22px; }
+  .rs-edit-grid { grid-template-columns: 1fr; }
 }
 
 /* ---------- Sem livros / erro ---------- */
