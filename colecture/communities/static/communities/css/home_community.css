@@ -324,23 +324,32 @@
 }
 
 .com-tag-archived {
-    color: var(--text-secondary);
-    border-color: currentColor;
-    background: transparent;
+    color: #fff;
+    border-color: rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .08);
 }
 
-/* Comunidade arquivada: apagada e sem hover; só o botão continua ativo */
+/* Comunidade arquivada: "fantasminha" branco, como a meta encerrada
+   (esmaecida, sem cor; fica um pouco mais visível no hover) */
 .com-card--archived {
     cursor: default;
-}
-
-.com-card--archived > :not(.com-unarchive) {
-    opacity: .45;
+    opacity: .55;
+    filter: grayscale(1);
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, .25);
+    transition: opacity .15s, border-color .15s;
 }
 
 .com-card--archived:hover {
-    border-color: var(--border);
+    opacity: .8;
+    border-color: rgba(255, 255, 255, .45);
     box-shadow: none;
+}
+
+/* .com-card.com-card--archived para vencer as capas .com-card:nth-of-type() */
+.com-card.com-card--archived .com-cover {
+    background: rgba(255, 255, 255, .85);
+    color: var(--bg-surface);
 }
 
 .com-unarchive {
