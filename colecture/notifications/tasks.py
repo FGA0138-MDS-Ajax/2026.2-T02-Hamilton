@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from goals.models import ReadingSession
+from books.models import ReadingSession
 from .models import Notification
 
 @shared_task
