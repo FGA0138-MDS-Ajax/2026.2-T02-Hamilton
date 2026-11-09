@@ -404,3 +404,127 @@ class CT07(TestCase):
  
         self.assertEqual(response.status_code, 302); # redirecionado para o login do admin
         self.assertTrue(self.User.objects.filter(pk=alvo.pk).exists());
+
+# Estante do perfil: filtro, cards, marcar como lido e acesso ao registro de leitura
+class CTEstantePerfil(TestCase):
+    def setUp(self):
+        from books.models import Book, BookStatus
+        self.BookStatus = BookStatus
+        self.user = get_user_model().objects.create_user(username="Leitora", password="senha123456")
+        self.outro = get_user_model().objects.create_user(username="Outro", password="senha123456")
+        self.client.force_login(self.user)
+
+        self.lendo = Book.objects.create(isbn="111", title="Livro Lendo", author="Autora A", pages=200)
+        self.quero = Book.objects.create(isbn="222", title="Livro Quero", author="Autora B", pages=150)
+        self.lido = Book.objects.create(isbn="333", title="Livro Lido", author="Autora C", pages=100)
+
+        BookStatus.objects.create(user=self.user, book=self.lendo,
+                                  status=BookStatus.Status.READING, reading_progress="0.250")
+        BookStatus.objects.create(user=self.user, book=self.quero,
+                                  status=BookStatus.Status.WANT_TO_READ)
+        BookStatus.objects.create(user=self.user, book=self.lido,
+                                  status=BookStatus.Status.READ, reading_progress="1.000")
+
+    def test_estante_lista_livros_filtro_e_contadores(self):
+        response = self.client.get(reverse("accounts:profile"))
+
+        self.assertContains(response, "Livro Lendo")
+        self.assertContains(response, "Livro Quero")
+        self.assertContains(response, "Livro Lido")
+        for value in ("ALL", "READ", "READING", "WANT_TO_READ"):
+            self.assertContains(response, f'data-shelf-filter="{value}"')
+        filtros = {f["value"]: f["count"] for f in response.context["shelf_filters"]}
+        self.assertEqual(filtros, {"ALL": 3, "READ": 1, "READING": 1, "WANT_TO_READ": 1})
+
+    def test_progresso_aparece_so_em_lendo_e_sem_botao_marcar_lido(self):
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertContains(response, "50/200 pág. · 25%")
+        self.assertContains(response, "data-shelf-progress", count=1)
+        self.assertNotContains(response, "data-mark-read")  # sem botão "Marcar como lido" no card
+
+    def test_estante_vazia_mantem_texto_padrao(self):
+        self.BookStatus.objects.filter(user=self.user).delete()
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertContains(response, "Você ainda não registrou nenhum livro.")
+        self.assertNotContains(response, "data-shelf-grid")
+
+    def test_clique_no_livro_leva_ao_registro_de_progresso_e_popup_de_tag(self):
+        response = self.client.get(reverse("accounts:profile"))
+        # sem o botão "Registrar leitura" no cabeçalho; o clique no livro usa esta URL
+        self.assertNotContains(response, "bookshelf-register")
+        self.assertContains(response, f'data-progress-url="{reverse("books:reading_session")}"')
+        self.assertContains(response, f'data-shelf-url="{reverse("books:manage_bookshelf")}"')
+        self.assertContains(response, "data-status-modal")
+        self.assertContains(response, "data-change-status", count=3)
+        self.assertContains(response, 'class="rail"')
+
+    def test_marcar_como_lido_salva_data_e_progresso(self):
+        from decimal import Decimal
+        from django.utils import timezone
+
+        for book in (self.lendo, self.quero):
+            response = self.client.post(reverse("books:mark_book_as_read", args=[book.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()["success"])
+
+            status = self.BookStatus.objects.get(user=self.user, book=book)
+            self.assertEqual(status.status, self.BookStatus.Status.READ)
+            self.assertEqual(status.finished_at, timezone.localdate())
+            self.assertEqual(status.reading_progress, Decimal("1.000"))
+
+        filtros = {f["value"]: f["count"]
+                   for f in self.client.get(reverse("accounts:profile")).context["shelf_filters"]}
+        self.assertEqual(filtros["READ"], 3)
+        self.assertEqual(filtros["READING"], 0)
+
+    def test_marcar_como_lido_exige_post(self):
+        response = self.client.get(reverse("books:mark_book_as_read", args=[self.lendo.id]))
+        self.assertEqual(response.status_code, 405)
+
+    def test_marcar_como_lido_livro_fora_da_estante(self):
+        self.client.force_login(self.outro)
+        response = self.client.post(reverse("books:mark_book_as_read", args=[self.lendo.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(
+            self.BookStatus.objects.get(user=self.user, book=self.lendo).status,
+            self.BookStatus.Status.READING,
+        )
+
+    def test_clique_no_card_abre_registro_no_livro_sem_seletor(self):
+        response = self.client.get(reverse("books:reading_session"))
+        self.assertNotContains(response, 'id="rsBook"')  # sem o seletor de livro
+        self.assertContains(response, "data-progress-url=")
+
+    def test_salvar_progresso_atualiza_estante(self):
+        import json
+        from decimal import Decimal
+        url = reverse("books:save_reading_progress", args=[self.lendo.id])
+
+        response = self.client.post(url, json.dumps({"percent": 42.5}), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        status = self.BookStatus.objects.get(user=self.user, book=self.lendo)
+        self.assertEqual(status.reading_progress, Decimal("0.425"))
+
+        profile = self.client.get(reverse("accounts:profile"))
+        self.assertContains(profile, "85/200 pág. · 42%")
+
+    def test_salvar_progresso_quero_ler_vira_lendo(self):
+        import json
+        url = reverse("books:save_reading_progress", args=[self.quero.id])
+        self.client.post(url, json.dumps({"percent": 10}), content_type="application/json")
+        self.assertEqual(
+            self.BookStatus.objects.get(user=self.user, book=self.quero).status,
+            self.BookStatus.Status.READING,
+        )
+
+    def test_salvar_progresso_invalido(self):
+        import json
+        url = reverse("books:save_reading_progress", args=[self.lendo.id])
+        for body in ({"percent": 150}, {"percent": -1}, {"percent": "abc"}, {}):
+            response = self.client.post(url, json.dumps(body), content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+
+        self.client.force_login(self.outro)
+        response = self.client.post(url, json.dumps({"percent": 10}), content_type="application/json")
+        self.assertEqual(response.status_code, 404)

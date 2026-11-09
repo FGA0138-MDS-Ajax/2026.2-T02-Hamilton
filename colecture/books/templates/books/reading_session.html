@@ -1,0 +1,183 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Registrar leitura - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'books/css/reading_session.css' %}" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="rs-page">
+    <section class="rs" id="readingSession"
+             data-lookup-url="{% url 'books:lookup' %}"
+             data-progress-url="{% url 'books:save_reading_progress' 0 %}"
+             data-mark-read-url="{% url 'books:mark_book_as_read' 0 %}"
+             data-csrf="{{ csrf_token }}"
+             aria-labelledby="rsHeading">
+
+      <h2 id="rsHeading" class="rs-sr-only">Registrar leitura</h2>
+
+      <p class="rs-status" data-rs-loading>Carregando seus livros…</p>
+
+      <div class="rs-empty" data-rs-empty hidden>
+        <i class="bx bx-book rs-empty-icon" aria-hidden="true"></i>
+        <h3>Você não tem nenhum livro em leitura</h3>
+        <p>Marque um livro como “Lendo” para registrar suas sessões aqui.</p>
+        <a class="rs-btn rs-btn--primary" href="{% url 'main:search' %}">Encontrar livros</a>
+      </div>
+
+      {# Falha ao buscar os dados dos livros #}
+      <div class="rs-empty" data-rs-load-error hidden>
+        <i class="bx bx-error-circle rs-empty-icon" aria-hidden="true"></i>
+        <h3>Não foi possível carregar seus livros</h3>
+        <p>Verifique sua conexão e tente de novo.</p>
+        <button type="button" class="rs-btn" data-rs-retry>Tentar de novo</button>
+      </div>
+
+      <div class="rs-layout" data-rs-content hidden>
+
+        <div class="rs-col">
+          <aside class="rs-card rs-summary" aria-label="Resumo do livro">
+            {# O livro vem do card clicado no perfil (?book=<id>), sem seletor #}
+            <div class="rs-book">
+              <img class="rs-cover" data-rs-cover alt="" hidden />
+              <div class="rs-cover rs-cover--empty" data-rs-cover-empty aria-hidden="true">
+                <i class="bx bx-book"></i>
+              </div>
+              <div class="rs-book-text">
+                <div class="rs-book-top">
+                  <p class="rs-book-title" data-rs-title></p>
+                  <span class="rs-badge">Lendo</span>
+                </div>
+                <p class="rs-book-author" data-rs-author></p>
+                <div class="rs-book-meta">
+                  <span class="rs-chip" data-rs-genre hidden></span>
+                  <span class="rs-book-pages" data-rs-pages-total></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rs-progress">
+              <div class="rs-progress-head">
+                <span id="rsProgressLabel">Progresso acumulado</span>
+                <strong class="rs-percent" data-rs-percent>0%</strong>
+              </div>
+              <div class="rs-bar" role="progressbar" aria-labelledby="rsProgressLabel"
+                   aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-rs-bar>
+                <div class="rs-bar-fill" data-rs-fill></div>
+                <div class="rs-bar-preview" data-rs-preview></div>
+              </div>
+              <p class="rs-progress-detail" data-rs-detail></p>
+            </div>
+
+            <div class="rs-stats">
+              <div class="rs-stat">
+                <span class="rs-stat-label">Tempo estimado para terminar</span>
+                <span class="rs-stat-value">
+                  <i class="bx bx-time-five" aria-hidden="true"></i>
+                  <span data-rs-eta></span>
+                </span>
+              </div>
+            </div>
+
+            <button type="button" class="rs-btn rs-history-open" data-rs-history-open aria-haspopup="dialog">
+              <i class="bx bx-history" aria-hidden="true"></i> Ver histórico de leitura
+            </button>
+          </aside>
+
+          {# 100%: sugerir marcar como lido #}
+          <div class="rs-finished" data-rs-finished hidden tabindex="-1">
+            <span class="rs-finished-icon" aria-hidden="true"><i class="bx bx-trophy"></i></span>
+            <div class="rs-finished-text">
+              <strong>Livro concluído (100%)!</strong>
+              <span>Deseja alterar a tag para “Lido”?</span>
+            </div>
+            <button type="button" class="rs-btn rs-btn--success" data-rs-mark-read>Marcar como lido</button>
+          </div>
+        </div>
+
+        <form class="rs-card rs-form" data-rs-form novalidate>
+          <header class="rs-form-head">
+            <div>
+              <h3 class="rs-form-title">Registrar sessão</h3>
+              <p class="rs-form-sub">Informe em qual página parou hoje para atualizar seu histórico.</p>
+            </div>
+            <button type="button" class="rs-link" data-rs-clear>
+              <i class="bx bx-reset" aria-hidden="true"></i> Limpar
+            </button>
+          </header>
+
+          <fieldset class="rs-fieldset" data-rs-fields>
+            <div class="rs-field">
+              <span class="rs-field-label" id="rsTypeLabel">Como você quer registrar?</span>
+              <div class="rs-toggle" role="radiogroup" aria-labelledby="rsTypeLabel">
+                <input type="radio" name="type" id="rsTypePages" value="pages" checked />
+                <label for="rsTypePages"><i class="bx bx-book-open" aria-hidden="true"></i> Páginas lidas</label>
+                <input type="radio" name="type" id="rsTypePercent" value="percent" />
+                <label for="rsTypePercent"><i class="bx bx-pie-chart-alt" aria-hidden="true"></i> Percentual</label>
+              </div>
+              <p class="rs-hint" data-rs-no-pages hidden>
+                Este livro não tem número de páginas cadastrado, então o registro é por percentual.
+              </p>
+            </div>
+
+            <div class="rs-field">
+              <label for="rsAmount" data-rs-amount-label>Em qual página você parou?</label>
+              <div class="rs-input-group">
+                <input id="rsAmount" name="amount" class="rs-input" type="number"
+                       inputmode="numeric" min="1" step="1" placeholder="0"
+                       aria-describedby="rsAmountHint rsAmountError" />
+                <span class="rs-addon" data-rs-suffix aria-hidden="true">págs</span>
+              </div>
+              <p class="rs-hint" id="rsAmountHint" data-rs-remaining></p>
+              <p class="rs-error" id="rsAmountError" role="alert" hidden></p>
+            </div>
+
+            <div class="rs-field">
+              <div class="rs-label-row">
+                <label for="rsMinutes">Tempo da leitura <span class="rs-optional"></span></label>
+              </div>
+              <div class="rs-input-group">
+                <input id="rsMinutes" name="duration" class="rs-input" type="text"
+                       inputmode="numeric" maxlength="5" placeholder="Ex.: 1:30" autocomplete="off"
+                       aria-describedby="rsMinutesHint rsMinutesError" />
+                <span class="rs-addon" aria-hidden="true">h:min</span>
+              </div>
+              <p class="rs-error" id="rsMinutesError" role="alert" hidden></p>
+            </div>
+
+            <button type="submit" class="rs-btn rs-btn--primary rs-submit">
+              <i class="bx bx-save" aria-hidden="true"></i> Salvar registro de leitura
+            </button>
+          </fieldset>
+        </form>
+
+      </div>
+
+      {# Pop-up com o histórico de sessões do livro selecionado #}
+      <dialog class="rs-modal" data-rs-history-modal aria-labelledby="rsHistoryTitle">
+        <div class="rs-modal-box">
+          <header class="rs-modal-head">
+            <h3 id="rsHistoryTitle">Histórico de leitura</h3>
+            <button type="button" class="rs-icon-btn" data-rs-history-close aria-label="Fechar histórico">
+              <i class="bx bx-x" aria-hidden="true"></i>
+            </button>
+          </header>
+          <p class="rs-modal-book">Livro: <strong data-rs-history-book></strong></p>
+          <p class="rs-hint" data-rs-history-empty>Nenhuma sessão registrada para este livro ainda.</p>
+          <ul class="rs-history-list" data-rs-history></ul>
+        </div>
+      </dialog>
+    </section>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'main/js/toast.js' %}"></script>
+  {# ?v= força o navegador a baixar a versão nova (sem o seletor de livro) #}
+  <script src="{% static 'books/js/reading_session.js' %}?v=2"></script>
+{% endblock %}
