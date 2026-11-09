@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+from django.utils import timezone;
 
 ISBN_MAX_LENGTH = 17
 TITLE_MAX_LENGTH = 200
@@ -179,3 +180,56 @@ class BookStatus(models.Model):
             if status in status_tup:
                 return True;
         return False;
+
+class ReadingSession(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    #quantidade de páginas lidas nesta sessão específica
+    pages_read = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
+    minute_count = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
+    date = models.DateField(default=timezone.localdate)
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        #impede registros com data no futuro
+        if self.date is not None and self.date > timezone.localdate():
+            errors["date"] = (
+                "A data da leitura não pode estar no futuro."
+            )
+
+        #verifica se a quantidade de páginas é válida
+        if self.book_id and self.pages_read is not None:
+            if self.book.pages is None:
+                errors["book"] = (
+                    "O livro precisa ter a quantidade de páginas informada."
+                )
+            elif self.pages_read > self.book.pages:
+                errors["pages_read"] = (
+                    "A quantidade de páginas lidas não pode ultrapassar "
+                    "o total de páginas do livro."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.user} - {self.book} ({self.date})"
