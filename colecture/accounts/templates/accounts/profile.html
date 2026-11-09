@@ -10,8 +10,19 @@
 
 {% block content %}
     <div class="main-box">
-      {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
       <div class="profile">
+
+        {# Banner de Alerta Diário de Ofensiva #}
+        {% if not read_today %}
+          <div class="streak-alert-banner" role="alert">
+            <i class="bx bxs-hot" aria-hidden="true"></i>
+            <div>
+              <strong>Não perca sua ofensiva!</strong>
+              <p>Você ainda não registrou leitura hoje. Leia algumas páginas para manter sua sequência.</p>
+            </div>
+          </div>
+        {% endif %}
+
         <section class="user-card" aria-labelledby="user-name">
           <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
@@ -48,21 +59,28 @@
         </section>
 
         <div class="stats">
+          {# Card de Ofensiva com acesso ao Calendário #}
           <section class="card streak-card" aria-labelledby="streak-title">
             <h2 id="streak-title">
               <i class="bx bxs-hot" aria-hidden="true"></i> Ofensiva
             </h2>
             <p class="stat-value">
-              {{ profile.streak }}
-              <span>{{ profile.streak|pluralize:"dia,dias" }} seguidos</span>
+              {{ profile.streak|default:0 }}
+              <span>{{ profile.streak|default:0|pluralize:"dia,dias" }} seguidos</span>
             </p>
             <p class="hint">
-              {% if profile.streak > 0 %}
+              {% if profile.streak and profile.streak > 0 %}
                 Continue lendo todos os dias para manter a sequência!
               {% else %}
                 Leia hoje para começar a sua ofensiva.
               {% endif %}
             </p>
+            <div class="card-action-link">
+              {# Substitua a URL abaixo pela rota real do seu calendário de ofensivas #}
+              <a href="#" class="btn-outline calendar-btn">
+                <i class="bx bx-calendar-alt" aria-hidden="true"></i> Ver Calendário
+              </a>
+            </div>
           </section>
 
           <section class="card" aria-labelledby="badges-title">
@@ -72,11 +90,26 @@
             <p class="empty">Nenhuma insígnia conquistada ainda.</p>
           </section>
 
-          <section class="card" aria-labelledby="communities-title">
-            <h2 id="communities-title">
-              <i class="bx bxs-group" aria-hidden="true"></i> Comunidades
+          {# Novo Card: Meta Individual (Substitui o antigo card de comunidades) #}
+          <section class="card goal-card" aria-labelledby="goal-title">
+            <h2 id="goal-title">
+              <i class="bx bx-target-lock" aria-hidden="true"></i> Meta Individual
             </h2>
-            <p class="empty">Você ainda não participa de nenhuma comunidade.</p>
+            {% if individual_goal %}
+              <div class="goal-info">
+                <p><strong>{{ individual_goal.title }}</strong></p>
+                <p class="hint">Alvo: {{ individual_goal.target_value }} {{ individual_goal.get_metric_display|default:"páginas" }}</p>
+                <div class="goal-actions-row">
+                  {# Ajuste as URLs conforme as rotas de metas individuais do seu projeto #}
+                  <a href="#" class="btn-outline">Editar Meta</a>
+                </div>
+              </div>
+            {% else %}
+              <p class="empty">Você ainda não definiu uma meta individual de leitura.</p>
+              <div class="card-action-link">
+                <a href="#" class="btn-outline">Criar Meta</a>
+              </div>
+            {% endif %}
           </section>
         </div>
 
@@ -85,7 +118,6 @@
             <i class="bx bxs-book" aria-hidden="true"></i> Sua estante
           </h2>
 
-          {# Futuramente a view passará "books" (histórico de leituras) no contexto. #}
           {% if books %}
             <ul class="book-list">
               {% for book in books %}

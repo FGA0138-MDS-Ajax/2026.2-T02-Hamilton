@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth import get_user_model;
 
-from communities.models import Community
+from communities.models import Community, Membership
 from communities.services import MembershipService
 from forums.models import Forum
 
@@ -60,9 +60,11 @@ class GoalService:
         if goal.is_collective:
             # só metas coletivas têm fórum
             Forum.objects.create(name=goal.name[:100], goal=goal)
-            # o criador entra na própria meta (o admin pode não ser membro da comunidade)
-        if creator_is_a_user and (not goal.is_collective
-                or MembershipService.user_in_community(creator, goal.owner_community)):
+            # meta de comunidade: todos os membros (e o criador da
+            # comunidade) entram automaticamente, inclusive quem criou a meta
+            GoalService.join_all_members(goal)
+        elif creator_is_a_user:
+            # meta individual: o dono entra na própria meta
             GoalService.join(creator, goal)
         return goal
 
@@ -119,6 +121,61 @@ class GoalService:
         participation.joined_at = timezone.now()
         participation.save(update_fields=["state", "joined_at"])
         return participation, True
+
+    @staticmethod
+    @transaction.atomic
+    def join_all_members(goal) -> int:
+        """
+        Inscreve na meta coletiva todos os membros ativos da comunidade e o
+        seu criador (que não possui Membership). Usado na criação da meta.
+
+        Só cria as participações que faltam: não reativa quem saiu da meta.
+        Metas que não estão ativas, individuais ou de comunidades
+        arquivadas não recebem ninguém. Retorna quantas foram criadas.
+        """
+        if not goal.is_collective or goal.status != Goal.Status.ACTIVE:
+            return 0
+        community = goal.owner_community
+        if community.state != Community.State.ACTIVE:
+            return 0
+
+        user_ids = set(
+            Membership.objects.filter(
+                community=community,
+                status=Membership.Status.ACTIVE,
+            ).values_list("user_id", flat=True)
+        )
+        user_ids.add(community.creator_id)
+
+        already_in = set(
+            GoalParticipation.objects.filter(
+                goal=goal, user_id__in=user_ids
+            ).values_list("user_id", flat=True)
+        )
+        GoalParticipation.objects.bulk_create([
+            GoalParticipation(goal=goal, user_id=user_id)
+            for user_id in user_ids - already_in
+        ])
+        return len(user_ids - already_in)
+
+    @staticmethod
+    def join_active_goals(user, community) -> int:
+        """
+        Inscreve o usuário em todas as metas ativas da comunidade (chamado
+        quando ele passa a ser membro ativo). Também reativa participações
+        antigas, desativadas quando ele saiu da comunidade.
+        Retorna quantas participações foram criadas ou reativadas.
+        """
+        if community.state != Community.State.ACTIVE:
+            return 0
+        changed_count = 0
+        for goal in community.goals.filter(status=Goal.Status.ACTIVE):
+            try:
+                _, changed = GoalService.join(user, goal)
+            except ValidationError:
+                continue  # meta/comunidade indisponível: não bloqueia a entrada
+            changed_count += int(changed)
+        return changed_count
 
     @staticmethod
     def leave(user, goal) -> int:

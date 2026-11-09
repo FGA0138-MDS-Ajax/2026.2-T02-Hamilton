@@ -13,16 +13,18 @@ var emptyImg = document.querySelector("[data-empty-img]").dataset.emptyImg;
 
 
 var statusOptions = [
-  { value: "reading", label: "Lendo" },
-  { value: "read", label: "Lido" },
-  { value: "want-to-read", label: "Quero ler" }
+  { value: "READING", label: "Lendo" },
+  { value: "READ", label: "Lido" },
+  { value: "WANT_TO_READ", label: "Quero ler" }
 ];
+var userShelf = {};
 
 
 var shelfStorageKey = "colectureShelf";
 
 
 function getShelf() {
+  return userShelf;
   var saved = localStorage.getItem(shelfStorageKey);
   if (saved) {
     return JSON.parse(saved);
@@ -35,6 +37,21 @@ function saveShelf(shelf) {
   localStorage.setItem(shelfStorageKey, JSON.stringify(shelf));
 }
 
+// Função auxiliar do Django para pegar o CSRF Token dos cookies
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 function setStatus(bookId, status) {
   var shelf = getShelf();
@@ -47,7 +64,41 @@ function setStatus(bookId, status) {
 
   saveShelf(shelf);
 
+  fetch("/books/shelf/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken") // Obrigatório no Django para POST
+        },
+        body: JSON.stringify({ book_id: bookId, status: status })
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.error("Erro ao salvar o status no servidor.");
+        }
+    })
+    .catch(error => console.error("Erro de rede:", error));
 
+}
+
+// Função para carregar a estante do backend ANTES de rodar a busca
+function loadShelfAndStart() {
+    fetch(shelfUrl)
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error("Erro ao carregar estante");
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            // Suponha que o Django retorne algo como: { "1": "READ", "4": "READING" }
+            userShelf = data; 
+            runSearch(); // Só busca os livros após carregar os status do usuário
+        })
+        .catch(function(error) {
+            console.log("Erro ao buscar estante:", error);
+            runSearch(); // Roda a busca mesmo se falhar para não quebrar a página
+        });
 }
 
 function getStatusLabel(status) {
@@ -559,4 +610,4 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
-runSearch();
+loadShelfAndStart();

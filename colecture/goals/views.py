@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -15,6 +16,14 @@ from .models import Goal
 from .services import GoalService
 
 
+def _redirect_after_goal(goal):
+    """A meta não tem página própria: depois das ações voltamos para a
+    comunidade dona dela (ou para o início, no caso de meta individual)."""
+    if goal.owner_community_id:
+        return redirect("communities:view_community", community_id=goal.owner_community_id)
+    return redirect("main:index")
+
+
 def _create_goal(request, instance):
     """Fluxo comum de criação; instance já vem com o dono definido."""
     if request.method == "POST":
@@ -22,7 +31,7 @@ def _create_goal(request, instance):
         if form.is_valid():
             goal = GoalService.create_goal(form.save(commit=False), request.user)
             messages.success(request, f'Meta "{goal.name}" criada!')
-            return redirect("goals:view_goal", goal_id=goal.id)
+            return _redirect_after_goal(goal)
         messages.error(request, "Não foi possível criar a meta. Verifique os campos.")
     else:
         form = GoalForm(instance=instance)
@@ -43,31 +52,6 @@ def create_community_goal(request, community_id):
 def create_profile_goal(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
     return _create_goal(request, Goal(owner_profile=profile))
-
-
-@login_required
-def view_goal(request, goal_id):
-    goal = get_object_or_404(
-        Goal.objects.select_related("owner_community", "owner_profile__user", "book"),
-        id=goal_id,
-    )
-    if not GoalService.user_can_view(request.user, goal):
-        return HttpResponseForbidden()
-
-    participates = GoalService.user_participates(request.user, goal)
-    can_manage = GoalService.user_can_manage(request.user, goal)
-    return render(request, "goals/goal_view.html", {
-        "goal": goal,
-        "progress": GoalService.get_progress(goal),
-        "time_remaining": goal.time_remaining,
-        # o fórum só é visível a quem participa da meta ou a modera
-        # (ver ForumService.user_can_view). Metas individuais não têm
-        # fórum: get_forum devolve None (goal.forum levantaria exceção).
-        "forum": GoalService.get_forum(goal) if (participates or can_manage) else None,
-        "participates": participates,
-        "can_manage": can_manage,
-        "can_join": not participates and goal.status == Goal.Status.ACTIVE,
-    })
 
 
 @login_required
@@ -95,7 +79,7 @@ def edit_goal(request, goal_id):
         if form.is_valid():
             GoalService.update_goal(form.save(commit=False))
             messages.success(request, "Meta atualizada!")
-            return redirect("goals:view_goal", goal_id=goal.id)
+            return _redirect_after_goal(goal)
         messages.error(request, "Não foi possível salvar. Verifique os campos.")
     else:
         form = GoalForm(instance=goal)
@@ -116,7 +100,7 @@ def join_goal(request, goal_id):
         GoalService.join(request.user, goal)
     except ValidationError as e:
         messages.error(request, " ".join(e.messages))
-    return redirect("goals:view_goal", goal_id=goal.id)
+    return _redirect_after_goal(goal)
 
 
 @login_required
@@ -125,7 +109,7 @@ def leave_goal(request, goal_id):
     goal = get_object_or_404(Goal, id=goal_id)
     if GoalService.leave(request.user, goal) == 0:
         messages.error(request, "Você não participa desta meta.")
-    return redirect("goals:view_goal", goal_id=goal.id)
+    return _redirect_after_goal(goal)
 
 @login_required
 def register_reading_session(request):
@@ -133,7 +117,12 @@ def register_reading_session(request):
         form = ReadingSessionForm(request.POST, user=request.user)
 
         if form.is_valid():
-            reading_session = form.save()
+            # sessão e ofensiva são salvas juntas: ou as duas, ou nenhuma
+            with transaction.atomic():
+                reading_session = form.save()
+                profile, _ = Profile.objects.get_or_create(user=request.user)
+                if profile.register_reading_day(reading_session.date):
+                    profile.save(update_fields=["streak", "last_read_date"])
             return redirect("goals:register_reading_session")
 
     else:
@@ -160,4 +149,4 @@ def conclude_goal(request, goal_id):
     nxt = request.POST.get("next", "")
     if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
         return redirect(nxt)
-    return redirect("goals:view_goal", goal_id=goal.id)
+    return _redirect_after_goal(goal)

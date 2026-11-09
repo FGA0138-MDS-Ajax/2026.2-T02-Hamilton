@@ -1357,48 +1357,52 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertTrue(cards["closed"][0]["closed"])
 
     def test_card_has_completion_count_and_forum(self):
-        goal = self.make_goal("Com fórum")
-        self.GoalParticipation.objects.create(goal=goal, user=self.member)
+        # a meta criada já inscreve todos: o criador da comunidade e o membro
+        self.make_goal("Com fórum")
         self.client.force_login(self.member)
         card = self.client.get(self.url).context["goal_cards"]["active"][0]
-        self.assertEqual(card["completion"], {"done": 0, "total": 1})
+        self.assertEqual(card["completion"], {"done": 0, "total": 2})
         self.assertIsNotNone(card["forum"])
 
-    def test_card_links_to_goal_page_even_without_forum(self):
-        goal = self.make_goal("Com link")
+    def test_card_without_forum_shows_name_without_link(self):
+        goal = self.make_goal("Sem link")
         self.Forum.objects.filter(goal=goal).delete()
         self.client.force_login(self.member)
         response = self.client.get(self.url)
         self.assertIsNone(response.context["goal_cards"]["active"][0]["forum"])
-        link = reverse("goals:view_goal", kwargs={"goal_id": goal.id})
-        self.assertContains(response, f'href="{link}"')
+        self.assertContains(response, 'Sem link')
+        self.assertEqual(self.client.get(f"/goals/{goal.id}/").status_code, 404)
 
     def test_card_title_goes_straight_to_forum_even_without_participating(self):
         goal = self.make_goal("Com fórum")
         forum = self.Forum.objects.get(goal=goal)
-        self.client.force_login(self.member)  # não participa da meta
+        self.client.force_login(self.member)  
         forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
-        goal_link = reverse("goals:view_goal", kwargs={"goal_id": goal.id})
         response = self.client.get(self.url)
         self.assertContains(response, f'class="goal-card__link" href="{forum_link}"')
-        self.assertNotContains(response, f'class="goal-card__link" href="{goal_link}"')
 
-    def test_edit_forum_button_and_popup_are_for_moderators_only(self):
-        goal = self.make_goal("Editável")
+    def test_card_has_no_separate_forum_button(self):
+        goal = self.make_goal("Sem botão")
         forum = self.Forum.objects.get(goal=goal)
-        edit_url = reverse("forums:edit_forum", kwargs={"forum_id": forum.id})
+        forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
+        for user in (self.member, self.creator):
+            self.client.force_login(user)
+            response = self.client.get(self.url)
+            self.assertContains(response, f'href="{forum_link}"', count=1)
+
+    def test_edit_goal_link_is_for_moderators_only(self):
+        goal = self.make_goal("Editável")
+        edit_url = reverse("goals:edit_goal", kwargs={"goal_id": goal.id})
 
         self.client.force_login(self.creator)
         response = self.client.get(self.url)
-        self.assertContains(response, f'data-url="{edit_url}"')
-        self.assertContains(response, "data-edit-forum")
-        self.assertContains(response, 'id="edit-forum-dialog"')
+        self.assertContains(response, f'href="{edit_url}"')
+        self.assertNotContains(response, "data-edit-forum")
 
         self.client.force_login(self.member)
         response = self.client.get(self.url)
         self.assertNotContains(response, edit_url)
         self.assertNotContains(response, "data-edit-forum")
-        self.assertNotContains(response, 'id="edit-forum-dialog"')
 
     def test_empty_state_shows_create_button_only_to_moderator(self):
         self.client.force_login(self.member)
@@ -1417,7 +1421,6 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertIsNone(response.context["general_forum"])
 
     def test_general_forum_link_is_shown_to_members_only(self):
-        # o fórum geral já é criado por CommunityService.create_community
         forum = self.Forum.objects.get(community=self.community)
         link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
 

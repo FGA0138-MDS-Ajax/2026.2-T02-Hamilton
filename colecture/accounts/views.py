@@ -1,7 +1,8 @@
-from django.shortcuts import render, redirect;
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, get_user_model;
 from django.contrib.auth.decorators import login_required;
 from django.contrib import messages
+from django.utils import timezone
 from .models import Profile;
 from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
@@ -33,12 +34,10 @@ def login_view(request):
             user = form.get_user();
             login(request, user);
 
-            # pega a URL que o usuário tentava acessar antes do login.
             next_url = request.POST.get('next') or request.GET.get('next');
 
             return redirect(next_url or "main:index");
         else:
-            # Mensagem de erro ao falhar no login
             messages.error(request, 'Usuário ou senha inválidos. Tente novamente.')
 
     else:
@@ -54,7 +53,22 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
-    return render(request, 'accounts/profile.html', {'profile': profile})
+    
+    # Busca a meta individual ativa do usuário (caso exista o model IndividualGoal ou similar)
+    individual_goal = getattr(profile, 'individual_goal', None)
+    
+    # Verifica se leu hoje (exemplo integrando com ReadingLog se houver)
+    today = timezone.localdate()
+    read_today = False
+    if hasattr(profile, 'reading_logs'):
+        read_today = profile.reading_logs.filter(date=today).exists()
+
+    context = {
+        'profile': profile,
+        'individual_goal': individual_goal,
+        'read_today': read_today,
+    }
+    return render(request, 'accounts/profile.html', context)
 
 @login_required
 def edit_profile_view(request):

@@ -1,3 +1,5 @@
+import json;
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,7 +11,7 @@ from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 
 from .forms import BookForm, BookReviewForm
-from .models import Book, BookReview
+from .models import Book, BookReview, BookStatus
 
 SEARCH_LIMIT = 50
 
@@ -191,3 +193,43 @@ def book_detail(request, book_id):
         "form": form,
         "login_url": login_url,
     })
+
+@login_required
+def manage_bookshelf(request):
+
+    user = request.user;
+
+    if request.method == "POST":
+        body = json.loads(request.body);
+        book_id = body.get('book_id');
+        status = body.get('status');
+
+        # caso o status esteja vazio,
+        # deletar o BookStatus correspondente.
+        if not status:
+            book_status = BookStatus.objects.filter(
+                user=user,
+                book_id = book_id
+            ).first();
+
+            if book_status:
+                book_status.delete();
+        else:
+            BookStatus.objects.update_or_create(
+                user=user,
+                book=Book.objects.get(id=book_id),
+                defaults={
+                    'status':status
+                }
+            );
+
+        return JsonResponse({'success':True});
+
+    statuses = user.book_statuses.all();
+
+    return JsonResponse(
+        data={
+            status.book.id:status.status
+            for status in statuses
+        }
+    );

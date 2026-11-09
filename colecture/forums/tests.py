@@ -123,6 +123,9 @@ class ForumMessages(TestCase):
             cls.participant,
             cls.community,
         );
+        # entrar na comunidade já inscreve na meta; este usuário
+        # representa quem é membro mas saiu da meta por conta própria
+        GoalService.leave(cls.participant, cls.community_goal);
         # goal participant participa da comunidade e
         # da meta
         MembershipService.enter_community(
@@ -443,6 +446,9 @@ class ForumAccess(TestCase):
             cls.moderator, cls.community, role=Membership.Role.MODERATOR
         );
         MembershipService.enter_community(cls.member, cls.community);
+        # entrar na comunidade já inscreve na meta; "member" representa
+        # quem é da comunidade mas saiu da meta por conta própria
+        GoalService.leave(cls.member, cls.community_goal);
         MembershipService.enter_community(cls.goal_participant, cls.community);
         GoalService.join(cls.goal_participant, cls.community_goal);
 
@@ -751,28 +757,29 @@ class ForumAccess(TestCase):
         );
         self.assertEqual(response.status_code, 404);
 
-    def test_individual_goal_page_works_without_forum(self):
-        # o dono participa da própria meta individual, que não tem fórum.
-        # Antes, goal.forum levantava Forum.DoesNotExist (erro 500).
-        GoalService.join(self.com_owner, self.user_goal);
-
-        self.client.force_login(self.com_owner);
-        response = self.client.get(
-            reverse("goals:view_goal", kwargs={'goal_id':self.user_goal.id})
-        );
-
-        self.assertEqual(response.status_code, 200);
-        self.assertIsNone(response.context['forum']);
-
-    def test_goal_page_links_to_forum_for_participants_only(self):
-        url = reverse("goals:view_goal", kwargs={'goal_id':self.community_goal.id});
-        forum_link = self.forum_url(self.goal_forum);
-
+    def test_goal_page_and_url_no_longer_exist(self):
+        # a página /goals/<id>/ foi removida: o fórum é o destino da meta
         self.client.force_login(self.goal_participant);
-        self.assertContains(self.client.get(url), forum_link);
+        for goal in (self.community_goal, self.user_goal):
+            response = self.client.get(f"/goals/{goal.id}/");
+            self.assertEqual(response.status_code, 404);
 
+    def test_back_link_of_goal_forum_returns_to_its_community(self):
+        self.client.force_login(self.goal_participant);
+        response = self.client.get(self.forum_url(self.goal_forum));
+        community_url = reverse(
+            "communities:view_community", kwargs={'community_id':self.community.id}
+        );
+        self.assertEqual(response.context['dados_forum']['community_url'], community_url);
+        self.assertEqual(response.context['dados_forum']['back_label'], "Voltar para a comunidade");
+
+    def test_back_link_of_general_forum_returns_to_its_community(self):
         self.client.force_login(self.member);
-        self.assertNotContains(self.client.get(url), forum_link);
+        response = self.client.get(self.forum_url(self.community_forum));
+        community_url = reverse(
+            "communities:view_community", kwargs={'community_id':self.community.id}
+        );
+        self.assertEqual(response.context['dados_forum']['community_url'], community_url);
 
     def test_goal_card_in_community_page_links_to_goal_forum(self):
         self.client.force_login(self.member);
