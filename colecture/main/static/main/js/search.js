@@ -6,6 +6,8 @@ var bookList = document.getElementById("bookList");
 // Procura pelo atributo (e não pela tag <main>): o sidebar.html já envolve a página em um <main>.
 var searchUrl = document.querySelector("[data-search-url]").dataset.searchUrl;
 var communitiesUrl = document.querySelector("[data-communities-url]").dataset.communitiesUrl;
+// Estante do usuário (tags Lendo/Lido/Quero ler salvas no banco)
+var shelfUrl = document.querySelector("[data-shelf-url]").dataset.shelfUrl;
 var tabBooks = document.getElementById("tabBooks");
 var tabCommunities = document.getElementById("tabCommunities");
 var currentTab = "books";
