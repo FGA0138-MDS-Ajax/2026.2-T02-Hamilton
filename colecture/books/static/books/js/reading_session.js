@@ -284,7 +284,7 @@
     var remaining = remainingFor(current, sum, type);
 
     if (type === 'pages') {
-      el.amountLabel.textContent = 'Digite seu progresso ';
+      el.amountLabel.textContent = 'Em qual página você parou? ';
       el.suffix.textContent = 'pág.';
       el.amount.step = '1';
       el.amount.min = '1'; // pode registrar uma página menor que a atual
