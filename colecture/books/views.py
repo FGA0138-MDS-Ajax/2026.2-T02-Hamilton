@@ -1,4 +1,5 @@
 import json;
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
 from django.contrib import messages
@@ -8,7 +9,7 @@ from django.db.models import Avg, Count
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.utils.http import urlencode
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from .forms import BookForm, BookReviewForm
 from .models import Book, BookReview, BookStatus
@@ -237,6 +238,82 @@ def manage_bookshelf(request):
         }
     );
     
+
+# Marca um livro da estante como lido com um clique (sem formulário):
+# status = Lido, data de conclusão = hoje e progresso = 100%.
+@login_required
+@require_POST
+def mark_book_as_read(request, book_id):
+    book_status = BookStatus.objects.filter(
+        user=request.user,
+        book_id=book_id
+    ).select_related('book').first()
+
+    if book_status is None:
+        return JsonResponse(
+            {'success': False, 'error': 'Livro não encontrado na sua estante.'},
+            status=404
+        )
+
+    if book_status.status != BookStatus.Status.READ:
+        book_status.mark_as_read()
+
+    return JsonResponse({
+        'success': True,
+        'book_id': book_status.book_id,
+        'status': book_status.status,
+        'status_label': book_status.get_status_display(),
+        'finished_at': _iso_date(book_status.finished_at),
+        'progress': book_status.progress_percent,
+        'pages': book_status.book.pages,
+    })
+
+
+# Salva o progresso (0-100%) registrado na tela "Registrar leitura",
+# para a estante do perfil mostrar a barra de progresso atualizada.
+@login_required
+@require_POST
+def save_reading_progress(request, book_id):
+    try:
+        percent = Decimal(str(json.loads(request.body or '{}').get('percent')))
+    except (ValueError, TypeError, ArithmeticError):
+        percent = None
+
+    if percent is None or not percent.is_finite() or not (0 <= percent <= 100):
+        return JsonResponse(
+            {'success': False, 'error': 'Progresso inválido (use de 0 a 100%).'},
+            status=400
+        )
+
+    book_status = BookStatus.objects.filter(
+        user=request.user,
+        book_id=book_id
+    ).select_related('book').first()
+
+    if book_status is None:
+        return JsonResponse(
+            {'success': False, 'error': 'Livro não encontrado na sua estante.'},
+            status=404
+        )
+
+    book_status.reading_progress = (percent / 100).quantize(
+        Decimal('0.001'), rounding=ROUND_HALF_UP
+    )
+    fields = ['reading_progress']
+    if book_status.status == BookStatus.Status.WANT_TO_READ:
+        book_status.status = BookStatus.Status.READING
+        fields.append('status')
+    book_status.save(update_fields=fields)
+
+    return JsonResponse({
+        'success': True,
+        'book_id': book_status.book_id,
+        'status': book_status.status,
+        'progress': book_status.progress_percent,
+        'pages_read': book_status.pages_read,
+    })
+
+
 LOOKUP_LIMIT = 100
  
  

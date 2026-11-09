@@ -1,0 +1,53 @@
+{% comment %}
+  Card de livro reutilizável da estante do perfil.
+  Uso: {% include "accounts/_shelf_book_card.html" with item=book_status %}
+  - item: instância de BookStatus (com item.book carregado)
+  Lendo: mostra a barra de progresso. Lido / Quero ler: só os dados do livro.
+  Clicar no card em Lendo ou Quero ler abre o registro de progresso;
+  em Lido abre a página do livro. A tag (botão) troca a estante a qualquer momento.
+{% endcomment %}
+<li class="shelf-book" data-shelf-book
+    tabindex="0" role="link"
+    aria-label="{{ item.book.title }}"
+    data-status="{{ item.status }}"
+    data-book-id="{{ item.book.id }}"
+    data-book-title="{{ item.book.title }}"
+    data-detail-url="{% url 'books:book_detail' item.book.id %}"
+    data-progress="{{ item.progress_percent }}"
+    data-pages="{{ item.book.pages|default_if_none:'' }}"
+    data-pages-read="{{ item.pages_read|default_if_none:'' }}"
+    data-mark-url="{% url 'books:mark_book_as_read' item.book.id %}">
+
+  <div class="shelf-book__cover" aria-hidden="true">
+    {% if item.book.icon %}
+      <img src="{{ item.book.icon }}" alt="" loading="lazy" />
+    {% else %}
+      <i class="bx bx-book"></i>
+    {% endif %}
+  </div>
+
+  <div class="shelf-book__body">
+    <button type="button" class="shelf-book__tag shelf-book__tag--{{ item.status|lower }}"
+            data-shelf-tag data-change-status
+            aria-label="Alterar tag de {{ item.book.title }} (atual: {{ item.get_status_display }})">
+      <span data-shelf-tag-label>{{ item.get_status_display }}</span>
+      <i class="bx bx-chevron-down" aria-hidden="true"></i>
+    </button>
+
+    <span class="shelf-book__title">{{ item.book.title }}</span>
+    <span class="shelf-book__author">{{ item.book.author }}</span>
+
+    {% if item.status == "READING" %}
+      <div class="shelf-progress" data-shelf-progress>
+        <div class="shelf-progress__bar" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.progress_percent }}"
+             aria-label="Progresso de leitura">
+          <span style="width: {{ item.progress_percent }}%"></span>
+        </div>
+        <span class="shelf-progress__text">
+          {% if item.book.pages %}{{ item.pages_read }}/{{ item.book.pages }} pág. · {% endif %}{{ item.progress_percent }}%
+        </span>
+      </div>
+    {% endif %}
+  </div>
+</li>

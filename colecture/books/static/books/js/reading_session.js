@@ -38,8 +38,6 @@
     loadError: $('[data-rs-load-error]'),
     retry: $('[data-rs-retry]'),
     content: $('[data-rs-content]'),
-    picker: $('[data-rs-picker]'),
-    select: $('#rsBook'),
     cover: $('[data-rs-cover]'),
     coverEmpty: $('[data-rs-cover-empty]'),
     title: $('[data-rs-title]'),
@@ -76,6 +74,12 @@
   };
 
   var lookupUrl = root.dataset.lookupUrl;
+  // URLs com "0" no lugar do id do livro (preenchidas em bookUrl)
+  var progressUrl = root.dataset.progressUrl;
+  var markReadUrl = root.dataset.markReadUrl;
+  var csrf = root.dataset.csrf;
+  // Livro escolhido no card do perfil (?book=<id>): abre direto nele, sem seletor
+  var requestedId = new URLSearchParams(window.location.search).get('book');
   var books = [];          // livros "Lendo" com dados do servidor
   var current = null;      // livro selecionado
   var triedSubmit = false; // só mostra erros "ao vivo" depois da 1ª tentativa
@@ -93,6 +97,32 @@
 
   function writeStore(key, data) {
     localStorage.setItem(key, JSON.stringify(data)); 
+    // Toda mudança nas sessões (registro ou edição) atualiza o progresso no banco
+    if (key === SESSIONS_KEY && current) syncProgress(current);
+  }
+
+  // ---------- Banco de dados (estante do perfil) ----------
+  function bookUrl(template, bookId) {
+    return template.replace('/shelf/0/', '/shelf/' + encodeURIComponent(bookId) + '/');
+  }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+  }
+
+  function syncProgress(book) {
+    var percent = summaryOf(book).percent;
+    postJson(bookUrl(progressUrl, book.id), { percent: percent }).catch(function () {
+      notify('error', 'Não foi possível salvar o progresso na sua estante.');
+    });
   }
 
 function readingIds() {
@@ -588,20 +618,7 @@ function readingIds() {
     el.preview.style.width = Math.min(add, 100 - sum.percent) + '%';
   }
 
-  function renderPicker() {
-    el.select.innerHTML = '';
-    books.forEach(function (b) {
-      var opt = document.createElement('option');
-      opt.value = b.id;
-      opt.textContent = b.title;
-      el.select.appendChild(opt);
-    });
-    el.select.value = current.id;
-    el.picker.hidden = books.length < 2; // com um livro só, o seletor não precisa aparecer
-  }
-
   function renderAll() {
-    renderPicker();
     renderTypeUI();
     renderSummary();
   }
@@ -616,6 +633,7 @@ function readingIds() {
   // ---------- Carregamento ----------
   function load() {
     var ids = readingIds();
+    if (requestedId && /^\d+$/.test(requestedId) && ids.indexOf(requestedId) === -1) ids.push(requestedId);
     if (!ids.length) { books = []; show('empty'); return; }
 
     show('loading');
@@ -637,9 +655,11 @@ function readingIds() {
         if (!books.length) { show('empty'); return; }
 
         var keep = current && books.some(function (b) { return b.id === current.id; });
-        current = keep ? findBook(current.id) : books[0];
+        current = (keep ? findBook(current.id) : findBook(requestedId)) || books[0];
         show('content');
         renderAll();
+        // Leva para o banco sessões já registradas antes (só se houver alguma)
+        if (summaryOf(current).count) syncProgress(current);
       })
       .catch(function () {
         show('error');
@@ -653,12 +673,6 @@ function readingIds() {
   }
 
   // ---------- Eventos ----------
-  el.select.addEventListener('change', function () {
-    current = findBook(el.select.value);
-    resetForm();
-    renderTypeUI();
-    renderSummary();
-  });
 
   // F02: troca páginas ↔ %
   [el.typePages, el.typePercent].forEach(function (radio) {
@@ -741,21 +755,27 @@ function readingIds() {
 
   // Sugestão ao chegar em 100%
   el.markRead.addEventListener('click', function () {
-    try {
-      var shelf = readStore(SHELF_KEY);
-      shelf[current.id] = 'READ';
-      writeStore(SHELF_KEY, shelf);
-    } catch (err) {
-      notify('error', 'Não foi possível marcar o livro como lido. Tente de novo.');
-      return;
-    }
+    var book = current;
+    el.markRead.disabled = true;
 
-    notify('success', '“' + current.title + '” foi marcado como lido.');
-    books = books.filter(function (b) { return b.id !== current.id; });
+    // Salva no banco (status Lido + data de conclusão) e depois no localStorage
+    postJson(bookUrl(markReadUrl, book.id))
+      .then(function () {
+        var shelf = readStore(SHELF_KEY);
+        shelf[book.id] = 'READ';
+        writeStore(SHELF_KEY, shelf);
 
-    if (!books.length) { show('empty'); return; }
-    current = books[0];
-    renderAll();
+        notify('success', '“' + book.title + '” foi marcado como lido.');
+        books = books.filter(function (b) { return b.id !== book.id; });
+
+        if (!books.length) { show('empty'); return; }
+        current = books[0];
+        renderAll();
+      })
+      .catch(function () {
+        notify('error', 'Não foi possível marcar o livro como lido. Tente de novo.');
+      })
+      .then(function () { el.markRead.disabled = false; });
   });
 
   // ---------- Pop-up do histórico ----------
