@@ -407,6 +407,11 @@ class CT02_BookStatus(TestCase):
                 username='Author'
             )
         );
+        cls.user1 = AccountService.create_account(
+            get_user_model().objects.create(
+                username='User1'
+            )
+        );
         cls.book = Book.objects.create(
             created_by=cls.author_user,
             author=cls.author_user,
@@ -458,3 +463,110 @@ class CT02_BookStatus(TestCase):
                 status=choice
             ).exists()
         );
+
+    def test_coexistent_diff_statuses(self):
+        self.client.force_login(
+            self.author_user
+        );
+        response0 = self.client.post(
+            reverse("books:manage_bookshelf"),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':BookStatus.Status.READ
+            }),
+            content_type='application/json'
+        );
+
+        self.client.force_login(
+            self.user1
+        );
+        response1 = self.client.post(
+            reverse("books:manage_bookshelf"),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':BookStatus.Status.READING
+            }),
+            content_type='application/json'
+        );
+        self.assertTrue(
+            response0.status_code==
+            response1.status_code==
+            200
+        );
+
+        self.assertEqual(
+            BookStatus.objects.filter(
+                book=self.book
+            ).count(),
+            2
+        );
+
+        self.assertEqual(
+            BookStatus.objects.filter(
+                book=self.book,
+                status=BookStatus.Status.READING
+            ).count(),
+            1
+        );
+    def test_coexistent_equ_statuses(self):
+        self.client.force_login(
+            self.author_user
+        );
+        response0 = self.client.post(
+            reverse("books:manage_bookshelf"),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':BookStatus.Status.READ
+            }),
+            content_type='application/json'
+        );
+
+        self.client.force_login(
+            self.user1
+        );
+        response1 = self.client.post(
+            reverse("books:manage_bookshelf"),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':BookStatus.Status.READ
+            }),
+            content_type='application/json'
+        );
+        self.assertTrue(
+            response0.status_code==
+            response1.status_code==
+            200
+        );
+
+        self.assertEqual(
+            BookStatus.objects.filter(
+                book=self.book,
+                status=BookStatus.Status.READ
+            ).count(),
+            2
+        );
+
+    def test_invalid_status(self):
+        invalid_status = "I_HATE_BOOKS";
+
+        self.client.force_login(
+            self.author_user
+        );
+
+        response = self.client.post(
+            reverse('books:manage_bookshelf'),
+            data=json.dumps({
+                'book_id':self.book.id,
+                'status':invalid_status
+            }),
+            content_type='application/json'
+        );
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            BookStatus.objects.filter(
+                status=invalid_status
+            ).exists()
+        );
+
+        
