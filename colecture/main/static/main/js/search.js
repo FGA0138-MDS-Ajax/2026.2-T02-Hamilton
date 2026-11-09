@@ -19,24 +19,24 @@ var statusOptions = [
   { value: "READ", label: "Lido" },
   { value: "WANT_TO_READ", label: "Quero ler" }
 ];
+// Estante do usuário vinda do banco ({ idDoLivro: "READ" | "READING" | "WANT_TO_READ" }),
+// a mesma que a "Sua estante" do perfil usa.
 var userShelf = {};
+var shelfUrl = document.querySelector("[data-shelf-url]").dataset.shelfUrl;
 
-
+// Cópia no localStorage usada pela tela de registrar leitura (mesma chave do perfil)
 var shelfStorageKey = "colectureShelf";
 
 
 function getShelf() {
   return userShelf;
-  var saved = localStorage.getItem(shelfStorageKey);
-  if (saved) {
-    return JSON.parse(saved);
-  }
-  return {};
 }
 
 
 function saveShelf(shelf) {
-  localStorage.setItem(shelfStorageKey, JSON.stringify(shelf));
+  try {
+    localStorage.setItem(shelfStorageKey, JSON.stringify(shelf));
+  } catch (e) {}
 }
 
 // Função auxiliar do Django para pegar o CSRF Token dos cookies
@@ -66,7 +66,7 @@ function setStatus(bookId, status) {
 
   saveShelf(shelf);
 
-  fetch("/books/shelf/", {
+  fetch(shelfUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -77,30 +77,31 @@ function setStatus(bookId, status) {
     .then(response => {
         if (!response.ok) {
             console.error("Erro ao salvar o status no servidor.");
+            return;
+        }
+        // Igual à estante do perfil: "Lido" também grava data de conclusão e progresso 100%
+        if (status === "READ") {
+            return fetch(shelfUrl + bookId + "/mark-read/", {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            });
         }
     })
     .catch(error => console.error("Erro de rede:", error));
 
 }
 
-// Função para carregar a estante do backend ANTES de rodar a busca
-function loadShelfAndStart() {
-    fetch(shelfUrl)
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error("Erro ao carregar estante");
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            // Suponha que o Django retorne algo como: { "1": "READ", "4": "READING" }
-            userShelf = data; 
-            runSearch(); // Só busca os livros após carregar os status do usuário
-        })
-        .catch(function(error) {
-            console.log("Erro ao buscar estante:", error);
-            runSearch(); // Roda a busca mesmo se falhar para não quebrar a página
-        });
+// A busca (/books/search/) já devolve o status de cada livro na estante do usuário,
+// lido do BookStatus no banco. Aqui só guardamos esses status para os botões e o pop-up.
+function updateShelfFromResults(books) {
+  for (var i = 0; i < books.length; i++) {
+    if (books[i].status) {
+      userShelf[books[i].id] = books[i].status;
+    } else {
+      delete userShelf[books[i].id];
+    }
+  }
+  saveShelf(userShelf);
 }
 
 function getStatusLabel(status) {
@@ -584,6 +585,7 @@ function searchBooks() {
       if (thisRequest !== lastRequest) {
         return;
       }
+      updateShelfFromResults(data.results);
       showBooks(data.results, data.total);
     })
     .catch(function (error) {
@@ -612,4 +614,4 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
-loadShelfAndStart();
+runSearch();

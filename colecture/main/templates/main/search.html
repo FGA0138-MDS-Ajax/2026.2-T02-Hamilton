@@ -14,6 +14,7 @@
     {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
     <div class="page-content" 
         data-search-url="{% url 'books:search' %}"
+        data-shelf-url="{% url 'books:manage_bookshelf' %}"
         data-communities-url="/communities/search/"
         data-shelf-url="{% url 'books:manage_bookshelf' %}"
         data-empty-img="{% static 'books/img/mascote.png' %}">
@@ -46,5 +47,5 @@
 
   </div>
 
-  <script src="{% static 'main/js/search.js' %}?v=2"></script>
+  <script src="{% static 'main/js/search.js' %}?v=3"></script>
 {% endblock %}
