@@ -95,10 +95,12 @@
     localStorage.setItem(key, JSON.stringify(data)); 
   }
 
-  function readingIds() {
-    var shelf = readStore(SHELF_KEY);
-    return Object.keys(shelf).filter(function (id) { return shelf[id] === 'READING'; });
-  }
+function readingIds() {
+  var shelf = readStore(SHELF_KEY);
+  return Object.keys(shelf).filter(function (id) {
+    return shelf[id] === 'READING' || shelf[id] === 'WANT_TO_READ';
+  });
+}
 
   function sessionsOf(bookId) {
     var all = readStore(SESSIONS_KEY);
