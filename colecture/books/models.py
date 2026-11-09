@@ -173,3 +173,9 @@ class BookStatus(models.Model):
         decimal_places=3
     );
 
+    @staticmethod
+    def validate_status(status):
+        for status_tup in BookStatus.Status.choices:
+            if status in status_tup:
+                return True;
+        return False;

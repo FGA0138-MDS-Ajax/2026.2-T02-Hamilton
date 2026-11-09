@@ -215,6 +215,9 @@ def manage_bookshelf(request):
             if book_status:
                 book_status.delete();
         else:
+            if not BookStatus.validate_status(status):
+                return HttpResponseForbidden("Invalid status");
+        
             BookStatus.objects.update_or_create(
                 user=user,
                 book=Book.objects.get(id=book_id),
