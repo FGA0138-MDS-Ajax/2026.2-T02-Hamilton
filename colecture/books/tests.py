@@ -5,6 +5,7 @@ from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 
 from accounts.services import AccountService;
+from goals.models import ReadingSession;
 from .models import Book, BookReview, BookStatus, SYNOPSIS_MAX_LENGTH;
 from .forms import BookForm, GENRE_CHOICES;
 from .views import SEARCH_LIMIT;
@@ -419,6 +420,16 @@ class CT02_BookStatus(TestCase):
             title='NewBook',
         );
 
+    def manage_bookshelf(self, status=None, book=None):
+        return self.client.post(
+            reverse('books:manage_bookshelf'),
+            data=json.dumps({
+                'book_id':(book and book.id) or self.book.id,
+                'status':status
+            }),
+            content_type="application/json"
+        );
+
     def test_set_statuses(self):
         self.client.force_login(self.author_user);
         status_choices = [
@@ -428,14 +439,7 @@ class CT02_BookStatus(TestCase):
         ];
 
         for choice in status_choices:
-            response = self.client.post(
-                reverse('books:manage_bookshelf'),
-                data=json.dumps({
-                    'book_id':self.book.id,
-                    'status':choice
-                }),
-                content_type="application/json"
-            );
+            response = self.manage_bookshelf(choice);
             self.assertEqual(response.status_code, 200);
             self.assertTrue(
                 BookStatus.objects.filter(
@@ -447,14 +451,7 @@ class CT02_BookStatus(TestCase):
 
         # valida se o BookStatus é apagado
         # caso nenhum status for enviado
-        response1 = self.client.post(
-            reverse('books:manage_bookshelf'),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':None
-            }),
-            content_type="application/json"
-        );
+        response1 = self.manage_bookshelf();
         self.assertEqual(response1.status_code, 200);
         self.assertFalse(
             BookStatus.objects.filter(
@@ -468,25 +465,15 @@ class CT02_BookStatus(TestCase):
         self.client.force_login(
             self.author_user
         );
-        response0 = self.client.post(
-            reverse("books:manage_bookshelf"),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':BookStatus.Status.READ
-            }),
-            content_type='application/json'
+        response0 = self.manage_bookshelf(
+            BookStatus.Status.READ
         );
 
         self.client.force_login(
             self.user1
         );
-        response1 = self.client.post(
-            reverse("books:manage_bookshelf"),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':BookStatus.Status.READING
-            }),
-            content_type='application/json'
+        response1 = self.manage_bookshelf(
+            BookStatus.Status.READING
         );
         self.assertTrue(
             response0.status_code==
@@ -512,25 +499,15 @@ class CT02_BookStatus(TestCase):
         self.client.force_login(
             self.author_user
         );
-        response0 = self.client.post(
-            reverse("books:manage_bookshelf"),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':BookStatus.Status.READ
-            }),
-            content_type='application/json'
+        response0 = self.manage_bookshelf(
+            BookStatus.Status.READ
         );
 
         self.client.force_login(
             self.user1
         );
-        response1 = self.client.post(
-            reverse("books:manage_bookshelf"),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':BookStatus.Status.READ
-            }),
-            content_type='application/json'
+        response1 = self.manage_bookshelf(
+            BookStatus.Status.READ
         );
         self.assertTrue(
             response0.status_code==
@@ -553,13 +530,8 @@ class CT02_BookStatus(TestCase):
             self.author_user
         );
 
-        response = self.client.post(
-            reverse('books:manage_bookshelf'),
-            data=json.dumps({
-                'book_id':self.book.id,
-                'status':invalid_status
-            }),
-            content_type='application/json'
+        response = self.manage_bookshelf(
+            invalid_status
         );
 
         self.assertEqual(response.status_code, 403)
@@ -568,5 +540,31 @@ class CT02_BookStatus(TestCase):
                 status=invalid_status
             ).exists()
         );
+
+    def test_reading_session_persistance(self):
+        b_status = BookStatus.objects.create(
+            user=self.user1,
+            book=self.book,
+            status=BookStatus.Status.READING
+        );
+
+        session = ReadingSession.objects.create(
+            user=self.user1,
+            book=self.book,
+            pages_read=5,
+            minute_count=10
+        );
+        session_id = session.id;
+
+        response = self.manage_bookshelf();
+
+        self.assertTrue(
+            ReadingSession.objects.filter(
+                id=session_id
+            ).exists()
+        );
+
+        
+
 
         
