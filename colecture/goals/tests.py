@@ -8,13 +8,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
-from books.models import Book
+from books.models import Book, BookStatus
 from communities.models import Community, Membership
 from forums.models import Forum
 
 from .models import GOAL_DESC_MAX_LENGTH, Goal, GoalParticipation, ReadingSession
 from .forms import GoalForm, ReadingSessionForm
 from .services import GoalService
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -108,7 +109,8 @@ class CT04GoalCreation(GoalBase):
         self.assertEqual(Goal.objects.count(), 0)
 
     def test_create_goal_INVALID_data(self):
-        past = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        # o prazo é só a data (vale até o fim do dia), então "passado" é ontem
+        past = (timezone.localdate() - timedelta(days=1)).strftime("%Y-%m-%d")
         invalid = [
             {"name": ""},
             {"target": 0},
@@ -123,6 +125,39 @@ class CT04GoalCreation(GoalBase):
                 response = self.client.post(self.url_create_profile, self.payload(**override))
                 self.assertEqual(response.status_code, 200)  # reexibe o form
         self.assertEqual(Goal.objects.count(), 0)
+
+    def test_page_goal_limited_to_community_book_pages(self):
+        self.set_community_book(pages=200)
+        self.client.force_login(self.moderator)
+        for target, created in ((201, False), (200, True)):
+            with self.subTest(target=target):
+                self.client.post(self.url_create_community,
+                                 self.payload(name=f"Meta {target}", target=target))
+                self.assertEqual(Goal.objects.filter(name=f"Meta {target}").exists(), created)
+
+    def test_page_goal_limited_to_individual_book_pages(self):
+        self.book.pages = 300
+        self.book.save()
+        self.client.force_login(self.member)
+        response = self.client.post(self.url_create_profile, self.payload(target=301))
+        self.assertEqual(response.status_code, 200)  # reexibe o form
+        self.assertContains(response, "tem 300 páginas")
+        self.assertEqual(Goal.objects.count(), 0)
+
+    def test_page_goal_without_book_pages_has_general_cap(self):
+        # livro antigo, cadastrado sem nº de páginas: vale o teto geral
+        self.client.force_login(self.member)
+        self.client.post(self.url_create_profile, self.payload(target=50_000_000_000))
+        self.assertEqual(Goal.objects.count(), 0)
+
+    def test_hour_goal_target_saved_in_minutes(self):
+        self.client.force_login(self.member)
+        response = self.client.post(self.url_create_profile, self.payload(
+            goal_type=Goal.GoalType.HOUR_COUNT, target="", target_time="1:30"))
+        self.assertEqual(response.status_code, 302)
+        goal = Goal.objects.get()
+        self.assertEqual(goal.target, 90)
+        self.assertEqual(goal.target_display, "1h30")
 
     def test_create_goal_without_deadline_and_book_VALID(self):
         self.client.force_login(self.member)
@@ -159,6 +194,7 @@ class CT04GoalCreation(GoalBase):
             "target": "Quantidade-alvo",
             "deadline": "Prazo",
             "book": "Livro",
+            "target_time": "Tempo de leitura",
         })
         # a primeira opção é o texto em branco do Django (varia por versão)
         self.assertEqual(
@@ -634,94 +670,69 @@ class ReadingSessionModelTests(TestCase):
         session = ReadingSession(
             user=self.user,
             book=self.book,
-            page_start=1,
-            page_end=20,
+            pages_read=20,
             minute_count=30,
             date=date(2026, 11, 4)
         )
 
         session.full_clean()
 
-        self.assertEqual(session.page_start, 1)
-        self.assertEqual(session.page_end, 20)
+        self.assertEqual(session.pages_read, 20)
 
-    def test_pagina_inicial_maior_que_final(self):
+    def test_paginas_lidas_zero_e_invalido(self):
         session = ReadingSession(
             user=self.user,
             book=self.book,
-            page_start=30,
-            page_end=20,
+            pages_read=0,
             minute_count=30
         )
 
         with self.assertRaises(ValidationError):
             session.full_clean()
 
-    def test_pagina_final_maior_que_total_do_livro(self):
+    def test_paginas_lidas_maior_que_total_do_livro(self):
         session = ReadingSession(
             user=self.user,
             book=self.book,
-            page_start=90,
-            page_end=110,
+            pages_read=110,
             minute_count=30
         )
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             session.full_clean()
 
-    def test_intervalo_sobreposto(self):
+        self.assertIn("pages_read", ctx.exception.message_dict)
+
+    def test_sessoes_seguidas_do_mesmo_livro_sao_permitidas(self):
+        # cada sessão guarda só as páginas lidas nela (não há intervalo)
         ReadingSession.objects.create(
             user=self.user,
             book=self.book,
-            page_start=10,
-            page_end=20,
+            pages_read=10,
             minute_count=30
         )
 
         session = ReadingSession(
             user=self.user,
             book=self.book,
-            page_start=15,
-            page_end=25,
-            minute_count=20
-        )
-
-        with self.assertRaises(ValidationError):
-            session.full_clean()
-
-    def test_intervalo_diferente_e_permitido(self):
-        ReadingSession.objects.create(
-            user=self.user,
-            book=self.book,
-            page_start=10,
-            page_end=20,
-            minute_count=30
-        )
-
-        session = ReadingSession(
-            user=self.user,
-            book=self.book,
-            page_start=21,
-            page_end=30,
+            pages_read=10,
             minute_count=20
         )
 
         session.full_clean()
 
-    def test_outro_usuario_pode_registrar_mesmo_intervalo(self):
+    def test_outro_usuario_pode_registrar_as_mesmas_paginas(self):
         ReadingSession.objects.create(
             user=self.user,
             book=self.book,
-            page_start=10,
-            page_end=20,
+            pages_read=10,
             minute_count=30
         )
 
         session = ReadingSession(
             user=self.other_user,
             book=self.book,
-            page_start=10,
-            page_end=20,
+            pages_read=10,
             minute_count=20
         )
 
@@ -746,41 +757,51 @@ class ReadingSessionFormTests(TestCase):
             pages=100
         )
 
-    def test_formulario_valido(self):
+    def form_data(self, **overrides):
+        data = {
+            "book": self.book.id,
+            "current_page": 20,
+            "minute_count": 30,
+            "date": "2026-11-04"
+        }
+        data.update(overrides)
+        return data
+
+    def test_formulario_valido_com_pagina_atual(self):
+        form = ReadingSessionForm(data=self.form_data(), user=self.user)
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_formulario_valido_com_percentual(self):
+        data = self.form_data(current_percentage="50")
+        del data["current_page"]
+        form = ReadingSessionForm(data=data, user=self.user)
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_formulario_exige_pagina_ou_percentual(self):
+        data = self.form_data()
+        del data["current_page"]
+        form = ReadingSessionForm(data=data, user=self.user)
+
+        self.assertFalse(form.is_valid())
+
+    def test_formulario_impede_pagina_e_percentual_juntos(self):
         form = ReadingSessionForm(
-            data={
-                "book": self.book.id,
-                "page_start": 1,
-                "page_end": 20,
-                "minute_count": 30,
-                "date": "2026-11-04"
-            },
-            user=self.user
-        )
-
-        self.assertTrue(form.is_valid())
-
-    def test_formulario_impede_intervalo_sobreposto(self):
-        ReadingSession.objects.create(
-            user=self.user,
-            book=self.book,
-            page_start=10,
-            page_end=20,
-            minute_count=30
-        )
-
-        form = ReadingSessionForm(
-            data={
-                "book": self.book.id,
-                "page_start": 15,
-                "page_end": 25,
-                "minute_count": 20,
-                "date": "2026-11-04"
-            },
+            data=self.form_data(current_percentage="50"),
             user=self.user
         )
 
         self.assertFalse(form.is_valid())
+
+    def test_formulario_impede_pagina_maior_que_total_do_livro(self):
+        form = ReadingSessionForm(
+            data=self.form_data(current_page=110),
+            user=self.user
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("current_page", form.errors)
 
 
 # Testes da view de registro de leitura
@@ -808,8 +829,7 @@ class ReadingSessionViewTests(TestCase):
 
         response = self.client.post(self.url, {
             "book": self.book.id,
-            "page_start": 1,
-            "page_end": 20,
+            "current_page": 20,
             "minute_count": 30,
             "date": "2026-11-04"
         })
@@ -821,6 +841,44 @@ class ReadingSessionViewTests(TestCase):
 
         self.assertEqual(session.user, self.user)
         self.assertEqual(session.book, self.book)
+        self.assertEqual(session.pages_read, 20)
+
+    def test_pagina_atual_e_acumulada_entre_sessoes(self):
+        self.client.force_login(self.user)
+
+        for current_page in (20, 30):
+            self.client.post(self.url, {
+                "book": self.book.id,
+                "current_page": current_page,
+                "minute_count": 30,
+                "date": "2026-11-04"
+            })
+
+        # a 2ª sessão leu só as páginas que faltavam: 30 - 20
+        pages = list(
+            ReadingSession.objects.order_by("id")
+            .values_list("pages_read", flat=True)
+        )
+        self.assertEqual(pages, [20, 10])
+
+    def test_progresso_menor_ou_igual_ao_anterior_e_rejeitado(self):
+        self.client.force_login(self.user)
+        self.client.post(self.url, {
+            "book": self.book.id,
+            "current_page": 20,
+            "minute_count": 30,
+            "date": "2026-11-04"
+        })
+
+        response = self.client.post(self.url, {
+            "book": self.book.id,
+            "current_page": 20,
+            "minute_count": 30,
+            "date": "2026-11-04"
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ReadingSession.objects.count(), 1)
 
     def test_usuario_nao_autenticado_nao_acessa_registro(self):
         response = self.client.get(self.url)
@@ -923,11 +981,11 @@ class ReadingSessionStreakViewTests(TestCase):
         self.client.force_login(self.user)
         self.today = timezone.localdate()
 
-    def post_session(self, page_start, page_end, day=None):
+    def post_session(self, current_page, day=None):
+        # current_page é a página em que o leitor parou (acumulada no livro)
         return self.client.post(self.url, {
             "book": self.book.id,
-            "page_start": page_start,
-            "page_end": page_end,
+            "current_page": current_page,
             "minute_count": 30,
             "date": (day or self.today).isoformat(),
         })
@@ -939,7 +997,7 @@ class ReadingSessionStreakViewTests(TestCase):
         return profile.streak if profile else 0
 
     def test_primeira_sessao_define_ofensiva_em_1(self):
-        response = self.post_session(1, 10)
+        response = self.post_session(10)
 
         self.assertEqual(response.status_code, 302)
         profile = Profile.objects.get(user=self.user)
@@ -947,16 +1005,16 @@ class ReadingSessionStreakViewTests(TestCase):
         self.assertEqual(profile.last_read_date, self.today)
 
     def test_ofensiva_incrementa_a_cada_dia(self):
-        self.post_session(1, 10, day=self.today - timedelta(days=1))
+        self.post_session(10, day=self.today - timedelta(days=1))
         self.assertEqual(self.streak(), 1)
 
-        self.post_session(11, 20, day=self.today)
+        self.post_session(20, day=self.today)
         self.assertEqual(self.streak(), 2)
 
     def test_varias_sessoes_no_mesmo_dia_contam_uma_vez(self):
-        self.post_session(1, 10)
-        self.post_session(11, 20)
-        self.post_session(21, 30)
+        self.post_session(10)
+        self.post_session(20)
+        self.post_session(30)
 
         self.assertEqual(ReadingSession.objects.count(), 3)
         self.assertEqual(self.streak(), 1)
@@ -966,7 +1024,7 @@ class ReadingSessionStreakViewTests(TestCase):
             user=self.user, streak=5,
             last_read_date=self.today - timedelta(days=3))
 
-        self.post_session(1, 10)
+        self.post_session(10)
 
         profile.refresh_from_db()
         # zerou por causa da falta e recomeçou em 1 com a leitura de hoje
@@ -974,7 +1032,7 @@ class ReadingSessionStreakViewTests(TestCase):
         self.assertEqual(profile.last_read_date, self.today)
 
     def test_data_futura_e_rejeitada_e_nao_altera_ofensiva(self):
-        response = self.post_session(1, 10, day=self.today + timedelta(days=1))
+        response = self.post_session(10, day=self.today + timedelta(days=1))
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("date", response.context["form"].errors)
@@ -983,10 +1041,169 @@ class ReadingSessionStreakViewTests(TestCase):
 
     def test_sessao_com_data_futura_falha_na_validacao_do_modelo(self):
         session = ReadingSession(
-            user=self.user, book=self.book, page_start=1, page_end=10,
+            user=self.user, book=self.book, pages_read=10,
             minute_count=30, date=self.today + timedelta(days=1))
 
         with self.assertRaises(ValidationError) as ctx:
             session.full_clean()
 
         self.assertIn("date", ctx.exception.message_dict)
+
+# Testes de atualização do BookStatus e contribuição nas metas
+class ReadingSessionProgressAndGoalTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor_progresso",
+            password="senha123"
+        )
+
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            genre="Ficção",
+            pages=100
+        )
+
+        self.url = reverse("goals:register_reading_session")
+        self.client.force_login(self.user)
+
+    def post_session(self, current_page, minute_count=30):
+        return self.client.post(self.url, {
+            "book": self.book.id,
+            "current_page": current_page,
+            "minute_count": minute_count,
+            "date": timezone.localdate().isoformat()
+        })
+
+    def test_registro_inicia_bookstatus_com_status_lendo(self):
+        self.post_session(20)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.status,
+            BookStatus.Status.READING
+        )
+
+    def test_progresso_bookstatus_acumula_corretamente(self):
+        self.post_session(20)
+        self.post_session(34)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.reading_progress,
+            Decimal("0.340")
+        )
+
+    def test_bookstatus_muda_para_lido_ao_completar_livro(self):
+        BookStatus.objects.create(
+            user=self.user,
+            book=self.book,
+            status=BookStatus.Status.READING,
+            reading_progress=Decimal("0.900")
+        )
+
+        self.post_session(100)
+
+        book_status = BookStatus.objects.get(
+            user=self.user,
+            book=self.book
+        )
+
+        self.assertEqual(
+            book_status.reading_progress,
+            Decimal("1.000")
+        )
+
+        self.assertEqual(
+            book_status.status,
+            BookStatus.Status.READ
+        )
+
+    def test_registro_contribui_para_meta_de_paginas(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+
+        self.post_session(20)
+        self.post_session(34)
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 34)
+
+    def test_registro_contribui_para_meta_de_horas(self):
+        goal = Goal.objects.create(
+            name="Ler por 2 horas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.HOUR_COUNT,
+            target=120,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+
+        self.post_session(20, minute_count=30)
+        self.post_session(34, minute_count=40)
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 70)
+
+    def test_leitura_anterior_a_entrada_na_meta_nao_contribui(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50,
+            book=self.book
+        )
+
+        participation = GoalParticipation.objects.create(
+            user=self.user,
+            goal=goal,
+            joined_at=timezone.now()
+        )
+
+        # Registra uma leitura com data anterior à entrada na meta
+        ReadingSession.objects.create(
+            user=self.user,
+            book=self.book,
+            pages_read=20,
+            minute_count=30,
+            date=timezone.localdate() - timedelta(days=2)
+        )
+
+        contribution = GoalService.get_user_contribution(
+            participation
+        )
+
+        self.assertEqual(contribution, 0)

@@ -674,24 +674,22 @@ class ForumAccess(TestCase):
         self.goal_forum.refresh_from_db();
         self.assertEqual(self.goal_forum.name, old_name);
 
-    def test_edit_dots_button_is_in_goal_forum_only_for_moderation(self):
-        # fórum de meta: três pontinhos + pop-up; fórum geral mantém o link
+    def test_edit_dots_button_is_in_forums_only_for_moderation(self):
+        # os dois fóruns (geral e de meta) usam os três pontinhos + pop-up
         for user in (self.com_owner, self.moderator):
             self.client.force_login(user);
-            response = self.client.get(self.forum_url(self.goal_forum));
-            self.assertContains(response, 'id="forumEditDots"');
-            self.assertContains(response, 'id="forumEditDialog"');
-            self.assertContains(response, 'name="next"');
+            for forum in (self.goal_forum, self.community_forum):
+                response = self.client.get(self.forum_url(forum));
+                self.assertContains(response, 'id="forumEditDots"');
+                self.assertContains(response, 'id="forumEditDialog"');
+                self.assertContains(response, 'name="next"');
 
-            response = self.client.get(self.forum_url(self.community_forum));
-            self.assertNotContains(response, 'id="forumEditDots"');
-            self.assertContains(response, 'id="forumEdit"');
-
-        # participante comum da meta não edita
+        # participante comum (vê os dois fóruns) não edita nenhum deles
         self.client.force_login(self.goal_participant);
-        response = self.client.get(self.forum_url(self.goal_forum));
-        self.assertNotContains(response, 'id="forumEditDots"');
-        self.assertNotContains(response, 'id="forumEditDialog"');
+        for forum in (self.goal_forum, self.community_forum):
+            response = self.client.get(self.forum_url(forum));
+            self.assertNotContains(response, 'id="forumEditDots"');
+            self.assertNotContains(response, 'id="forumEditDialog"');
 
     def test_member_cannot_edit_forums(self):
         self.client.force_login(self.member);

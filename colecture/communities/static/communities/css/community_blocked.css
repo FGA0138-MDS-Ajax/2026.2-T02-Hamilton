@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--gradient-bg);
+  background-color: var(--bg-base);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* logo do gato em marca d'água, igual à página de busca */
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: url("../../main/img/logo.png") center / contain no-repeat;
+  opacity: 0.10;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.blocked-page {
+  position: relative;
+  z-index: 1;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 15px;
+  box-sizing: border-box;
+}
+
+.blocked-state {
+  text-align: center;
+  max-width: 520px;
+}
+
+.blocked-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.blocked-message {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+}
+
+.blocked-button,
+.blocked-button:visited {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--purple-600);
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.blocked-button:hover {
+  border-color: var(--purple-400);
+}
+
+.blocked-img {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  margin: 20px auto 0;
+}

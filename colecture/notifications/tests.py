@@ -42,8 +42,7 @@ class Notification_Task_Tests(TestCase):
         ReadingSession.objects.create(
             user=self.user,
             book=self.book,
-            page_start=1,
-            page_end=10,
+            pages_read=10,
             minute_count=30,
             date=timezone.localdate()
             

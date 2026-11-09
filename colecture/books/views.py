@@ -233,3 +233,37 @@ def manage_bookshelf(request):
             for status in statuses
         }
     );
+    
+LOOKUP_LIMIT = 100
+ 
+ 
+# Dados dos livros que o usuário marcou como "Lendo" (o status fica no localStorage,
+# então o JS manda os ids e recebe título, autor, páginas e capa).
+@require_GET
+def books_lookup(request):
+    ids = [
+        int(i) for i in request.GET.get('ids', '').split(',')
+        if i.strip().isdigit()
+    ][:LOOKUP_LIMIT]
+ 
+    books = Book.objects.filter(pk__in=ids).order_by('title')
+ 
+    results = [
+        {
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'genre': book.genre,
+            'pages': book.pages,
+            'icon': book.icon,
+        }
+        for book in books
+    ]
+ 
+    return JsonResponse({'results': results})
+ 
+ 
+# Rota de teste: abre só a aba, sem a sidebar. Pode sair quando a R18 fizer o include.
+@login_required
+def reading_session(request):
+    return render(request, 'books/reading_session.html')    

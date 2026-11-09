@@ -51,7 +51,8 @@ class Goal(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE,
     )
-    # Quantidade do goal_type a ser atingida (ex.: 10000 páginas).
+    # Quantidade do goal_type a ser atingida: páginas (PAGE_COUNT) ou
+    # MINUTOS (HOUR_COUNT; o form recebe HH:MM e converte).
     target = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     # Livro relacionado à meta. Opcional: se o livro for excluído, a meta continua.
     book = models.ForeignKey(
@@ -98,6 +99,14 @@ class Goal(models.Model):
         if self.deadline is None:
             return None
         return max(self.deadline - timezone.now(), timedelta(0))
+
+    @property
+    def target_display(self) -> str:
+        """Alvo legível: '300 páginas' ou '22h10' / '10h'."""
+        if self.goal_type == self.GoalType.HOUR_COUNT:
+            hours, minutes = divmod(self.target, 60)
+            return f"{hours}h{minutes:02d}" if minutes else f"{hours}h"
+        return f"{self.target} páginas"
 
     def __str__(self):
         return self.name
@@ -152,15 +161,15 @@ class ReadingSession(models.Model):
         related_name="reading_sessions"
     )
 
-    page_start = models.PositiveIntegerField(
+    #quantidade de páginas lidas nesta sessão específica
+    pages_read = models.PositiveIntegerField(
         validators=[MinValueValidator(1)]
     )
-    page_end = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
+
     minute_count = models.PositiveIntegerField(
         validators=[MinValueValidator(1)]
     )
+
     date = models.DateField(default=timezone.localdate)
 
     def clean(self):
@@ -168,57 +177,22 @@ class ReadingSession(models.Model):
 
         errors = {}
 
-        #impede leitura registrada com data no futuro
+        #impede registros com data no futuro
         if self.date is not None and self.date > timezone.localdate():
             errors["date"] = (
                 "A data da leitura não pode estar no futuro."
             )
 
-        #verifica se a pagina inicial é menor que a final
-        if (
-            self.page_start is not None
-            and self.page_end is not None
-            and self.page_start > self.page_end
-        ):
-            errors["page_start"] = (
-                "A página inicial não pode ser maior que a página final."
-            )
-
-        #verifica se o intervalo não ultrapassa o total de páginas do livro
-        if self.book_id and self.page_end is not None:
+        #verifica se a quantidade de páginas é válida
+        if self.book_id and self.pages_read is not None:
             if self.book.pages is None:
                 errors["book"] = (
                     "O livro precisa ter a quantidade de páginas informada."
                 )
-            elif self.page_end > self.book.pages:
-                errors["page_end"] = (
-                    "A página final não pode ultrapassar o total de páginas do livro."
-                )
-
-        #impede sobreposição de páginas para o mesmo usuário e livro
-        if (
-            self.user_id
-            and self.book_id
-            and self.page_start is not None
-            and self.page_end is not None
-            and self.page_start <= self.page_end
-        ):
-            overlapping_sessions = ReadingSession.objects.filter(
-                user_id=self.user_id,
-                book_id=self.book_id,
-                page_start__lte=self.page_end,
-                page_end__gte=self.page_start,
-            )
-
-            #exclui o próprio registro quando estiver sendo editado
-            if self.pk:
-                overlapping_sessions = overlapping_sessions.exclude(
-                    pk=self.pk
-                )
-
-            if overlapping_sessions.exists():
-                errors["page_start"] = (
-                    "Esse intervalo de páginas já possui um registro de leitura."
+            elif self.pages_read > self.book.pages:
+                errors["pages_read"] = (
+                    "A quantidade de páginas lidas não pode ultrapassar "
+                    "o total de páginas do livro."
                 )
 
         if errors:

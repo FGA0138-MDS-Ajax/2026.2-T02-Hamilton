@@ -35,7 +35,8 @@ class CT02(TestCase):
             'title':title or 'New Book',
             'author':author or 'New Author',
             'synopsis':synopsis,
-            'genre':GENRE_CHOICES[1][0]
+            'genre':GENRE_CHOICES[1][0],
+            'pages':10,
         });
 
     def create_book(self, isbn=None,title=None, author=None, created_by=None, genre=None):
@@ -48,6 +49,12 @@ class CT02(TestCase):
         );
     
     # TESTE DE VALIDAÇÃO DO ISBN
+    def test_numero_de_paginas_obrigatorio(self):
+        form = self.create_book_form(isbn='978-8532511010')
+        form.data = {**form.data, 'pages': ''}
+        self.assertFalse(form.is_valid())
+        self.assertIn('pages', form.errors)
+
     def test_validacao_isbn(self):
         valid = ['978-3-16-148410-0','9783161484100','978-0-13-235088-4','0-321-12521-5','0201633612'];
         invalid = ['978-3-16-148410-9','978316148','97831614841005','978-3-16-ABCDE-0'];
@@ -125,6 +132,7 @@ class CT02(TestCase):
             'isbn' : '978-3-16-148410-0',
             'title' : 'New York',
             'author' : 'Old Author',
+            'pages' : 10,
         };
 
         user = get_user_model().objects.create_user(username='New Account');

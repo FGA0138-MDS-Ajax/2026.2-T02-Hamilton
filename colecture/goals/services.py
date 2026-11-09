@@ -2,6 +2,7 @@ import math
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from django.contrib.auth import get_user_model;
 
@@ -9,8 +10,7 @@ from communities.models import Community, Membership
 from communities.services import MembershipService
 from forums.models import Forum
 
-from .models import Goal, GoalParticipation
-
+from .models import Goal, GoalParticipation, ReadingSession
 
 GOAL_UNIT_LABELS = {
     Goal.GoalType.PAGE_COUNT: "páginas",
@@ -252,13 +252,36 @@ class GoalService:
     # ---------- contribuição / progresso ----------
     @staticmethod
     def get_user_contribution(participation) -> int:
-        # TODO (Sprint 5, R16): ReadingSession ainda não existe.
-        # Quando existir (campos hipotéticos user, book, pages_read, minutes):
-        #   sessions = ReadingSession.objects.filter(
-        #       user=participation.user, book=participation.goal.book)
-        #   PAGE_COUNT -> sessions.aggregate(Sum("pages_read"))["pages_read__sum"] or 0
-        #   HOUR_COUNT -> (sessions.aggregate(Sum("minutes"))["minutes__sum"] or 0) // 60
-        return 0
+        """Total lido pelo participante, desde que entrou na meta, no livro
+        da meta: páginas (PAGE_COUNT) ou minutos (HOUR_COUNT)."""
+        goal = participation.goal
+
+        if not goal.book:
+            return 0
+
+        # session.date é uma data local; joined_at é UTC, então converte
+        # antes de pegar a data (senão a leitura do dia da entrada, feita à
+        # noite, ficaria de fora)
+        sessions = ReadingSession.objects.filter(
+            user=participation.user,
+            book=goal.book,
+            date__gte=timezone.localtime(participation.joined_at).date()
+        )
+
+        if goal.goal_type == Goal.GoalType.PAGE_COUNT:
+            contribution = sessions.aggregate(
+                total=Sum("pages_read")
+            )["total"]
+
+        elif goal.goal_type == Goal.GoalType.HOUR_COUNT:
+            contribution = sessions.aggregate(
+                total=Sum("minute_count")
+            )["total"]
+
+        else:
+            return 0
+
+        return contribution or 0
 
     @staticmethod
     def get_progress(goal) -> dict:

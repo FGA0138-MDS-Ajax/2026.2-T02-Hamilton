@@ -1,0 +1,19 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/community_blocked.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="blocked-page">
+    <section class="blocked-state">
+      <h1 class="blocked-title">{{ title }}</h1>
+      <p class="blocked-message">{{ message }}</p>
+      <a class="blocked-button" href="{% url 'main:search' %}">Voltar para a pesquisa</a>
+      <img class="blocked-img" src="{% static 'books/img/mascote.png' %}" alt="Mascote do CoLecture" />
+    </section>
+  </div>
+{% endblock %}

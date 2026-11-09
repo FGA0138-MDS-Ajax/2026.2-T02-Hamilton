@@ -4,21 +4,15 @@
 {% block title %}{% if is_edit %}Editar meta{% else %}Criar meta{% endif %} - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}" />
+  {# ?v= força o navegador a baixar a versão nova do CSS #}
+  <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}?v=3" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+  <script src="{% static 'main/js/toast.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
   <div class="goal-page">
-
-    {# Toasts de sucesso e erro no mesmo modelo da página Cadastrar Livro #}
-    {% if messages %}
-      <ul class="mensagens">
-        {% for message in messages %}
-          <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
 
     <div class="goal-header-nav">
       {% with community=form.instance.owner_community %}
@@ -54,10 +48,13 @@
         {% if community and not community.book %}
           {# Aviso exibido no lugar do formulário caso a comunidade não tenha livro definido #}
           <div class="notice" role="alert">
-            <i class="bx bx-error-circle" aria-hidden="true"></i>
             <div class="notice-body">
-              <strong>Esta comunidade ainda não tem um livro definido.</strong>
+              <strong class="notice-title">
+                <i class="bx bx-error-circle" aria-hidden="true"></i>
+                Esta comunidade ainda não tem um livro definido.
+              </strong>
               <p>Defina o livro da comunidade para poder {% if is_edit %}editar{% else %}criar{% endif %} metas.</p>
+              <br>
               <a class="btn-outline" href="{% url 'communities:edit_community' community.id %}">Definir livro</a>
             </div>
           </div>
@@ -75,36 +72,61 @@
               </div>
             {% endif %}
 
-            {# Layout em Grid de 2 colunas para aproveitar o espaço horizontal da tela #}
+            {# 2 colunas: à esquerda o texto da meta, à direita tipo, alvo e prazo #}
             <div class="form-grid">
               <div class="form-col">
-                {% for field in form.visible_fields %}
-                  {% if forloop.counter <= 2 %}
-                    <div class="field {% if field.errors %}field--error{% endif %}">
-                      <label for="{{ field.id_for_label }}">
-                        {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
-                      </label>
-                      {{ field }}
-                      {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
-                      {% for error in field.errors %}<span class="error">{{ error }}</span>{% endfor %}
-                    </div>
-                  {% endif %}
-                {% endfor %}
+                {% include "goals/_goal_field.html" with field=form.name %}
+                {% include "goals/_goal_field.html" with field=form.description %}
               </div>
 
               <div class="form-col">
-                {% for field in form.visible_fields %}
-                  {% if forloop.counter > 2 %}
-                    <div class="field {% if field.errors %}field--error{% endif %}">
-                      <label for="{{ field.id_for_label }}">
-                        {{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}
-                      </label>
-                      {{ field }}
-                      {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
-                      {% for error in field.errors %}<span class="error">{{ error }}</span>{% endfor %}
-                    </div>
-                  {% endif %}
-                {% endfor %}
+                {# Tipo de meta em cards de rádio no lugar do <select> #}
+                <fieldset class="field type-field {% if form.goal_type.errors %}field--error{% endif %}">
+                  <legend>{{ form.goal_type.label }} <span class="required">*</span></legend>
+                  {# sem valor enviado, "Tempo lido" vem marcado #}
+                  <div class="type-options">
+                    <label class="type-option">
+                      <input type="radio" name="{{ form.goal_type.html_name }}" value="HOUR_COUNT"
+                             {% if form.goal_type.value != 'PAGE_COUNT' %}checked{% endif %} />
+                      <span><i class="bx bx-time-five" aria-hidden="true"></i> Tempo lido</span>
+                    </label>
+                    <label class="type-option">
+                      <input type="radio" name="{{ form.goal_type.html_name }}" value="PAGE_COUNT"
+                             {% if form.goal_type.value == 'PAGE_COUNT' %}checked{% endif %} />
+                      <span><i class="bx bx-book-open" aria-hidden="true"></i> Páginas lidas</span>
+                    </label>
+                  </div>
+                  {% for error in form.goal_type.errors %}<span class="error">{{ error }}</span>{% endfor %}
+                </fieldset>
+
+                {# Alvo de tempo: HH:MM, convertido em minutos no form #}
+                <div class="field {% if form.target_time.errors %}field--error{% endif %}" id="block-time">
+                  <label for="{{ form.target_time.id_for_label }}">
+                    {{ form.target_time.label }} <span class="required">*</span>
+                  </label>
+                  <div class="unit-input unit-input--short">
+                    {{ form.target_time }}
+                    <span aria-hidden="true">h:min</span>
+                  </div>
+                  <small class="help">{{ form.target_time.help_text }}</small>
+                  {% for error in form.target_time.errors %}<span class="error">{{ error }}</span>{% endfor %}
+                </div>
+
+                {# Alvo de páginas #}
+                <div class="field {% if form.target.errors %}field--error{% endif %}" id="block-pages">
+                  <label for="{{ form.target.id_for_label }}">
+                    Quantidade de páginas <span class="required">*</span>
+                  </label>
+                  {{ form.target }}
+                  <small class="help">
+                    Total de páginas a ler.{% if form.max_pages %} Máximo: {{ form.max_pages }} (páginas do livro).{% endif %}
+                  </small>
+                  {% for error in form.target.errors %}<span class="error">{{ error }}</span>{% endfor %}
+                </div>
+
+                {% include "goals/_goal_field.html" with field=form.deadline %}
+                {% if form.book %}{% include "goals/_goal_field.html" with field=form.book %}{% endif %}
+                {% if form.status %}{% include "goals/_goal_field.html" with field=form.status %}{% endif %}
               </div>
             </div>
 
@@ -123,4 +145,56 @@
       {% endwith %}
     </section>
   </div>
+
+  {# mensagens do Django (ex.: "Não foi possível criar a meta") em toast, como na home de comunidades #}
+  {% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        showToast(
+          '{% if "error" in message.tags %}error{% elif "success" in message.tags %}success{% else %}info{% endif %}',
+          '{{ message|escapejs }}'
+        );
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
+
+  <script>
+    // Mostra só o campo do tipo escolhido e desativa o outro
+    // (campo desativado não é enviado no POST)
+    (function () {
+      var blockTime = document.getElementById('block-time');
+      var blockPages = document.getElementById('block-pages');
+      if (!blockTime || !blockPages) return;
+
+      function toggle(block, active) {
+        block.hidden = !active;
+        block.querySelectorAll('input').forEach(function (i) { i.disabled = !active; });
+      }
+
+      function update() {
+        var checked = document.querySelector('.type-option input:checked');
+        var isTime = !checked || checked.value === 'HOUR_COUNT';
+        toggle(blockTime, isTime);
+        toggle(blockPages, !isTime);
+      }
+
+      document.querySelectorAll('.type-option input').forEach(function (r) {
+        r.addEventListener('change', update);
+      });
+      update();
+
+      // Máscara H:MM (digita 130 e vira 1:30; 2210 vira 22:10)
+      var time = blockTime.querySelector('input');
+      time.addEventListener('input', function () {
+        var d = time.value.replace(/\D/g, '').slice(0, 5);
+        time.value = d.length > 2 ? d.slice(0, -2) + ':' + d.slice(-2) : d;
+      });
+      // ao sair do campo, número sem ":" vira horas cheias (2 -> 2:00)
+      time.addEventListener('blur', function () {
+        if (time.value && time.value.indexOf(':') === -1) time.value += ':00';
+      });
+    })();
+  </script>
 {% endblock %}

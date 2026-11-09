@@ -92,6 +92,45 @@ form {
     color: var(--purple-400);
 }
 
+/* Botão de mostrar/ocultar senha */
+.input .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color .15s;
+}
+
+.input .toggle-password i {
+    position: static;
+    transform: none;
+    color: inherit;
+}
+
+.input .toggle-password:hover,
+.input input:focus~.toggle-password {
+    color: var(--purple-400);
+}
+
+.input .toggle-password:focus-visible {
+    outline: 2px solid var(--purple-300);
+    outline-offset: 2px;
+}
+
+/* Esconde o olho nativo do Edge para não duplicar */
+.input input::-ms-reveal {
+    display: none;
+}
+
 /* botões */
 .btn {
     width: 100%;
