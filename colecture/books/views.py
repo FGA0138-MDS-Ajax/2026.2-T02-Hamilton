@@ -88,6 +88,17 @@ def search_books(request):
 
     queryset = Book.objects.search(term, genre)
     total = queryset.count()
+    books = list(queryset[:SEARCH_LIMIT])
+
+    # Status de cada livro na estante do usuário logado (vazio se não estiver na estante)
+    statuses = {}
+    if request.user.is_authenticated:
+        statuses = dict(
+            BookStatus.objects.filter(
+                user=request.user,
+                book__in=books
+            ).values_list('book_id', 'status')
+        )
 
     results = [
         {
@@ -100,8 +111,9 @@ def search_books(request):
             'year': book.publish_year,
             'publisher': book.publisher,
             'icon': book.icon,
+            'status': statuses.get(book.id, ''),
         }
-        for book in queryset[:SEARCH_LIMIT]
+        for book in books
     ]
 
     return JsonResponse({'total': total, 'results': results})
