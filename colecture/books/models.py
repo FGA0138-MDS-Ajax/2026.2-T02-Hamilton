@@ -175,6 +175,32 @@ class BookStatus(models.Model):
         decimal_places=3
     );
 
+    # Data em que o livro foi marcado como lido (preenchida automaticamente).
+    finished_at = models.DateField(
+        null=True,
+        blank=True
+    );
+
+    @property
+    def progress_percent(self):
+        """Progresso de 0 a 100 (reading_progress é guardado como fração 0-1)."""
+        return min(100, max(0, round(float(self.reading_progress or 0) * 100)))
+
+    @property
+    def pages_read(self):
+        """Páginas lidas estimadas a partir do progresso (None se o livro não tem total)."""
+        if not self.book.pages:
+            return None
+        return min(self.book.pages, round(float(self.reading_progress or 0) * self.book.pages))
+
+    def mark_as_read(self, today=None):
+        """Marca como lido: data de conclusão = hoje e progresso = 100%."""
+        self.status = self.Status.READ
+        self.finished_at = today or timezone.localdate()
+        self.reading_progress = Decimal("1.000")
+        self.save(update_fields=["status", "finished_at", "reading_progress"])
+
+
     @staticmethod
     def validate_status(status):
         for status_tup in BookStatus.Status.choices:
@@ -233,29 +259,4 @@ class ReadingSession(models.Model):
             raise ValidationError(errors)
 
     def __str__(self):
-        return f"{self.user} - {self.book} ({self.date})"
-    # Data em que o livro foi marcado como lido (preenchida automaticamente).
-    finished_at = models.DateField(
-        null=True,
-        blank=True
-    );
-
-    @property
-    def progress_percent(self):
-        """Progresso de 0 a 100 (reading_progress é guardado como fração 0-1)."""
-        return min(100, max(0, round(float(self.reading_progress or 0) * 100)))
-
-    @property
-    def pages_read(self):
-        """Páginas lidas estimadas a partir do progresso (None se o livro não tem total)."""
-        if not self.book.pages:
-            return None
-        return min(self.book.pages, round(float(self.reading_progress or 0) * self.book.pages))
-
-    def mark_as_read(self, today=None):
-        """Marca como lido: data de conclusão = hoje e progresso = 100%."""
-        self.status = self.Status.READ
-        self.finished_at = today or timezone.localdate()
-        self.reading_progress = Decimal("1.000")
-        self.save(update_fields=["status", "finished_at", "reading_progress"])
-
+        return f"{self.user} - {self.book} ({self.date})"    
