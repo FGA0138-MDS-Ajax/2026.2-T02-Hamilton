@@ -274,7 +274,7 @@ Papéis conforme o Quadro 5 do documento de Visão. Em **negrito**, o papel em q
 |---|---|
 | Ana Clara Teixeira Guimarães | **Desenvolvedora**, Engenheira de Dados |
 | Arthur Miguel Silva Rocha | **Arquiteto de Software**, Desenvolvedor, Dono do Produto, Analista de Requisitos e Documentação |
-| Gabriel Sayd de Santana Lombas Macedo | **Cliente**, Desenvolvedor, Analista de Qualidade, Engenheiro de Dados |
+| Gabriel Sayd de Santana Lombas Macedo | **Desenvolvedor**, Analista de Qualidade, Engenheiro de Dados |
 | Guilherme Ribeiro Almeida | **Engenheiro de Dados**, Desenvolvedor |
 | Henrique Catharino Nunes de Mendonça | **Desenvolvedor**, Arquiteto de Software |
 | Jônatas Maciel da Silva Alves | **Analista de Requisitos e Documentação**, Desenvolvedor |
