@@ -41,7 +41,7 @@ O CoLecture roda apenas em ambiente local, sem hospedagem em provedor externo.
 ### Pré-requisitos
 
 - [Git](https://git-scm.com/)
-- [Python 3.10+](https://www.python.org/downloads/)
+- [Python 3.12+](https://www.python.org/downloads/)
 - [VS Code](https://code.visualstudio.com/) (opcional, mas recomendado)
 
 <!-- # TO-DO: Confirmar a versão mínima do Python e do Django usadas no projeto -->
