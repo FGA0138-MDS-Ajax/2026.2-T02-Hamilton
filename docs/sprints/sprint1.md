@@ -13,13 +13,14 @@ A Sprint 1 foi dedicada à implementação dos recursos de registro de conta e a
 
 ## 3. Requisitos Implementados
 O valor esperado de conclusão de cada requisito é de **70%**.
+
 | Requisito | Nome | Taxa de Conclusão |
 | --- | --- | --- |
 | R01 | Cadastro e login | 100% |
 | R02 | Admin editar usuários | 100% |
 | R03 | Admin inicial via seed | 100% |
 | R04 | Página de login | 100% |
-| Média | | 100% |
+| Média | - | 100% |
 
 ## 4. Avaliação da qualidade do Software
 
