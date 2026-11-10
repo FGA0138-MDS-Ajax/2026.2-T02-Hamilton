@@ -1,6 +1,6 @@
 # Visão do Produto
 
-Resumo do documento *CoLecture: Visão do Produto e do Projeto* (Grupo Hamilton, 2026).
+Resumo do documento *CoLecture: Visão do Produto e do Projeto* (Grupo Hamilton, 2026), **versão 1.2** (09/11/2026). [Baixar o PDF completo](../documentos/visao-do-produto-e-do-projeto.pdf){ target="_blank" rel="noopener" }.
 
 ## Problema
 
@@ -9,6 +9,23 @@ Segundo a pesquisa Panorama do Consumo de Livros (Rádio Senado), 18% dos brasil
 As tecnologias existentes acompanham o progresso individual, mas pouco fazem pelo lado social. Zhou et al. (2023) mostram que quem estuda em grupo tem maior senso de pertencimento e melhor desempenho, o que pode se aplicar à leitura.
 
 Manter o hábito depende de rotina, ambiente, motivação e da forma como o progresso é acompanhado. A falta de um ambiente social de troca entre leitores limita o incentivo mútuo, importante para o novo leitor.
+
+![Diagrama de Ishikawa descrevendo o problema](../img/visao-fig1-ishikawa.png)
+
+*Figura 1 - Diagrama Ishikawa (Espinha de Peixe) descrevendo o problema. Fonte: elaborado pelos autores (2026).*
+
+As causas raiz foram agrupadas em seis categorias, adaptadas do modelo clássico de Ishikawa ao contexto da leitura:
+
+| Categoria | Causas |
+| --------- | ------ |
+| Ambiente | Iluminação inadequada e ruído |
+| Leitor | Fadiga e dificuldades de compreensão |
+| Método | Rotina mal estruturada, foco excessivo em métricas e metas irrealistas |
+| Dispositivos e Estímulos | Distrações digitais (redes sociais e vídeos curtos) e pouco envolvimento social |
+| Acompanhamento | Feedback insuficiente e falta de planejamento |
+| Motivação | Baixo engajamento, temas difíceis ou incompatíveis e perspectiva negativa sobre a leitura |
+
+Fatores como dificuldade de compreensão e condições ambientais não podem ser tratados diretamente por software. Já o planejamento da rotina, o acompanhamento do progresso, o feedback e, principalmente, a interação social entre leitores podem ser otimizados por uma aplicação.
 
 ## Solução proposta
 
@@ -32,7 +49,20 @@ Uma plataforma com foco no incentivo ao hábito da leitura individual e coletiva
 | **Ao contrário de** | Planilhas, registros pessoais ou plataformas que concentram metas e progresso no usuário individual |
 | **Nosso produto** | Integra acompanhamento individual, objetivos coletivos e interação social em um só ambiente |
 
+**Público-alvo:** pessoas com interesse em leitura (por gosto ou por fatores externos, como a escola), que têm dificuldade de manter a prática, gostam de cumprir metas e receber feedback, valorizam discussões online com outros leitores e se sentem motivadas a trabalhar em equipe.
+
 **Diferencial:** concorrentes como Goodreads, StoryGraph, Literal e Fable já oferecem acompanhamento, recomendação, avaliação e interação social. O diferencial do CoLecture é a ênfase em objetivos de leitura coletivos e na relação próxima entre o progresso coletivo e o individual.
+
+### Com e sem a solução
+
+| Com a solução proposta | Sem a solução proposta |
+| ---------------------- | ---------------------- |
+| Objetivos individuais e coletivos integrados à experiência de leitura | Pode ser necessário estabelecer objetivos manualmente |
+| Progresso registrado e apresentado automaticamente na plataforma | Progresso acompanhado manualmente em planilhas |
+| Objetivos compartilhados em comunidade, com estrutura e acompanhamento em comum | Coordenação informal com amigos e pares |
+| Comunidades organizadas em torno de interesses | Encontrar outros leitores compatíveis pode ser difícil |
+| Interação social e progresso coletivo dão estímulo contínuo | Motivação depende da iniciativa individual |
+| A leitura se torna uma atividade compartilhada | A leitura pode ser isolada |
 
 ## Objetivos
 

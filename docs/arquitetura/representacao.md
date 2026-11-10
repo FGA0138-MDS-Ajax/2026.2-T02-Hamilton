@@ -1,6 +1,13 @@
 # Representação Arquitetural
 
-Resumo do documento *CoLecture: Arquitetura do Produto de Software* (Grupo Hamilton, 2026, versão 1.1).
+Resumo do documento *CoLecture: Arquitetura do Produto de Software* (Grupo Hamilton, 2026), **versão 1.1** (13/10/2026). [Baixar o PDF completo](../documentos/arquitetura-do-produto-de-software.pdf){ target="_blank" rel="noopener" }.
+
+## Histórico de revisões
+
+| Data | Versão | Descrição | Autor |
+| :--: | :----: | --------- | ----- |
+| 07/10/2026 | 1.0 | Versão inicial com o detalhamento arquitetural, escopo e bibliografias | Grupo Hamilton |
+| 13/10/2026 | 1.1 | Remoção da camada de serviços; padronização de "comunidade"; moderador como papel de comunidade; atualização das Figuras 1, 2, 4 e 5 | Ricieri |
 
 ## Propósito e escopo
 
@@ -25,7 +32,11 @@ Monolítico em camadas, cliente-servidor. O Django organiza a aplicação no pad
 - **Template:** interface gráfica (HTML, CSS e JavaScript): login, catálogo, página de leitura e página da comunidade.
 - **View:** recebe as requisições HTTP, valida a entrada (Django Forms), consulta ou altera os Models e renderiza o Template.
 
-Fluxo de uma requisição: navegador → roteador de URLs → View → Model → Template → HTML ao navegador.
+Fluxo de uma requisição: o navegador envia a requisição HTTP; o roteador de URLs a encaminha à View; a View consulta ou altera dados via Model; por fim, renderiza um Template que devolve HTML ao navegador.
+
+![Fluxo da arquitetura MTV](../img/arq-fig1-fluxo-mtv.png)
+
+*Figura 1: Fluxo da arquitetura MTV. Fonte: elaborado pelos autores (2026).*
 
 ## Justificativa da escolha
 
