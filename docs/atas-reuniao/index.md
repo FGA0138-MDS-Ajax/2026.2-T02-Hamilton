@@ -8,3 +8,5 @@ Clique no texto da ata para abrir o registro completo em uma nova aba.
 | 07/10/2026 | [Ata 2 – Política de branches e início da Sprint 1](ata-reuniao-2.md){ target="_blank" rel="noopener" } |
 | 14/10/2026 | [Ata 3 – Reunião da Sprint 2](ata-reuniao-3.md){ target="_blank" rel="noopener" } |
 | 21/10/2026 | [Ata 4 – Reunião da Sprint 3](ata-reuniao-4.md){ target="_blank" rel="noopener" } |
+| 28/10/2026 | [Ata 5 – Reunião da Sprint 4 (Metas de leitura e fóruns)](ata-reuniao-5.md){ target="_blank" rel="noopener" } |
+| 04/11/2026 | [Ata 6 – Débito técnico da Sprint 4](ata-reuniao-6.md){ target="_blank" rel="noopener" } |

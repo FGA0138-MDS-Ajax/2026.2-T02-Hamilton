@@ -30,7 +30,7 @@ O levantamento foi feito por brainstorm entre os integrantes, considerando neces
 | C08 | Perfil com tags e livros lidos | 4 |
 | C09 | Fórum da comunidade por ciclo | 4 |
 | C10 | Registro de progresso diário e livro já lido | 5 |
-| C11 | Ofensiva pessoal e da comunidade | 5 |
+| C11 | Ofensiva pessoal | 5 |
 | C12 | Insígnias de comunidade | 6 |
 | C13 | Recomendação por temas | 6 |
 
@@ -46,18 +46,45 @@ O levantamento foi feito por brainstorm entre os integrantes, considerando neces
 | R06 | 2 | Pesquisar e filtrar catálogo | Funcional | Must | Busca por título, autor, tema, tag | US06 |
 | R07 | 2 | Avaliar livros | Funcional | Should | Nota 1-5, resenha, média | US07 |
 | R08 | 2 | Página de registro de livros e avaliação | Funcional | Must | Página de registro, avaliação e pesquisa | US08 |
-| R09 | 3 | Manter comunidade | Funcional | Must | Nome, descrição, moderadores; excluir/arquivar, aprovar e remover membros, promover moderador; comunidade aberta ou fechada | US09 |
-| R10 | 3 | Página de comunidade | Funcional | Must | Página web com os requisitos R09 a R12 | US10 |
-| R11 | 4 | Criar meta de leitura | Funcional | Must | Livro, capítulos, data limite, fórum automático | US11 |
-| R12 | 4 | Manter fórum | Funcional | Must | Criar fórum, arquivar o antigo, tópicos e respostas, vinculado ao ciclo | US12 |
+| R09 | 3 | Manter comunidade | Funcional | Must | Nome, descrição, criador moderador; moderadores podem excluir/arquivar a comunidade, aprovar e remover membros e promover moderador; comunidade aberta ou fechada (a fechada exige aprovação) | US09 |
+| R10 | 3 | Página de comunidade | Funcional | Must | Página web com o R09 | US10 |
+| R11 | 4 | Criar meta de leitura | Funcional | Must | Livro, data limite, fórum automático | US11 |
+| R12 | 4 | Manter fórum | Funcional | Must | Criar fórum novo e arquivar o antigo, se existir, vinculado ao ciclo; cada comunidade tem um fórum geral e um fórum por meta | US12 |
 | R13 | 4 | Visualizar metas ativas/encerradas | Funcional | Must | Listar progresso, data, status | US13 |
-| R14 | 4 | Moderar fórum | Funcional | Should | Editar, excluir, fixar, trancar | US14 |
+| R14 | 4 | Moderar fórum | Funcional | Should | Editar, fixar, trancar (silenciar o chat) | US14 |
 | R15 | 5 | Registrar livro como lido | Funcional | Must | Status lido, data, páginas/percentual | US15 |
-| R16 | 5 | Registrar progresso diário | Funcional | Must | Sessão do dia, páginas/% acumulado | US16 |
-| R17 | 5 | Ofensivas | Funcional | Should | Dias consecutivos, calendário, notificações, streak coletivo | US17 |
-| R18 | 5 | Página de leitura | Funcional | Must | Abas: leitura do dia e livros já lidos | US18 |
+| R16 | 5 | Registrar progresso diário | Funcional | Must | Sessão do dia, páginas/% acumulado e tempo gasto estimado | US16 |
+| R17 | 5 | Ofensivas | Funcional | Should | Dias consecutivos, calendário, notificações | US17 |
+| R18 | 5 | Página de leitura | Funcional | Must | Abas distintas: registrar leitura, e botão de registrar na aba de perfil ou sidebar | US18 |
 | R19 | 6 | Insígnias | Funcional | Could | Conquistas automáticas/manuais | US19 |
 | R20 | 6 | Recomendações por tema | Funcional | Must | Baseada em tags, lidos e avaliações | US20 |
 | R21 | 6 | Notificações e logs | Não funcional | Should | Notificar aprovações e novos ciclos, logs de ações | US21 |
 | R22 | 6 | Teste e documentação | Não funcional | Must | Roteiro de testes, cobertura, manual | US22 |
 | R23 | 7 | Ajustes finais e apresentação | Não funcional | Must | Correções | – |
+
+## Critérios de pronto
+
+Para padronizar o que se espera dos itens do backlog antes e depois do desenvolvimento, a equipe definiu a Definição de Preparado (*Definition of Ready*, DoR) e a Definição de Pronto (*Definition of Done*, DoD).
+
+### Definição de Preparado (DoR)
+
+Um requisito só entra no planejamento de uma sprint se:
+
+1. Possui prioridade definida (Must, Should ou Could);
+2. Possui critérios de aceitação claros e verificáveis;
+3. Tem dependências com outros requisitos identificadas e resolvidas ou planejadas;
+4. Foi estimado e cabe no tempo da sprint (7 dias);
+5. Foi compreendido pela equipe e validado pelo Dono do Produto.
+
+### Definição de Pronto (DoD)
+
+Um requisito só é considerado concluído se:
+
+1. O código foi implementado e atende aos critérios de aceitação da user story;
+2. Os testes unitários das regras de negócio foram escritos e executam com sucesso;
+3. O caso de teste correspondente do [Roteiro de Testes](testes.md#roteiro-de-testes) foi executado e aprovado;
+4. O código passou por revisão (*pull request*) de pelo menos dois outros integrantes;
+5. Os commits seguem o padrão Conventional Commits e o código foi integrado à branch `sprintN`;
+6. Nenhum defeito crítico permanece em aberto;
+7. A documentação afetada (README e documentos de Visão e Arquitetura) foi atualizada;
+8. O Dono do Produto validou a entrega na reunião de revisão da sprint.

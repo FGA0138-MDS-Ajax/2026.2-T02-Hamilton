@@ -122,3 +122,28 @@
   background: var(--cl-black);
   color: var(--cl-white);
 }
+
+/* Abas do topo em preto, texto branco */
+.md-tabs {
+  background-color: var(--cl-black);
+  color: var(--cl-white);
+}
+
+.md-tabs__link {
+  color: var(--cl-gray-light);
+  opacity: 1;
+}
+
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  color: var(--cl-white);
+  font-weight: 600;
+}
+
+/* Imagens (figuras) centralizadas e responsivas */
+.md-typeset img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}

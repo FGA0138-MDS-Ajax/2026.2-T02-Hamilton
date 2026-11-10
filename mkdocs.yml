@@ -30,6 +30,8 @@ nav:
       - Ata 2: atas-reuniao/ata-reuniao-2.md
       - Ata 3: atas-reuniao/ata-reuniao-3.md
       - Ata 4: atas-reuniao/ata-reuniao-4.md
+      - Ata 5: atas-reuniao/ata-reuniao-5.md
+      - Ata 6: atas-reuniao/ata-reuniao-6.md
   - Sprints:
     - Sprint 1: sprints/sprint1.md
   - Como contribuir: contribuir.md
@@ -43,6 +45,7 @@ theme:
     scheme: default
     primary: black
   features:
+    - navigation.tabs       # seções principais viram abas no topo
     - navigation.top        # botão "voltar ao topo"
     - navigation.sections   # agrupa itens do menu lateral
     - content.code.copy     # botão de copiar nos blocos de código
