@@ -4,7 +4,7 @@ from datetime import datetime, time
 from django import forms
 from django.utils import timezone
 
-from .models import GOAL_DESC_MAX_LENGTH, Goal, ReadingSession
+from .models import GOAL_DESC_MAX_LENGTH, Goal
 
 # teto de páginas quando não há livro (ou o livro não tem nº de páginas)
 MAX_GOAL_PAGES = 100_000
@@ -163,65 +163,5 @@ class GoalForm(forms.ModelForm):
                         if book else
                         f"A meta pode ter no máximo {limit:,} páginas.".replace(",", ".")
                     ))
-
-        return cleaned
-
-
-class ReadingSessionForm(forms.ModelForm):
-    current_page = forms.IntegerField(
-        label="Página atual",
-        required=False,
-        min_value=1
-    )
-
-    current_percentage = forms.DecimalField(
-        label="Percentual total lido",
-        required=False,
-        min_value=0,
-        max_value=100,
-        decimal_places=2,
-        max_digits=5
-    )
-
-    def __init__(self, *args, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if user is not None:
-            self.instance.user = user
-
-    class Meta:
-        model = ReadingSession
-        fields = ["book", "minute_count", "date"]
-
-    def clean(self):
-        cleaned = super().clean()
-
-        current_page = cleaned.get("current_page")
-        current_percentage = cleaned.get("current_percentage")
-        book = cleaned.get("book")
-
-        #exige que o usuário escolha apenas uma forma de informar
-        if current_page is None and current_percentage is None:
-            raise forms.ValidationError(
-                "Informe a página atual ou o percentual total lido."
-            )
-
-        if current_page is not None and current_percentage is not None:
-            raise forms.ValidationError(
-                "Informe somente a página atual ou o percentual."
-            )
-
-        #verifica se a página atual é válida
-        if current_page is not None and book:
-            if book.pages is None:
-                self.add_error(
-                    "book",
-                    "O livro precisa ter a quantidade de páginas informada."
-                )
-            elif current_page > book.pages:
-                self.add_error(
-                    "current_page",
-                    "A página atual não pode ultrapassar o total de páginas do livro."
-                )
 
         return cleaned

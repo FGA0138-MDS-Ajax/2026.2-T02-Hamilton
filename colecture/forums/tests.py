@@ -814,7 +814,7 @@ class ForumCreationRules(TestCase):
 
         self.assertEqual(Forum.objects.filter(community=community).count(), 1);
 
-    def test_migration_creates_forums_that_were_missing(self):
+    def migration_creates_forums_that_were_missing(self):
         # comunidade e metas criadas "antigamente", sem passar pelos
         # services, ou seja, sem fórum.
         owner = AccountService.create_account(

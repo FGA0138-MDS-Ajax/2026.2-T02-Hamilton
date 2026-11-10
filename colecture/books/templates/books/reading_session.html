@@ -14,6 +14,9 @@
   <div class="rs-page">
     <section class="rs" id="readingSession"
              data-lookup-url="{% url 'books:lookup' %}"
+             data-progress-url="{% url 'books:save_reading_progress' 0 %}"
+             data-mark-read-url="{% url 'books:mark_book_as_read' 0 %}"
+             data-csrf="{{ csrf_token }}"
              aria-labelledby="rsHeading">
 
       <h2 id="rsHeading" class="rs-sr-only">Registrar leitura</h2>
@@ -39,14 +42,7 @@
 
         <div class="rs-col">
           <aside class="rs-card rs-summary" aria-label="Resumo do livro">
-            <div class="rs-field" data-rs-picker>
-              <label for="rsBook">Livro</label>
-              <div class="rs-select-wrap">
-                <select id="rsBook" class="rs-input rs-select"></select>
-                <i class="bx bx-chevron-down rs-select-caret" aria-hidden="true"></i>
-              </div>
-            </div>
-
+            {# O livro vem do card clicado no perfil (?book=<id>), sem seletor #}
             <div class="rs-book">
               <img class="rs-cover" data-rs-cover alt="" hidden />
               <div class="rs-cover rs-cover--empty" data-rs-cover-empty aria-hidden="true">
@@ -182,5 +178,6 @@
 
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
-  <script src="{% static 'books/js/reading_session.js' %}"></script>
+  {# ?v= força o navegador a baixar a versão nova (sem o seletor de livro) #}
+  <script src="{% static 'books/js/reading_session.js' %}?v=3"></script>
 {% endblock %}

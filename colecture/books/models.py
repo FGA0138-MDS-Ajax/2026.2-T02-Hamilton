@@ -3,7 +3,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator, URLVali
 from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from decimal import Decimal
+from django.utils import timezone;
 
 ISBN_MAX_LENGTH = 17
 TITLE_MAX_LENGTH = 200
@@ -173,3 +175,88 @@ class BookStatus(models.Model):
         decimal_places=3
     );
 
+    # Data em que o livro foi marcado como lido (preenchida automaticamente).
+    finished_at = models.DateField(
+        null=True,
+        blank=True
+    );
+
+    @property
+    def progress_percent(self):
+        """Progresso de 0 a 100 (reading_progress é guardado como fração 0-1)."""
+        return min(100, max(0, round(float(self.reading_progress or 0) * 100)))
+
+    @property
+    def pages_read(self):
+        """Páginas lidas estimadas a partir do progresso (None se o livro não tem total)."""
+        if not self.book.pages:
+            return None
+        return min(self.book.pages, round(float(self.reading_progress or 0) * self.book.pages))
+
+    def mark_as_read(self, today=None):
+        """Marca como lido: data de conclusão = hoje e progresso = 100%."""
+        self.status = self.Status.READ
+        self.finished_at = today or timezone.localdate()
+        self.reading_progress = Decimal("1.000")
+        self.save(update_fields=["status", "finished_at", "reading_progress"])
+
+
+    @staticmethod
+    def validate_status(status):
+        for status_tup in BookStatus.Status.choices:
+            if status in status_tup:
+                return True;
+        return False;
+
+class ReadingSession(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    #quantidade de páginas lidas nesta sessão específica
+    pages_read = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
+    minute_count = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
+    date = models.DateField(default=timezone.localdate)
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        #impede registros com data no futuro
+        if self.date is not None and self.date > timezone.localdate():
+            errors["date"] = (
+                "A data da leitura não pode estar no futuro."
+            )
+
+        #verifica se a quantidade de páginas é válida
+        if self.book_id and self.pages_read is not None:
+            if self.book.pages is None:
+                errors["book"] = (
+                    "O livro precisa ter a quantidade de páginas informada."
+                )
+            elif self.pages_read > self.book.pages:
+                errors["pages_read"] = (
+                    "A quantidade de páginas lidas não pode ultrapassar "
+                    "o total de páginas do livro."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.user} - {self.book} ({self.date})"    

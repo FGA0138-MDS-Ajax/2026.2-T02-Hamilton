@@ -6,6 +6,12 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'main/js/toast.js' %}"></script>
+  <script src="{% static 'accounts/js/profile_shelf.js' %}?v=2"></script>
 {% endblock %}
 
 {% block content %}
@@ -113,24 +119,69 @@
           </section>
         </div>
 
-        <section class="card bookshelf" aria-labelledby="bookshelf-title">
+        {# F09: espaço reservado para a ofensiva compacta (R17) #}
+        <div class="streak-compact-slot" id="streakCompactSlot" data-streak-compact hidden></div>
+
+        <section class="card bookshelf" aria-labelledby="bookshelf-title"
+                 data-shelf data-csrf="{{ csrf_token }}"
+                 data-shelf-url="{% url 'books:manage_bookshelf' %}"
+                 data-progress-url="{% url 'books:reading_session' %}">
           <h2 id="bookshelf-title">
             <i class="bx bxs-book" aria-hidden="true"></i> Sua estante
           </h2>
 
-          {% if books %}
-            <ul class="book-list">
-              {% for book in books %}
-                <li class="book-item">
-                  <span class="book-title">{{ book.title }}</span>
-                  <span class="book-author">{{ book.author }}</span>
-                </li>
-              {% endfor %}
-            </ul>
+          {% if shelf_items %}
+            <div class="shelf-layout">
+              <nav class="shelf-filter" aria-label="Filtrar estante por status">
+                {% for f in shelf_filters %}
+                  <button type="button"
+                          class="shelf-filter__option{% if f.value == 'ALL' %} is-active{% endif %}"
+                          data-shelf-filter="{{ f.value }}" data-label="{{ f.label }}"
+                          aria-pressed="{% if f.value == 'ALL' %}true{% else %}false{% endif %}">
+                    <i class="bx {{ f.icon }}" aria-hidden="true"></i>
+                    <span class="shelf-filter__label">{{ f.label }}</span>
+                    <span class="shelf-filter__count" data-shelf-count="{{ f.value }}">{{ f.count }}</span>
+                  </button>
+                {% endfor %}
+              </nav>
+
+              <div class="shelf-content">
+                <ul class="shelf-grid" data-shelf-grid>
+                  {% for item in shelf_items %}
+                    {% include "accounts/_shelf_book_card.html" with item=item %}
+                  {% endfor %}
+                </ul>
+                <p class="empty shelf-empty" data-shelf-empty hidden></p>
+              </div>
+            </div>
           {% else %}
             <p class="empty">Você ainda não registrou nenhum livro.</p>
           {% endif %}
         </section>
+
+        {# Pop-up para trocar a tag do livro (mesmo visual do pop-up da pesquisa) #}
+        <div class="modal-overlay" data-status-modal hidden>
+          <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+            <div class="modal-header">
+              <h2 id="statusModalTitle">Alterar estante</h2>
+              <button type="button" class="modal-close" data-modal-close aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="modal-book-name" data-modal-book></p>
+              <p class="modal-question">Em qual estante o livro vai ficar?</p>
+              <div class="modal-options">
+                <button type="button" class="modal-option" data-modal-option="READING">Lendo</button>
+                <button type="button" class="modal-option" data-modal-option="READ">Lido</button>
+                <button type="button" class="modal-option" data-modal-option="WANT_TO_READ">Quero ler</button>
+              </div>
+              <button type="button" class="modal-remove" data-modal-remove>Remover da lista</button>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="modal-cancel" data-modal-close>Cancelar</button>
+              <button type="button" class="modal-save" data-modal-save>Salvar</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 {% endblock %}

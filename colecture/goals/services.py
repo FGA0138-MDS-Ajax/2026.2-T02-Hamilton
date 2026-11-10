@@ -9,8 +9,9 @@ from django.contrib.auth import get_user_model;
 from communities.models import Community, Membership
 from communities.services import MembershipService
 from forums.models import Forum
+from books.models import ReadingSession;
 
-from .models import Goal, GoalParticipation, ReadingSession
+from .models import Goal, GoalParticipation
 
 GOAL_UNIT_LABELS = {
     Goal.GoalType.PAGE_COUNT: "páginas",

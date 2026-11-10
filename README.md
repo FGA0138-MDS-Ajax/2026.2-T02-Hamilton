@@ -41,7 +41,7 @@ O CoLecture roda apenas em ambiente local, sem hospedagem em provedor externo.
 ### Pré-requisitos
 
 - [Git](https://git-scm.com/)
-- [Python 3.10+](https://www.python.org/downloads/)
+- [Python 3.12+](https://www.python.org/downloads/)
 - [VS Code](https://code.visualstudio.com/) (opcional, mas recomendado)
 
 <!-- # TO-DO: Confirmar a versão mínima do Python e do Django usadas no projeto -->
@@ -192,7 +192,7 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
 | `/` | Página inicial (redireciona ao perfil se o usuário estiver logado) | Público |
 | `/search/` | Pesquisa de livros | Público |
 | `/books/<int:id>/` | Pagina do livro | Público |
-| `/books/register/` | Cadastro de livros | Público |
+| `/books/register/` | Cadastro de livros |
 | `/books/<int:id>/edit/` | Editção do livro | Administrador e Usuário criador |
 | `/books/<int:id>/delete/` | Deletar livro | Administrador |
 | `/user/register/` | Cadastro | Público |
@@ -274,7 +274,7 @@ Papéis conforme o Quadro 5 do documento de Visão. Em **negrito**, o papel em q
 |---|---|
 | Ana Clara Teixeira Guimarães | **Desenvolvedora**, Engenheira de Dados |
 | Arthur Miguel Silva Rocha | **Arquiteto de Software**, Desenvolvedor, Dono do Produto, Analista de Requisitos e Documentação |
-| Gabriel Sayd de Santana Lombas Macedo | **Cliente**, Desenvolvedor, Analista de Qualidade, Engenheiro de Dados |
+| Gabriel Sayd de Santana Lombas Macedo | **Desenvolvedor**, Analista de Qualidade, Engenheiro de Dados |
 | Guilherme Ribeiro Almeida | **Engenheiro de Dados**, Desenvolvedor |
 | Henrique Catharino Nunes de Mendonça | **Desenvolvedor**, Arquiteto de Software |
 | Jônatas Maciel da Silva Alves | **Analista de Requisitos e Documentação**, Desenvolvedor |

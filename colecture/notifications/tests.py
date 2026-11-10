@@ -2,8 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from books.models import Book
-from goals.models import ReadingSession
+from books.models import Book, ReadingSession
 from notifications.models import Notification
 from notifications.tasks import notify_without_reading
 from django.urls import reverse
