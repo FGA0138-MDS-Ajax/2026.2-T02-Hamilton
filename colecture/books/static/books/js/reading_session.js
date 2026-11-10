@@ -229,19 +229,17 @@ function readingIds() {
       return msg ? null : value - sum.pagesRead;
     }
 
-    var remaining = remainingFor(current, sum, type);
+    // por percentual o campo é o percentual em que você está (não o quanto leu hoje)
     if (value === null || isNaN(value)) {
-      msg = 'Informe o percentual lido hoje.';
-    } else if (value <= 0) {
-      msg = 'A quantidade precisa ser maior que zero.';
-    } else if (!Number.isInteger(value)) {
+      msg = 'Informe em qual percentual do livro você está.';
+    } else if (!Number.isInteger(value) || value <= 0) {
       msg = 'Use um número inteiro de percentual (ex.: 12).';
-    } else if (value > remaining) {
-      msg = 'Faltam só ' + formatPercent(remaining) + ' para terminar o livro.';
+    } else if (value > 100) {
+      msg = 'O percentual vai até 100%.';
     }
 
     setError(el.amount, el.amountError, msg);
-    return msg ? null : value;
+    return msg ? null : value - sum.percent;
   }
 
 
@@ -326,11 +324,11 @@ function readingIds() {
         ? 'Restam ' + remaining + ' páginas para finalizar o livro.'
         : 'Você ainda não registrou nenhuma página (total: ' + current.pages + ').';
     } else {
-      el.amountLabel.textContent = 'Digite o seu progresso';
+      el.amountLabel.textContent = 'Em qual percentual do livro você está?';
       el.suffix.textContent = '%';
       el.amount.step = '1';
       el.amount.min = '1';
-      el.amount.max = String(remaining);
+      el.amount.max = '100';
       el.amount.setAttribute('inputmode', 'numeric');
       el.remaining.textContent = 'Restam ' + formatPercent(remaining) +
         (current.pages ? ' (' + (current.pages - sum.pagesRead) + ' pág.)' : '') +
@@ -500,7 +498,7 @@ function readingIds() {
       '<form class="rs-edit" novalidate>' +
         '<div class="rs-edit-grid">' +
           '<div>' +
-            '<label for="rsEditAmount">' + (byPages ? 'Página em que parou' : 'Percentual lido na sessão') + '</label>' +
+            '<label for="rsEditAmount">' + (byPages ? 'Página em que parou' : 'Percentual em que parou') + '</label>' +
             '<div class="rs-input-group">' +
               '<input id="rsEditAmount" name="amount" class="rs-input" type="number" inputmode="numeric" min="1" step="1" />' +
               '<span class="rs-addon" aria-hidden="true">' + (byPages ? 'pág.' : '%') + '</span>' +
@@ -522,7 +520,7 @@ function readingIds() {
       '</form>';
 
     var form = li.querySelector('form');
-    form.elements.amount.value = byPages ? tl[i].pages : s.amount;
+    form.elements.amount.value = byPages ? tl[i].pages : Math.round(tl[i].percent);
     form.elements.duration.value = s.minutes ? formatHM(s.minutes) : '';
     return li;
   }
@@ -549,8 +547,9 @@ function readingIds() {
       if (value > current.pages) msg = 'Este livro tem ' + current.pages + ' páginas.';
       newCum = value === current.pages ? 100 : value / current.pages * 100;
     } else {
-      newCum = prev.percent + value;
-      if (newCum > 100) msg = 'Com esse valor o progresso passaria de 100%.';
+      // Percentual em que parou (acumulado), não o quanto leu na sessão
+      if (value > 100) msg = 'O percentual vai até 100%.';
+      newCum = value;
     }
 
     var dur = parseDuration(form.elements.duration.value);
@@ -608,7 +607,9 @@ function readingIds() {
     var type = currentType();
 
     // por páginas o campo é a página onde parou -> converte para páginas lidas
+    // por % o campo é o percentual atual -> converte para o percentual lido na sessão
     if (type === 'pages' && value !== null) value = value - sum.pagesRead;
+    else if (type === 'percent' && value !== null) value = value - sum.percent;
 
     if (value !== null && !isNaN(value) && value > 0 && value <= remainingFor(current, sum, type)) {
       add = Math.max(0, sessionPercent(current, sum, type, value));
