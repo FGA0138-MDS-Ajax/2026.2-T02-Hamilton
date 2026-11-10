@@ -4,28 +4,36 @@
 | Título | Valor |
 | ------ | ------|
 | Sprint | 3 |
-| Objetivo | _a preencher_ |
+| Objetivo | Permitir a criação e gerenciamento de comunidades |
 | Período | 22/10/2026 a 28/10/2026 |
 
 
 ## 2. Planejamentos e resultados
-_A preencher ao fim da sprint: o que foi planejado, o que foi entregue e pendências._
+A sprint 2 foi dedicada à implementação do ciclo de vida das comunidades, contemplando seu CRUD completo. Foram entregues:
+
+* Lista de comunidades nas quais o usuário participa; e
+* Recursos de edição, saída e arquivamento de comunidades;
+
+Tarefas pendentes:
+
+* Conectar a página do moderador à página de comunidade;
+* Implementação de código de solicitação de entrada nas comunidades privadas.
 
 ## 3. Requisitos Implementados
 O valor esperado de conclusão de cada requisito é de **70%**.
 
 | Requisito | Nome | Taxa de Conclusão |
 | --- | --- | --- |
-| R09 | Manter comunidade | _a preencher_ |
-| R10 | Página de comunidade | _a preencher_ |
-| Média | | _a preencher_ |
+| R09 | Manter comunidade | 80% |
+| R10 | Página de comunidade | 100% |
+| Média | | 90% |
 
 ## 4. Avaliação da qualidade do Software
 
 | Funcionalidade | Densidade de Defeitos | Valor máximo de defeitos esperado |
 | --- | --- | --- |
-| Criação de comunidade | _a preencher_ | _a preencher_ |
-| Gerenciamento da comunidade | _a preencher_ | _a preencher_ |
+| Criação de comunidade | 0,0 | 0,2 |
+| Gerenciamento da comunidade | 0,0 | 0,2 |
 
 ## 5. Cobertura dos testes
-Foram testados **_X_ dos 2 requisitos planejados**, resultando em uma porcentagem de **_X%_** dos requisitos testados com um valor mínimo de 100%.
+Foram testados **2 dos 2 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
