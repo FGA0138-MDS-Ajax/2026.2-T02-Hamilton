@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime, time
 
@@ -164,4 +165,97 @@ class GoalForm(forms.ModelForm):
                         f"A meta pode ter no máximo {limit:,} páginas.".replace(",", ".")
                     ))
 
+        return cleaned
+
+
+GOAL_EMOJIS = ["📖", "📚", "⏱️", "🌙", "🔥", "🎯", "☕", "🚀"]
+
+WEEKDAY_CHOICES = [
+    ("0", "Seg"), ("1", "Ter"), ("2", "Qua"), ("3", "Qui"),
+    ("4", "Sex"), ("5", "Sáb"), ("6", "Dom"),
+]
+
+
+class IndividualGoalForm(GoalForm):
+    emoji = forms.ChoiceField(
+        label="Emoji",
+        required=False,
+        choices=[("", "Nenhum")] + [(e, e) for e in GOAL_EMOJIS],
+    )
+    period = forms.ChoiceField(
+        label="Frequência",
+        required=False,
+        choices=Goal.Period.choices,
+    )
+    weekdays = forms.MultipleChoiceField(
+        label="Dias da semana",
+        required=False,
+        choices=WEEKDAY_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    class Meta(GoalForm.Meta):
+        fields = GoalForm.Meta.fields + ["period", "weekdays", "emoji"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["name"].widget.attrs["placeholder"] = "Ex.: Leitura antes de dormir"
+        if self.instance.pk:
+            self.initial["weekdays"] = [str(d) for d in self.instance.weekday_list]
+        else:
+            self.initial["period"] = Goal.Period.DAILY
+        self._group_books_by_reading()
+
+    def _group_books_by_reading(self):
+        field = self.fields.get("book")
+        profile = self.instance.owner_profile
+        if field is None or profile is None:
+            return
+        field.empty_label = "Meta geral (todos os livros)"
+        from books.models import BookStatus
+
+        reading_ids = set(
+            BookStatus.objects.filter(
+                user_id=profile.user_id, status=BookStatus.Status.READING,
+            ).values_list("book_id", flat=True)
+        )
+        books = list(field.queryset.order_by("title"))
+        self.book_pages_json = json.dumps(
+            {b.pk: b.pages for b in books if b.pages}
+        )
+        if not reading_ids:
+            return
+        field.choices = [
+            ("", "Meta geral (todos os livros)"),
+            ("Lendo", [(b.pk, b.title) for b in books if b.pk in reading_ids]),
+            ("Outros livros", [(b.pk, b.title) for b in books if b.pk not in reading_ids]),
+        ]
+
+    def clean_period(self):
+        return self.cleaned_data.get("period") or Goal.Period.TOTAL
+
+    def clean_weekdays(self):
+        days = sorted(set(self.cleaned_data.get("weekdays") or []), key=int)
+        return ",".join(days)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("period") == Goal.Period.WEEKDAYS:
+            if not cleaned.get("weekdays") and "weekdays" not in self.errors:
+                self.add_error("weekdays", "Escolha pelo menos um dia da semana.")
+        else:
+            cleaned["weekdays"] = ""
+
+        status = cleaned.get("status", self.instance.status)
+        profile = self.instance.owner_profile
+        if profile is not None and status != Goal.Status.CONCLUDED:
+            others = Goal.objects.filter(owner_profile=profile).exclude(
+                status=Goal.Status.CONCLUDED
+            )
+            if self.instance.pk:
+                others = others.exclude(pk=self.instance.pk)
+            if others.exists():
+                raise forms.ValidationError(
+                    "Você já tem uma meta ativa. Conclua ou exclua a atual antes de criar outra."
+                )
         return cleaned

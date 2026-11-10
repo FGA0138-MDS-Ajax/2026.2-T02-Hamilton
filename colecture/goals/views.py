@@ -10,7 +10,7 @@ from communities.models import Community
 from communities.services import MembershipService
 
 from accounts.models import Profile;
-from .forms import GoalForm;
+from .forms import GoalForm, IndividualGoalForm;
 from .models import Goal;
 from .services import GoalService
 
@@ -19,24 +19,32 @@ from books.models import BookStatus
 
 
 def _redirect_after_goal(goal):
-    """A meta não tem página própria: depois das ações voltamos para a
-    comunidade dona dela (ou para o início, no caso de meta individual)."""
     if goal.owner_community_id:
         return redirect("communities:view_community", community_id=goal.owner_community_id)
-    return redirect("main:index")
+    return redirect("accounts:profile")
+
+
+def _render_individual_form(request, form, is_edit, goal=None):
+    return render(
+        request, "goals/individual_goal_form.html",
+        {"form": form, "is_edit": is_edit, "goal": goal},
+    )
 
 
 def _create_goal(request, instance):
-    """Fluxo comum de criação; instance já vem com o dono definido."""
+    individual = instance.owner_profile_id is not None
+    form_class = IndividualGoalForm if individual else GoalForm
     if request.method == "POST":
-        form = GoalForm(request.POST, instance=instance)
+        form = form_class(request.POST, instance=instance)
         if form.is_valid():
             goal = GoalService.create_goal(form.save(commit=False), request.user)
             messages.success(request, f'Meta "{goal.name}" criada!')
             return _redirect_after_goal(goal)
         messages.error(request, "Não foi possível criar a meta. Verifique os campos.")
     else:
-        form = GoalForm(instance=instance)
+        form = form_class(instance=instance)
+    if individual:
+        return _render_individual_form(request, form, is_edit=False)
     return render(request, "goals/goal_form.html", {"form": form, "is_edit": False})
 
 
@@ -53,6 +61,9 @@ def create_community_goal(request, community_id):
 @login_required
 def create_profile_goal(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    if request.method == "GET" and GoalService.current_individual_goals(profile).exists():
+        messages.error(request, "Você já tem uma meta ativa. Conclua ou exclua a atual para criar outra.")
+        return redirect("accounts:profile")
     return _create_goal(request, Goal(owner_profile=profile))
 
 
@@ -76,19 +87,34 @@ def edit_goal(request, goal_id):
     if not GoalService.user_can_manage(request.user, goal):
         return HttpResponseForbidden()
 
+    form_class = GoalForm if goal.is_collective else IndividualGoalForm
     if request.method == "POST":
-        form = GoalForm(request.POST, instance=goal)
+        form = form_class(request.POST, instance=goal)
         if form.is_valid():
             GoalService.update_goal(form.save(commit=False))
             messages.success(request, "Meta atualizada!")
             return _redirect_after_goal(goal)
         messages.error(request, "Não foi possível salvar. Verifique os campos.")
     else:
-        form = GoalForm(instance=goal)
+        form = form_class(instance=goal)
+    if not goal.is_collective:
+        return _render_individual_form(request, form, is_edit=True, goal=goal)
     return render(
         request, "goals/goal_form.html",
         {"form": form, "is_edit": True, "goal": goal},
     )
+
+
+@login_required
+@require_POST
+def delete_goal(request, goal_id):
+    goal = get_object_or_404(Goal, id=goal_id)
+    if goal.is_collective or not GoalService.user_can_manage(request.user, goal):
+        return HttpResponseForbidden()
+    name = goal.name
+    goal.delete()
+    messages.success(request, f'Meta "{name}" excluída.')
+    return redirect("accounts:profile")
 
 
 @login_required

@@ -696,14 +696,221 @@
   padding: 0 16px;
 }
 
-.goal-card .goal-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.goal-card h2 i {
+  color: var(--purple-400);
 }
 
-.goal-card .goal-actions-row {
-  margin-top: 12px;
+.goal-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.goal-card__emoji {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-size: 24px;
+}
+
+.goal-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-card__name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.goal-card__schedule {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.goal-badge {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goal-card__progress {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.goal-ring {
+  --p: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: conic-gradient(var(--purple-500) calc(var(--p) * 1%), var(--bg-input) 0);
+}
+
+.goal-ring::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+}
+
+.goal-ring--done {
+  background: conic-gradient(var(--success) 100%, var(--bg-input) 0);
+}
+
+.goal-ring__value {
+  grid-area: 1 / 1;
+  position: relative;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.goal-ring--done .goal-ring__value {
+  font-size: 36px;
+  color: var(--success);
+}
+
+.goal-card__numbers {
+  min-width: 0;
+}
+
+.goal-card__count {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.goal-card__count strong {
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.goal-card__status {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.goal-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.goal-card__info li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.goal-card__info i {
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.goal-card__info a {
+  color: var(--purple-300);
+  text-decoration: none;
+}
+
+.goal-card__info a:hover {
+  text-decoration: underline;
+}
+
+.goal-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.goal-card__actions form {
+  display: contents;
+}
+
+.goal-card .goal-action {
+  flex: 1 1 auto;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.goal-card .goal-action--success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.goal-card .goal-action--success:hover {
+  background: var(--success);
+  color: var(--bg-base);
+}
+
+.goal-card .goal-action--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.goal-card .goal-action--danger:hover {
+  background: var(--danger);
+  color: var(--bg-base);
+}
+
+.goal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.goal-empty__title {
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.goal-empty .hint {
+  font-size: 15px;
+}
+
+.modal-save.modal-danger {
+  background-color: var(--danger);
+  color: var(--bg-base);
+}
+
+.modal-save.modal-danger:hover:enabled {
+  background-color: color-mix(in srgb, var(--danger) 85%, #000);
+}
+
+@media (max-width: 420px) {
+  .goal-card__progress {
+    flex-wrap: wrap;
+  }
+
+  .goal-card .goal-action {
+    width: 100%;
+  }
 }
 /* ---------- Pop-up "Alterar estante" (mesmo visual do pop-up da pesquisa) ---------- */
 .modal-overlay {

@@ -23,6 +23,13 @@ class Goal(models.Model):
         CONCLUDED = "CONCLUDED", "Concluída"
         PAUSED = "PAUSED", "Pausada"
 
+    class Period(models.TextChoices):
+        DAILY = "DAILY", "Todo dia"
+        WEEKDAYS = "WEEKDAYS", "Dias específicos"
+        WEEKLY = "WEEKLY", "Por semana"
+        MONTHLY = "MONTHLY", "Por mês"
+        TOTAL = "TOTAL", "No total"
+
     name = models.CharField(max_length=GOAL_NAME_MAX_LENGTH, blank=False)
     # Texto livre opcional explicando o objetivo da meta.
     description = models.CharField(max_length=GOAL_DESC_MAX_LENGTH, blank=True)
@@ -62,6 +69,13 @@ class Goal(models.Model):
         blank=True,
         related_name="goals",
     )
+    period = models.CharField(
+        max_length=10,
+        choices=Period.choices,
+        default=Period.TOTAL,
+    )
+    weekdays = models.CharField(max_length=13, blank=True)
+    emoji = models.CharField(max_length=8, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -107,6 +121,10 @@ class Goal(models.Model):
             hours, minutes = divmod(self.target, 60)
             return f"{hours}h{minutes:02d}" if minutes else f"{hours}h"
         return f"{self.target} páginas"
+
+    @property
+    def weekday_list(self) -> list[int]:
+        return [int(d) for d in self.weekdays.split(",") if d.strip().isdigit()]
 
     def __str__(self):
         return self.name

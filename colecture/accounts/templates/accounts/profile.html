@@ -4,7 +4,7 @@
 {% block title %}Perfil - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=2" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
 {% endblock %}
@@ -12,6 +12,7 @@
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
   <script src="{% static 'accounts/js/profile_shelf.js' %}?v=2"></script>
+  <script src="{% static 'accounts/js/profile_goal.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
@@ -96,24 +97,109 @@
             <p class="empty">Nenhuma insígnia conquistada ainda.</p>
           </section>
 
-          {# Novo Card: Meta Individual (Substitui o antigo card de comunidades) #}
-          <section class="card goal-card" aria-labelledby="goal-title">
+          <section class="card goal-card" aria-labelledby="goal-title"
+                   {% if individual_goal %}
+                     data-goal-card
+                     data-goal-id="{{ individual_goal.id }}"
+                     data-goal-type="{{ individual_goal.goal_type }}"
+                     data-goal-target="{{ individual_goal.target }}"
+                     data-goal-period-label="{{ goal_progress.period_label }}"
+                     data-goal-book-id="{{ individual_goal.book_id|default:'' }}"
+                     data-goal-book-pages="{% if individual_goal.book and individual_goal.book.pages %}{{ individual_goal.book.pages }}{% endif %}"
+                     data-goal-start="{{ goal_progress.start_date|date:'Y-m-d' }}"
+                     data-goal-end="{{ goal_progress.end_date|date:'Y-m-d' }}"
+                     data-goal-server-current="{{ goal_progress.current }}"
+                     data-goal-rest-day="{% if goal_progress.rest_day %}true{% else %}false{% endif %}"
+                   {% endif %}>
             <h2 id="goal-title">
-              <i class="bx bx-target-lock" aria-hidden="true"></i> Meta Individual
+              <i class="bx bx-target-lock" aria-hidden="true"></i> Meta
             </h2>
             {% if individual_goal %}
-              <div class="goal-info">
-                <p><strong>{{ individual_goal.title }}</strong></p>
-                <p class="hint">Alvo: {{ individual_goal.target_value }} {{ individual_goal.get_metric_display|default:"páginas" }}</p>
-                <div class="goal-actions-row">
-                  {# Ajuste as URLs conforme as rotas de metas individuais do seu projeto #}
-                  <a href="#" class="btn-outline">Editar Meta</a>
+              <div class="goal-card__head">
+                {% if individual_goal.emoji %}
+                  <span class="goal-card__emoji" aria-hidden="true">{{ individual_goal.emoji }}</span>
+                {% endif %}
+                <div class="goal-card__title">
+                  <p class="goal-card__name">{{ individual_goal.name }}</p>
+                  <p class="goal-card__schedule">{{ goal_progress.schedule }}</p>
+                </div>
+                {% if individual_goal.status == "PAUSED" %}
+                  <span class="goal-badge">Pausada</span>
+                {% endif %}
+              </div>
+
+              <div class="goal-card__progress">
+                <div class="goal-ring{% if goal_progress.done %} goal-ring--done{% endif %}"
+                     data-goal-ring
+                     style="--p: {{ goal_progress.percent }}"
+                     role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                     aria-valuenow="{{ goal_progress.percent }}"
+                     aria-label="Progresso da meta {{ goal_progress.period_label }}">
+                  <span class="goal-ring__value" data-goal-ring-value>
+                    {% if goal_progress.done %}<i class="bx bx-check" aria-hidden="true"></i>{% else %}{{ goal_progress.percent }}%{% endif %}
+                  </span>
+                </div>
+                <div class="goal-card__numbers">
+                  <p class="goal-card__count">
+                    <strong data-goal-count>{{ goal_progress.current_display }}/{{ goal_progress.target_display }}</strong>
+                    {{ goal_progress.unit }} {{ goal_progress.period_label }}
+                  </p>
+                  <p class="hint goal-card__status" data-goal-status>
+                    {% if goal_progress.rest_day %}
+                      Hoje é dia de descanso 😴{% if goal_progress.next_day %} Próxima leitura: {{ goal_progress.next_day }}.{% endif %}
+                    {% elif goal_progress.done %}
+                      Meta batida {{ goal_progress.period_label }}! 🎉
+                    {% else %}
+                      Faltam {{ goal_progress.remaining_display }} {{ goal_progress.unit }}.
+                    {% endif %}
+                  </p>
                 </div>
               </div>
+
+              <ul class="goal-card__info">
+                <li>
+                  <i class="bx bx-book" aria-hidden="true"></i>
+                  {% if individual_goal.book %}
+                    <a href="{% url 'books:book_detail' individual_goal.book.id %}">{{ individual_goal.book.title }}</a>
+                  {% else %}
+                    Todos os livros
+                  {% endif %}
+                </li>
+                <li>
+                  <i class="bx bx-flag" aria-hidden="true"></i>
+                  {% if individual_goal.deadline %}
+                    Até {{ individual_goal.deadline|date:"d/m/Y" }}
+                    {% if goal_progress.days_remaining is not None %}({{ goal_progress.days_remaining }} dia{{ goal_progress.days_remaining|pluralize }}){% endif %}
+                  {% else %}
+                    Contínua
+                  {% endif %}
+                </li>
+              </ul>
+
+              <div class="goal-card__actions">
+                <a href="{% url 'goals:edit_goal' individual_goal.id %}" class="btn-outline goal-action">
+                  <i class="bx bx-edit" aria-hidden="true"></i> Editar meta
+                </a>
+                <form method="post" action="{% url 'goals:conclude_goal' individual_goal.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{% url 'accounts:profile' %}" />
+                  <button type="submit" class="btn-outline goal-action goal-action--success">
+                    <i class="bx bx-check-circle" aria-hidden="true"></i> Concluir
+                  </button>
+                </form>
+                <button type="button" class="btn-outline goal-action goal-action--danger" data-goal-delete-open>
+                  <i class="bx bx-trash" aria-hidden="true"></i> Excluir
+                </button>
+              </div>
             {% else %}
-              <p class="empty">Você ainda não definiu uma meta individual de leitura.</p>
+              <div class="goal-empty">
+                <p class="goal-empty__title">Você ainda não tem uma meta pessoal</p>
+                <p class="hint">Defina quanto quer ler por dia, semana ou mês e acompanhe seu progresso aqui.</p>
+              </div>
               <div class="card-action-link">
-                <a href="#" class="btn-outline">Criar Meta</a>
+                <a href="{% url 'goals:create_profile_goal' %}" class="btn-outline">
+                  <i class="bx bx-plus" aria-hidden="true"></i> Criar meta
+                </a>
               </div>
             {% endif %}
           </section>
@@ -182,6 +268,39 @@
             </div>
           </div>
         </div>
+
+        {% if individual_goal %}
+          <div class="modal-overlay" data-goal-delete-modal hidden>
+            <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="goalDeleteTitle">
+              <div class="modal-header">
+                <h2 id="goalDeleteTitle">Excluir meta</h2>
+                <button type="button" class="modal-close" data-goal-delete-close aria-label="Fechar">&times;</button>
+              </div>
+              <div class="modal-body">
+                <p class="modal-question">Tem certeza que deseja excluir a meta "{{ individual_goal.name }}"?</p>
+                <p class="modal-book-name">Essa ação não pode ser desfeita. Se você já atingiu o objetivo, prefira "Concluir".</p>
+              </div>
+              <form class="modal-footer" method="post" action="{% url 'goals:delete_goal' individual_goal.id %}">
+                {% csrf_token %}
+                <button type="button" class="modal-cancel" data-goal-delete-close>Cancelar</button>
+                <button type="submit" class="modal-save modal-danger">Excluir meta</button>
+              </form>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
+
+    {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        {% for message in messages %}
+          showToast(
+            '{% if "error" in message.tags %}error{% elif "success" in message.tags %}success{% else %}info{% endif %}',
+            '{{ message|escapejs }}'
+          );
+        {% endfor %}
+      });
+    </script>
+    {% endif %}
 {% endblock %}

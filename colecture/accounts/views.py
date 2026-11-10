@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Profile;
 from books.models import BookStatus;
+from goals.services import GoalService;
 from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
 
@@ -55,8 +56,10 @@ def logout_view(request):
 def profile_view(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
     
-    # Busca a meta individual ativa do usuário (caso exista o model IndividualGoal ou similar)
-    individual_goal = getattr(profile, 'individual_goal', None)
+    individual_goal = GoalService.get_current_individual_goal(profile)
+    goal_progress = (
+        GoalService.get_individual_progress(individual_goal) if individual_goal else None
+    )
     
     # Verifica se leu hoje (exemplo integrando com ReadingLog se houver)
     today = timezone.localdate()
@@ -91,6 +94,7 @@ def profile_view(request):
     context = {
         'profile': profile,
         'individual_goal': individual_goal,
+        'goal_progress': goal_progress,
         'read_today': read_today,
         'shelf_items': shelf_items,
         'shelf_filters': shelf_filters,

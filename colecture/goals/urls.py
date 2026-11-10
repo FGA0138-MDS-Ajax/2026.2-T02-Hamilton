@@ -9,6 +9,7 @@ urlpatterns = [
     path("create/community/<int:community_id>/", views.create_community_goal, name="create_community_goal"),
     path("<int:goal_id>/forum/", views.goal_forum, name="forum"),
     path("<int:goal_id>/edit/", views.edit_goal, name="edit_goal"),
+    path("<int:goal_id>/delete/", views.delete_goal, name="delete_goal"),
     path("<int:goal_id>/join/", views.join_goal, name="join_goal"),
     path("<int:goal_id>/leave/", views.leave_goal, name="leave_goal"),
     path("<int:goal_id>/conclude/", views.conclude_goal, name="conclude_goal"),

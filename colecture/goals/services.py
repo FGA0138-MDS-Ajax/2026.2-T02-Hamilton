@@ -1,4 +1,5 @@
 import math
+from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -17,6 +18,32 @@ GOAL_UNIT_LABELS = {
     Goal.GoalType.PAGE_COUNT: "páginas",
     Goal.GoalType.HOUR_COUNT: "horas",
 }
+
+WEEKDAY_LABELS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
+
+PERIOD_PROGRESS_LABELS = {
+    Goal.Period.DAILY: "hoje",
+    Goal.Period.WEEKDAYS: "hoje",
+    Goal.Period.WEEKLY: "nesta semana",
+    Goal.Period.MONTHLY: "neste mês",
+    Goal.Period.TOTAL: "no total",
+}
+
+PERIOD_SCHEDULE_LABELS = {
+    Goal.Period.DAILY: "por dia",
+    Goal.Period.WEEKLY: "por semana",
+    Goal.Period.MONTHLY: "por mês",
+    Goal.Period.TOTAL: "no total",
+}
+
+
+def _format_amount(goal, amount) -> str:
+    if goal.goal_type == Goal.GoalType.HOUR_COUNT:
+        hours, minutes = divmod(amount, 60)
+        if not hours:
+            return f"{minutes}min"
+        return f"{hours}h{minutes:02d}" if minutes else f"{hours}h"
+    return str(amount)
 
 
 class GoalService:
@@ -257,7 +284,7 @@ class GoalService:
         da meta: páginas (PAGE_COUNT) ou minutos (HOUR_COUNT)."""
         goal = participation.goal
 
-        if not goal.book:
+        if not goal.book and goal.is_collective:
             return 0
 
         # session.date é uma data local; joined_at é UTC, então converte
@@ -265,9 +292,10 @@ class GoalService:
         # noite, ficaria de fora)
         sessions = ReadingSession.objects.filter(
             user=participation.user,
-            book=goal.book,
             date__gte=timezone.localtime(participation.joined_at).date()
         )
+        if goal.book:
+            sessions = sessions.filter(book=goal.book)
 
         if goal.goal_type == Goal.GoalType.PAGE_COUNT:
             contribution = sessions.aggregate(
@@ -291,3 +319,89 @@ class GoalService:
         )
         percent = min(100, round(total / goal.target * 100)) if goal.target else 0
         return {"current": total, "target": goal.target, "percent": percent}
+
+    @staticmethod
+    def current_individual_goals(profile):
+        return (
+            Goal.objects.filter(owner_profile=profile)
+            .exclude(status=Goal.Status.CONCLUDED)
+        )
+
+    @staticmethod
+    def get_current_individual_goal(profile):
+        return (
+            GoalService.current_individual_goals(profile)
+            .select_related("book")
+            .order_by("-created_at")
+            .first()
+        )
+
+    @staticmethod
+    def period_range(goal, today=None):
+        today = today or timezone.localdate()
+        if goal.period in (Goal.Period.DAILY, Goal.Period.WEEKDAYS):
+            return today, today
+        if goal.period == Goal.Period.WEEKLY:
+            return today - timedelta(days=today.weekday()), today
+        if goal.period == Goal.Period.MONTHLY:
+            return today.replace(day=1), today
+        return None, today
+
+    @staticmethod
+    def describe_schedule(goal) -> str:
+        amount = _format_amount(goal, goal.target)
+        if goal.goal_type == Goal.GoalType.PAGE_COUNT:
+            amount = f"{amount} páginas"
+        if goal.period == Goal.Period.WEEKDAYS:
+            days = ", ".join(WEEKDAY_LABELS[d] for d in goal.weekday_list if 0 <= d <= 6)
+            return f"{amount} · {days}" if days else amount
+        return f"{amount} {PERIOD_SCHEDULE_LABELS.get(goal.period, '')}".strip()
+
+    @staticmethod
+    def get_individual_progress(goal) -> dict:
+        today = timezone.localdate()
+        start, end = GoalService.period_range(goal, today)
+        created = timezone.localtime(goal.created_at).date()
+        start = max(start, created) if start else created
+
+        sessions = ReadingSession.objects.filter(
+            user_id=goal.owner_profile.user_id,
+            date__gte=start,
+            date__lte=end,
+        )
+        if goal.book_id:
+            sessions = sessions.filter(book_id=goal.book_id)
+
+        field = (
+            "minute_count" if goal.goal_type == Goal.GoalType.HOUR_COUNT
+            else "pages_read"
+        )
+        current = sessions.aggregate(total=Sum(field))["total"] or 0
+        target = goal.target
+        remaining = max(target - current, 0)
+
+        weekdays = goal.weekday_list
+        rest_day = goal.period == Goal.Period.WEEKDAYS and today.weekday() not in weekdays
+        next_day = None
+        if rest_day and weekdays:
+            next_day = WEEKDAY_LABELS[min(
+                weekdays, key=lambda d: (d - today.weekday()) % 7
+            )]
+
+        return {
+            "current": current,
+            "target": target,
+            "percent": min(100, round(current / target * 100)) if target else 0,
+            "done": current >= target,
+            "current_display": _format_amount(goal, current),
+            "target_display": _format_amount(goal, target),
+            "remaining_display": _format_amount(goal, remaining),
+            "unit": "páginas" if goal.goal_type == Goal.GoalType.PAGE_COUNT else "",
+            "period_label": PERIOD_PROGRESS_LABELS.get(goal.period, ""),
+            "schedule": GoalService.describe_schedule(goal),
+            "rest_day": rest_day,
+            "next_day": next_day,
+            "days_remaining": GoalService.days_remaining(goal),
+            "start_date": start,
+            "end_date": end,
+        }
