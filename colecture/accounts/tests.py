@@ -452,7 +452,7 @@ class CTEstantePerfil(TestCase):
         response = self.client.get(reverse("accounts:profile"))
         # sem o botão "Registrar leitura" no cabeçalho; o clique no livro usa esta URL
         self.assertNotContains(response, "bookshelf-register")
-        self.assertContains(response, f'data-progress-url="{reverse("books:register_reading_session")}"')
+        self.assertContains(response, f'data-progress-url="{reverse("books:reading_session")}"')
         self.assertContains(response, f'data-shelf-url="{reverse("books:manage_bookshelf")}"')
         self.assertContains(response, "data-status-modal")
         self.assertContains(response, "data-change-status", count=3)

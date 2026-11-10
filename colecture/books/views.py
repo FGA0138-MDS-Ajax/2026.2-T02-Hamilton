@@ -360,6 +360,12 @@ def books_lookup(request):
     return JsonResponse({'results': results})
  
  
+# Tela "Registrar leitura" aberta ao clicar num livro da estante do perfil (?book=<id>).
+@login_required
+def reading_session(request):
+    return render(request, "books/reading_session.html")
+
+
 @login_required
 def register_reading_session(request):
     if request.method == "POST":
