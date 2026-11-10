@@ -192,7 +192,7 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
 | `/` | Página inicial (redireciona ao perfil se o usuário estiver logado) | Público |
 | `/search/` | Pesquisa de livros | Público |
 | `/books/<int:id>/` | Pagina do livro | Público |
-| `/books/register/` | Cadastro de livros | Público |
+| `/books/register/` | Cadastro de livros |
 | `/books/<int:id>/edit/` | Editção do livro | Administrador e Usuário criador |
 | `/books/<int:id>/delete/` | Deletar livro | Administrador |
 | `/user/register/` | Cadastro | Público |
