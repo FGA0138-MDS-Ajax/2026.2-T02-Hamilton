@@ -33,7 +33,14 @@ nav:
       - Ata 5: atas-reuniao/ata-reuniao-5.md
       - Ata 6: atas-reuniao/ata-reuniao-6.md
   - Sprints:
-    - Sprint 1: sprints/sprint1.md
+      - Visão geral: sprints/index.md
+      - Sprint 1: sprints/sprint1.md
+      - Sprint 2: sprints/sprint2.md
+      - Sprint 3: sprints/sprint3.md
+      - Sprint 4: sprints/sprint4.md
+      - Sprint 5: sprints/sprint5.md
+      - Sprint 6: sprints/sprint6.md
+      - Sprint 7: sprints/sprint7.md
   - Como contribuir: contribuir.md
 
 # Tema (Material for MkDocs)
