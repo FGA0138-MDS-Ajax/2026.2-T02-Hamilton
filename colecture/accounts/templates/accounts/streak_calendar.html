@@ -1,0 +1,140 @@
+
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Calendário de Ofensivas - CoLecture{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/streak.css' %}">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+      rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<div class="main-box streak-page">
+
+    <header class="streak-header">
+        <div>
+            <a href="{% url 'accounts:profile' %}" class="streak-back">
+                <i class="bx bx-arrow-back"></i>
+                Voltar ao perfil
+            </a>
+
+            <h1>Meu calendário de ofensivas</h1>
+
+            <p>
+                Acompanhe os dias em que você registrou suas leituras.
+            </p>
+        </div>
+
+        <div class="streak-header-icon">
+            <i class="bx bxs-hot"></i>
+        </div>
+    </header>
+
+    <section class="streak-calendar-card">
+
+        <div class="calendar-navigation">
+
+            <a href="?month={{ previous_month }}"
+               class="calendar-nav-button"
+               aria-label="Mês anterior">
+                <i class="bx bx-chevron-left"></i>
+            </a>
+
+            <h2>{{ month_name }} de {{ year }}</h2>
+
+            <a href="?month={{ next_month }}"
+               class="calendar-nav-button"
+               aria-label="Próximo mês">
+                <i class="bx bx-chevron-right"></i>
+            </a>
+
+        </div>
+
+        <div class="calendar-grid">
+
+            <div class="calendar-weekdays">
+                <span>Dom</span>
+                <span>Seg</span>
+                <span>Ter</span>
+                <span>Qua</span>
+                <span>Qui</span>
+                <span>Sex</span>
+                <span>Sáb</span>
+            </div>
+
+            {% for week in weeks %}
+                <div class="calendar-week">
+
+                    {% for day in week %}
+
+                        {% if day %}
+
+                            {% if day.is_future %}
+
+                                <span class="calendar-day future">
+                                    {{ day.number }}
+                                </span>
+
+                            {% else %}
+
+                                <a href="{% url 'accounts:streak_day_history' day.date|date:'Y-m-d' %}"
+                                   class="calendar-day
+                                   {% if day.has_reading %}has-reading{% endif %}
+                                   {% if day.is_today %}today{% endif %}"
+                                   aria-label="Ver histórico de {{ day.date|date:'d/m/Y' }}">
+
+                                    {{ day.number }}
+
+                                    {% if day.has_reading %}
+                                        <span class="reading-indicator"></span>
+                                    {% endif %}
+
+                                </a>
+
+                            {% endif %}
+
+                        {% else %}
+
+                            <span class="calendar-day empty"></span>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                </div>
+            {% endfor %}
+
+        </div>
+
+        <div class="calendar-legend">
+
+            <div>
+                <span class="legend-dot reading-dot"></span>
+                Dias com leitura
+            </div>
+
+            <div>
+                <span class="legend-dot today-dot"></span>
+                Hoje
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="streak-info-card">
+        <i class="bx bx-info-circle"></i>
+
+        <p>
+            Selecione qualquer dia que já passou ou o dia atual
+            para consultar o histórico das suas sessões de leitura.
+        </p>
+    </section>
+
+</div>
+
+{% endblock %}
