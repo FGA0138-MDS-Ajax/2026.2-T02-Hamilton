@@ -1170,7 +1170,7 @@ class SaveReadingSessionViewTests(TestCase):
 
 
 class ReadingSessionDataModelTests(TestCase):
-    """Fase 1: novos campos de ReadingSession, backfill da migration e
+    """Novos campos de ReadingSession, backfill da migration e
     sessões sem pages_read (livros sem total de páginas)."""
 
     def setUp(self):
@@ -1402,7 +1402,7 @@ class ReadingSessionDataModelTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Fase 2: endpoints JSON de sessões (CREATE / LIST / EDIT)
+#  Endpoints JSON de sessões (CREATE / LIST / EDIT)
 # ---------------------------------------------------------------------------
 def days_ago(days, hour=12):
     """created_at ISO 8601 (fuso local) de N dias atrás, às `hour` horas."""
@@ -1957,7 +1957,7 @@ class RegisterReadingSessionSharedHelperTests(SessionApiBase):
         self.assertEqual([s["cumulative_pages"] for s in listed], [25, 55])
 
 
-# Fase 3: o banco (BookStatus) é a única fonte de verdade da estante e do "Lendo".
+# O banco (BookStatus) é a única fonte de verdade da estante e do "Lendo".
 # books_lookup, manage_bookshelf, busca e estante do perfil leem/gravam só no banco.
 class BookshelfDatabaseSourceTests(TestCase):
     def setUp(self):
@@ -2259,7 +2259,7 @@ class BookshelfDatabaseSourceTests(TestCase):
                 self.assertNotIn("colectureShelf", content)
 
 
-# Fase 4: a tela "Registrar leitura" não usa mais localStorage; tudo vem da API.
+# A tela "Registrar leitura" não usa mais localStorage; tudo vem da API.
 class ReadingSessionScriptTests(TestCase):
     SCRIPT = "books/static/books/js/reading_session.js"
 

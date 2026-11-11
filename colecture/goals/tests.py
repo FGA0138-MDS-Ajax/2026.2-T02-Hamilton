@@ -726,7 +726,7 @@ class ProfileStreakModelTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Fase 2: metas após criar/editar sessões pelos endpoints JSON
+#  Metas após criar/editar sessões pelos endpoints JSON
 # ---------------------------------------------------------------------------
 class GoalReadingSessionApiTests(TestCase):
     def setUp(self):
