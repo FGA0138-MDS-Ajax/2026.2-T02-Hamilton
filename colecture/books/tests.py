@@ -1,4 +1,5 @@
 import json;
+import importlib
 
 from datetime import timedelta, date
 from django.test import TestCase, Client;
@@ -14,6 +15,7 @@ from .forms import BookForm, GENRE_CHOICES;
 from .views import SEARCH_LIMIT;
 from .forms import ReadingSessionForm
 from decimal import Decimal
+from django.apps import apps as django_apps
 from goals.models import Goal, GoalParticipation;
 from goals.services import GoalService;
 
@@ -1055,3 +1057,343 @@ class ReadingSessionProgressAndGoalTests(TestCase):
         )
 
         self.assertEqual(contribution, 0)
+
+
+class SaveReadingSessionViewTests(TestCase):
+    """Persistência das sessões feitas na tela "Registrar leitura" (JSON)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor_json",
+            email="leitor_json@email.com",
+            password="senha123"
+        )
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro de Teste",
+            author="Autor Teste",
+            pages=100
+        )
+        self.url = reverse("books:save_reading_session", args=[self.book.id])
+
+    def post(self, payload, url=None):
+        return self.client.post(
+            url or self.url,
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+    def test_salva_sessao_no_banco(self):
+        self.client.force_login(self.user)
+
+        response = self.post({"pages_read": 20, "minute_count": 30})
+
+        self.assertEqual(response.status_code, 200)
+        session = ReadingSession.objects.get()
+        self.assertEqual(session.user, self.user)
+        self.assertEqual(session.book, self.book)
+        self.assertEqual(session.pages_read, 20)
+        self.assertEqual(session.minute_count, 30)
+        self.assertEqual(session.date, timezone.localdate())
+
+    def test_atualiza_ofensiva(self):
+        self.client.force_login(self.user)
+
+        self.post({"pages_read": 5, "minute_count": 10})
+
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.streak, 1)
+        self.assertEqual(profile.last_read_date, timezone.localdate())
+
+    def test_usuario_anonimo_nao_salva(self):
+        response = self.post({"pages_read": 5, "minute_count": 10})
+
+        self.assertNotEqual(response.status_code, 200)
+        self.assertEqual(ReadingSession.objects.count(), 0)
+
+    def test_exige_metodo_post(self):
+        self.client.force_login(self.user)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_dados_invalidos_sao_rejeitados(self):
+        self.client.force_login(self.user)
+
+        for payload in (
+            {},
+            {"pages_read": "abc", "minute_count": 10},
+            {"pages_read": 0, "minute_count": 10},
+            {"pages_read": 5, "minute_count": 0},
+            {"pages_read": 5, "minute_count": 1441},
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual(self.post(payload).status_code, 400)
+
+        self.assertEqual(ReadingSession.objects.count(), 0)
+
+    def test_livro_inexistente_retorna_404(self):
+        self.client.force_login(self.user)
+        url = reverse("books:save_reading_session", args=[9999])
+
+        self.assertEqual(
+            self.post({"pages_read": 5, "minute_count": 10}, url).status_code, 404
+        )
+
+    def test_livro_sem_paginas_e_rejeitado(self):
+        self.client.force_login(self.user)
+        self.book.pages = None
+        self.book.save()
+
+        self.assertEqual(
+            self.post({"pages_read": 5, "minute_count": 10}).status_code, 400
+        )
+        self.assertEqual(ReadingSession.objects.count(), 0)
+
+    def test_limita_ao_total_de_paginas_do_livro(self):
+        self.client.force_login(self.user)
+        ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=99, minute_count=60
+        )
+
+        response = self.post({"pages_read": 5, "minute_count": 10})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["pages_read"], 1)
+
+        # livro já todo registrado: nada mais é gravado
+        self.assertEqual(
+            self.post({"pages_read": 1, "minute_count": 5}).status_code, 400
+        )
+        self.assertEqual(ReadingSession.objects.count(), 2)
+
+
+class ReadingSessionDataModelTests(TestCase):
+    """Fase 1: novos campos de ReadingSession, backfill da migration e
+    sessões sem pages_read (livros sem total de páginas)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="leitor_dados",
+            password="senha123"
+        )
+        self.other_user = User.objects.create_user(
+            username="outro_dados",
+            password="senha123"
+        )
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.book = Book.objects.create(
+            isbn="9780590353403",
+            title="Livro com páginas",
+            author="Autor",
+            genre="Ficção",
+            pages=100
+        )
+        self.other_book = Book.objects.create(
+            isbn="9780747532743",
+            title="Outro livro",
+            author="Autor",
+            genre="Ficção",
+            pages=200
+        )
+        # livro sem total de páginas: sessões usam record_type="percent"
+        self.book_no_pages = Book.objects.create(
+            isbn="9780261103573",
+            title="Livro sem total",
+            author="Autor",
+            genre="Ficção",
+            pages=None
+        )
+
+    def make_percent_session(self, percent, minutes=20, **extra):
+        return ReadingSession.objects.create(
+            user=self.user,
+            book=self.book_no_pages,
+            pages_read=None,
+            minute_count=minutes,
+            record_type="percent",
+            stopped_percent=Decimal(percent),
+            cumulative_percent=Decimal(percent),
+            **extra
+        )
+
+    # ---------- campos novos ----------
+    def test_defaults_dos_novos_campos(self):
+        session = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=10, minute_count=15
+        )
+        self.assertEqual(session.record_type, "pages")
+        self.assertIsNotNone(session.created_at)
+        self.assertIsNone(session.stopped_percent)
+        self.assertIsNone(session.cumulative_percent)
+
+    def test_created_at_tem_hora_e_indice(self):
+        field = ReadingSession._meta.get_field("created_at")
+        self.assertTrue(field.db_index)
+        session = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=10, minute_count=15
+        )
+        self.assertTrue(hasattr(session.created_at, "hour"))
+
+    def test_save_calcula_cumulative_pages_por_usuario_e_livro(self):
+        first = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=10, minute_count=10
+        )
+        second = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=25, minute_count=10
+        )
+        # outro livro e outro usuário não interferem no acumulado
+        other_book_session = ReadingSession.objects.create(
+            user=self.user, book=self.other_book, pages_read=7, minute_count=10
+        )
+        other_user_session = ReadingSession.objects.create(
+            user=self.other_user, book=self.book, pages_read=3, minute_count=10
+        )
+
+        self.assertEqual(first.cumulative_pages, 10)
+        self.assertEqual(first.stopped_page, 10)
+        self.assertEqual(second.cumulative_pages, 35)
+        self.assertEqual(second.stopped_page, 35)
+        self.assertEqual(other_book_session.cumulative_pages, 7)
+        self.assertEqual(other_user_session.cumulative_pages, 3)
+
+    def test_save_nao_sobrescreve_cumulative_informado(self):
+        session = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=10, minute_count=10,
+            cumulative_pages=50, stopped_page=50
+        )
+        self.assertEqual(session.cumulative_pages, 50)
+        self.assertEqual(session.stopped_page, 50)
+
+    # ---------- sessão com pages_read nulo ----------
+    def test_sessao_em_percentual_aceita_pages_read_nulo(self):
+        session = self.make_percent_session("35.50")
+        session.full_clean()  # não deve levantar ValidationError
+        session.refresh_from_db()
+
+        self.assertIsNone(session.pages_read)
+        self.assertEqual(session.record_type, "percent")
+        self.assertEqual(session.stopped_percent, Decimal("35.50"))
+        self.assertEqual(session.cumulative_percent, Decimal("35.50"))
+        # save() não inventa acumulado de páginas para sessões em percentual
+        self.assertIsNone(session.cumulative_pages)
+        self.assertIsNone(session.stopped_page)
+
+    # ---------- backfill da migration ----------
+    def test_backfill_preenche_sessoes_existentes(self):
+        migration = importlib.import_module("books.migrations.0002_readingsession_record_fields")
+        today = timezone.localdate()
+
+        # cria sessões "antigas": sem os campos novos preenchidos
+        s1 = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=10, minute_count=10,
+            date=today - timedelta(days=3)
+        )
+        s2 = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=20, minute_count=10,
+            date=today - timedelta(days=1)
+        )
+        # mesma data de s3, id maior: desempate por id
+        s3 = ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=5, minute_count=10,
+            date=today - timedelta(days=1)
+        )
+        o1 = ReadingSession.objects.create(
+            user=self.user, book=self.other_book, pages_read=8, minute_count=10,
+            date=today - timedelta(days=2)
+        )
+        u1 = ReadingSession.objects.create(
+            user=self.other_user, book=self.book, pages_read=4, minute_count=10,
+            date=today - timedelta(days=2)
+        )
+
+        # simula o estado pré-migration
+        ReadingSession.objects.update(
+            created_at=timezone.now(), record_type="percent",
+            cumulative_pages=None, stopped_page=None
+        )
+
+        migration.backfill_reading_sessions(django_apps, None)
+
+        for s in (s1, s2, s3, o1, u1):
+            s.refresh_from_db()
+
+        self.assertEqual([s1.cumulative_pages, s2.cumulative_pages, s3.cumulative_pages], [10, 30, 35])
+        self.assertEqual(o1.cumulative_pages, 8)
+        self.assertEqual(u1.cumulative_pages, 4)
+
+        for s in (s1, s2, s3, o1, u1):
+            self.assertEqual(s.record_type, "pages")
+            self.assertEqual(s.stopped_page, s.cumulative_pages)
+            # created_at = meia-noite local da data da sessão
+            local = timezone.localtime(s.created_at)
+            self.assertEqual(local.date(), s.date)
+            self.assertEqual((local.hour, local.minute, local.second), (0, 0, 0))
+
+    # ---------- metas ----------
+    def test_meta_de_paginas_ignora_sessao_com_pages_read_nulo(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50
+        )
+        participation = GoalParticipation.objects.create(
+            user=self.user, goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+        ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=12, minute_count=10
+        )
+        self.make_percent_session("40")
+
+        self.assertEqual(GoalService.get_user_contribution(participation), 12)
+        self.assertEqual(GoalService.get_individual_progress(goal)["current"], 12)
+
+    def test_meta_de_horas_conta_sessao_com_pages_read_nulo(self):
+        goal = Goal.objects.create(
+            name="Ler 2 horas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.HOUR_COUNT,
+            target=120
+        )
+        participation = GoalParticipation.objects.create(
+            user=self.user, goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+        ReadingSession.objects.create(
+            user=self.user, book=self.book, pages_read=12, minute_count=10
+        )
+        self.make_percent_session("40", minutes=25)
+
+        self.assertEqual(GoalService.get_user_contribution(participation), 35)
+        self.assertEqual(GoalService.get_individual_progress(goal)["current"], 35)
+
+    def test_meta_de_paginas_so_com_sessoes_em_percentual_da_zero(self):
+        goal = Goal.objects.create(
+            name="Ler 50 páginas",
+            owner_profile=self.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50
+        )
+        participation = GoalParticipation.objects.create(
+            user=self.user, goal=goal,
+            joined_at=timezone.now() - timedelta(days=1)
+        )
+        self.make_percent_session("40")
+
+        self.assertEqual(GoalService.get_user_contribution(participation), 0)
+        self.assertEqual(GoalService.get_individual_progress(goal)["current"], 0)
+
+    # ---------- histórico do dia (accounts) ----------
+    def test_historico_do_dia_lida_com_pages_read_nulo(self):
+        self.make_percent_session("40", minutes=25)
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("accounts:streak_day_history", args=[timezone.localdate().isoformat()])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_pages"], 0)
+        self.assertEqual(response.context["total_minutes"], 25)
