@@ -2248,12 +2248,51 @@ class BookshelfDatabaseSourceTests(TestCase):
                 self.assertNotContains(response, "colectureShelf")
 
     def test_scripts_da_busca_e_do_perfil_nao_gravam_colecture_shelf(self):
-        # reading_session.js só será refatorado na Fase 4, por isso não entra aqui
         project_root = Path(__file__).resolve().parents[1]
         for relative in (
             "main/static/main/js/search.js",
             "accounts/static/accounts/js/profile_shelf.js",
+            "books/static/books/js/reading_session.js",
         ):
             with self.subTest(arquivo=relative):
                 content = (project_root / relative).read_text(encoding="utf-8")
                 self.assertNotIn("colectureShelf", content)
+
+
+# Fase 4: a tela "Registrar leitura" não usa mais localStorage; tudo vem da API.
+class ReadingSessionScriptTests(TestCase):
+    SCRIPT = "books/static/books/js/reading_session.js"
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="leitor_js", password="senha123")
+        self.client.force_login(self.user)
+        self.project_root = Path(__file__).resolve().parents[1]
+
+    def test_script_nao_usa_armazenamento_do_navegador(self):
+        content = (self.project_root / self.SCRIPT).read_text(encoding="utf-8")
+        for forbidden in (
+            "localStorage", "sessionStorage", "colectureShelf", "colectureSessions",
+            "SHELF_KEY", "SESSIONS_KEY",
+        ):
+            with self.subTest(termo=forbidden):
+                self.assertNotIn(forbidden, content)
+
+    def test_perfil_nao_le_sessoes_do_localstorage(self):
+        content = (self.project_root / "accounts/static/accounts/js/profile_goal.js").read_text(encoding="utf-8")
+        self.assertNotIn("colectureSessions", content)
+        self.assertNotIn("localStorage", content)
+
+    def test_template_expoe_urls_da_api_e_versao_do_script(self):
+        response = self.client.get(reverse("books:reading_session"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-lookup-url="%s"' % reverse("books:lookup"))
+        self.assertContains(
+            response, 'data-sessions-url="%s"' % reverse("books:list_reading_sessions", args=[0]))
+        self.assertContains(
+            response, 'data-session-url="%s"' % reverse("books:save_reading_session", args=[0]))
+        self.assertContains(
+            response, 'data-edit-url="%s"' % reverse("books:edit_reading_session", args=[0, 0]))
+        self.assertContains(
+            response, 'data-mark-read-url="%s"' % reverse("books:mark_book_as_read", args=[0]))
+        self.assertContains(response, "reading_session.js?v=5")

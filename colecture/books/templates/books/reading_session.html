@@ -14,8 +14,9 @@
   <div class="rs-page">
     <section class="rs" id="readingSession"
              data-lookup-url="{% url 'books:lookup' %}"
-             data-progress-url="{% url 'books:save_reading_progress' 0 %}"
+             data-sessions-url="{% url 'books:list_reading_sessions' 0 %}"
              data-session-url="{% url 'books:save_reading_session' 0 %}"
+             data-edit-url="{% url 'books:edit_reading_session' 0 0 %}"
              data-mark-read-url="{% url 'books:mark_book_as_read' 0 %}"
              data-csrf="{{ csrf_token }}"
              aria-labelledby="rsHeading">
@@ -179,6 +180,6 @@
 
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
-  {# ?v= força o navegador a baixar a versão nova (sem o seletor de livro) #}
-  <script src="{% static 'books/js/reading_session.js' %}?v=4"></script>
+  {# ?v= força o navegador a baixar a versão nova (Fase 4: sem localStorage, tudo via API) #}
+  <script src="{% static 'books/js/reading_session.js' %}?v=5"></script>
 {% endblock %}
