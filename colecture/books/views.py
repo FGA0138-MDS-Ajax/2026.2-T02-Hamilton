@@ -31,6 +31,7 @@ from .services import (
 )
 
 SEARCH_LIMIT = 50
+MAX_DB_ID = 2_147_483_647  # maior id de livro aceito nos parâmetros (inteiro de 32 bits)
 
 
 # Registrar um novo livro
@@ -223,49 +224,77 @@ def book_detail(request, book_id):
         "login_url": login_url,
     })
 
-@login_required
-def manage_bookshelf(request):
+def _bookshelf_error(message, status):
+    return JsonResponse({'success': False, 'error': message}, status=status)
 
-    user = request.user;
+
+# Estante do usuário logado. A tabela BookStatus é a única fonte de verdade
+# (nada de localStorage/colectureShelf no servidor).
+#   GET  -> {"<id do livro>": "READING" | "READ" | "WANT_TO_READ", ...}, só do usuário logado.
+#   POST -> {"book_id": <id>, "status": "READING" | "READ" | "WANT_TO_READ"} cria ou atualiza;
+#           status vazio/null remove o livro da estante (as sessões de leitura são mantidas).
+@login_required
+@require_http_methods(['GET', 'POST'])
+def manage_bookshelf(request):
+    user = request.user
 
     if request.method == "POST":
-        body = json.loads(request.body);
-        book_id = body.get('book_id');
-        status = body.get('status');
+        try:
+            body = json.loads(request.body or '{}')
+        except (ValueError, UnicodeDecodeError):
+            body = None
+
+        if not isinstance(body, dict):
+            return _bookshelf_error('Dados inválidos.', 400)
+
+        book_id = body.get('book_id')
+        status = body.get('status')
+
+        # bool é subclasse de int, mas True/False não são ids de livro
+        if (
+            isinstance(book_id, bool)
+            or not isinstance(book_id, (int, str))
+            or not str(book_id).strip().isdecimal()
+            or not 0 < int(book_id) <= MAX_DB_ID
+        ):
+            return _bookshelf_error('Livro inválido.', 400)
+
+        book_id = int(book_id)
 
         # caso o status esteja vazio,
         # deletar o BookStatus correspondente.
         if not status:
-            book_status = BookStatus.objects.filter(
-                user=user,
-                book_id = book_id
-            ).first();
+            BookStatus.objects.filter(user=user, book_id=book_id).delete()
 
-            if book_status:
-                book_status.delete();
-        else:
-            if not BookStatus.validate_status(status):
-                return HttpResponseForbidden("Invalid status");
-        
-            BookStatus.objects.update_or_create(
-                user=user,
-                book=Book.objects.get(id=book_id),
-                defaults={
-                    'status':status
-                }
-            );
+            return JsonResponse({'success': True, 'book_id': book_id, 'status': ''})
 
-        return JsonResponse({'success':True});
+        if not BookStatus.validate_status(status):
+            return _bookshelf_error('Status inválido.', 403)
 
-    statuses = user.book_statuses.all();
+        book = Book.objects.filter(pk=book_id).first()
+        if book is None:
+            return _bookshelf_error('Livro não encontrado.', 404)
 
-    return JsonResponse(
-        data={
-            status.book.id:status.status
-            for status in statuses
-        }
-    );
-    
+        book_status, _ = BookStatus.objects.update_or_create(
+            user=user,
+            book=book,
+            defaults={'status': status}
+        )
+
+        return JsonResponse({
+            'success': True,
+            'book_id': book.id,
+            'status': book_status.status,
+            'status_label': book_status.get_status_display(),
+            'progress': book_status.progress_percent,
+            'finished_at': _iso_date(book_status.finished_at),
+        })
+
+    return JsonResponse({
+        book_status.book_id: book_status.status
+        for book_status in user.book_statuses.all()
+    })
+
 
 # Marca um livro da estante como lido com um clique (sem formulário):
 # status = Lido, data de conclusão = hoje e progresso = 100%.
@@ -427,33 +456,41 @@ def edit_reading_session(request, book_id, session_id):
 
 LOOKUP_LIMIT = 100
 
- 
-# Dados dos livros que o usuário marcou como "Lendo" (o status fica no localStorage,
-# então o JS manda os ids e recebe título, autor, páginas e capa).
+
+# Livros que o usuário logado está lendo: BookStatus com status READING ("Lendo").
+# É o servidor quem decide o que é "Lendo". O parâmetro opcional ?ids=1,2,3 só
+# RESTRINGE o resultado a esses livros; nunca inclui um livro que não esteja em
+# "Lendo" no banco para este usuário (estado vindo do navegador não vale como fonte).
+@login_required
 @require_GET
 def books_lookup(request):
-    ids = [
-        int(i) for i in request.GET.get('ids', '').split(',')
-        if i.strip().isdigit()
-    ][:LOOKUP_LIMIT]
- 
-    books = Book.objects.filter(pk__in=ids).order_by('title')
- 
+    reading = BookStatus.objects.filter(
+        user=request.user,
+        status=BookStatus.Status.READING
+    ).select_related('book')
+
+    if 'ids' in request.GET:
+        ids = [
+            int(i) for i in request.GET['ids'].split(',')
+            if i.strip().isdecimal() and 0 < int(i) <= MAX_DB_ID
+        ]
+        reading = reading.filter(book_id__in=ids)
+
     results = [
         {
-            'id': book.id,
-            'title': book.title,
-            'author': book.author,
-            'genre': book.genre,
-            'pages': book.pages,
-            'icon': book.icon,
+            'id': book_status.book.id,
+            'title': book_status.book.title,
+            'author': book_status.book.author,
+            'genre': book_status.book.genre,
+            'pages': book_status.book.pages,
+            'icon': book_status.book.icon,
         }
-        for book in books
+        for book_status in reading.order_by('book__title', 'book_id')[:LOOKUP_LIMIT]
     ]
- 
+
     return JsonResponse({'results': results})
- 
- 
+
+
 # Tela "Registrar leitura" aberta ao clicar num livro da estante do perfil (?book=<id>).
 @login_required
 def reading_session(request):

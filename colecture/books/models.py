@@ -203,10 +203,8 @@ class BookStatus(models.Model):
 
     @staticmethod
     def validate_status(status):
-        for status_tup in BookStatus.Status.choices:
-            if status in status_tup:
-                return True;
-        return False;
+        # só vale o VALOR gravado no banco ("READING"), nunca o rótulo ("Lendo")
+        return isinstance(status, str) and status in BookStatus.Status.values;
 
 class ReadingSession(models.Model):
     user = models.ForeignKey(

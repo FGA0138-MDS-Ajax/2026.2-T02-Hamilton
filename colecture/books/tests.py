@@ -1,5 +1,6 @@
 import json;
 import importlib
+from pathlib import Path
 from unittest import mock
 
 from datetime import timedelta, date
@@ -1282,7 +1283,7 @@ class ReadingSessionDataModelTests(TestCase):
 
     # ---------- backfill da migration ----------
     def test_backfill_preenche_sessoes_existentes(self):
-        migration = importlib.import_module("books.migrations.0002_readingsession_record_fields")
+        migration = importlib.import_module("books.migrations.0002_readingsession_created_at_and_more")
         today = timezone.localdate()
 
         # cria sessões "antigas": sem os campos novos preenchidos
@@ -1954,3 +1955,305 @@ class RegisterReadingSessionSharedHelperTests(SessionApiBase):
         self.assertEqual(self.cumulatives(), [25, 55])
         listed = self.client.get(self.list_url()).json()["sessions"]
         self.assertEqual([s["cumulative_pages"] for s in listed], [25, 55])
+
+
+# Fase 3: o banco (BookStatus) é a única fonte de verdade da estante e do "Lendo".
+# books_lookup, manage_bookshelf, busca e estante do perfil leem/gravam só no banco.
+class BookshelfDatabaseSourceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="leitor_estante", password="senha123")
+        self.other = User.objects.create_user(username="outro_estante", password="senha123")
+        self.b1 = Book.objects.create(
+            isbn="9780000000011", title="A Livro Um", author="Autor", pages=100)
+        self.b2 = Book.objects.create(
+            isbn="9780000000028", title="B Livro Dois", author="Autor", pages=200)
+        self.b3 = Book.objects.create(
+            isbn="9780000000035", title="C Livro Tres", author="Autor", pages=None)
+        self.client.force_login(self.user)
+
+    # --- ajudantes ---
+    def put(self, user, book, status):
+        return BookStatus.objects.create(user=user, book=book, status=status)
+
+    def shelf(self, book, status):
+        return self.client.post(
+            reverse("books:manage_bookshelf"),
+            data=json.dumps({"book_id": book.id, "status": status}),
+            content_type="application/json",
+        )
+
+    def shelf_raw(self, data):
+        return self.client.post(
+            reverse("books:manage_bookshelf"), data=data, content_type="application/json")
+
+    def lookup(self, **params):
+        response = self.client.get(reverse("books:lookup"), params)
+        self.assertEqual(response.status_code, 200)
+        return [r["id"] for r in response.json()["results"]]
+
+    # --- books_lookup: "Lendo" vem do BookStatus do usuário logado ---
+    def test_lookup_so_devolve_livros_lendo_do_proprio_usuario(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+        self.put(self.user, self.b2, BookStatus.Status.WANT_TO_READ)
+        self.put(self.user, self.b3, BookStatus.Status.READ)
+        self.put(self.other, self.b2, BookStatus.Status.READING)
+
+        self.assertEqual(self.lookup(), [self.b1.id])
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.lookup(), [self.b2.id])
+
+    def test_lookup_sem_ids_lista_todos_os_lendo_por_titulo(self):
+        self.put(self.user, self.b2, BookStatus.Status.READING)
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+
+        self.assertEqual(self.lookup(), [self.b1.id, self.b2.id])
+
+    def test_lookup_ids_so_restringem_e_nunca_incluem_livro_fora_de_lendo(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+        self.put(self.user, self.b2, BookStatus.Status.READ)
+        # b2 está como Lido e b3 nem está na estante: o cliente não consegue incluí-los
+        ids = f"{self.b1.id},{self.b2.id},{self.b3.id}"
+        self.assertEqual(self.lookup(ids=ids), [self.b1.id])
+
+        self.put(self.user, self.b3, BookStatus.Status.READING)
+        self.assertEqual(self.lookup(ids=str(self.b3.id)), [self.b3.id])
+
+    def test_lookup_ids_de_livro_lendo_de_outro_usuario_nao_aparecem(self):
+        self.put(self.other, self.b2, BookStatus.Status.READING)
+
+        self.assertEqual(self.lookup(ids=str(self.b2.id)), [])
+        self.assertEqual(self.lookup(), [])
+
+    def test_lookup_ids_invalidos_nao_quebram(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+
+        self.assertEqual(self.lookup(ids="abc,,\u00b2,99999999999999999999,0,-1"), [])
+        self.assertEqual(self.lookup(ids=""), [])
+        self.assertEqual(self.lookup(ids=f"abc,{self.b1.id}"), [self.b1.id])
+
+    def test_lookup_formato_dos_resultados(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+
+        results = self.client.get(reverse("books:lookup")).json()["results"]
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(
+            set(results[0]), {"id", "title", "author", "genre", "pages", "icon"})
+        self.assertEqual(results[0]["id"], self.b1.id)
+        self.assertEqual(results[0]["title"], "A Livro Um")
+        self.assertEqual(results[0]["pages"], 100)
+
+    def test_lookup_livro_sem_total_de_paginas_tem_pages_nulo(self):
+        self.put(self.user, self.b3, BookStatus.Status.READING)
+
+        results = self.client.get(reverse("books:lookup")).json()["results"]
+
+        self.assertEqual([r["id"] for r in results], [self.b3.id])
+        self.assertIsNone(results[0]["pages"])
+
+    def test_lookup_exige_login_e_so_aceita_get(self):
+        self.assertEqual(
+            self.client.post(reverse("books:lookup")).status_code, 405)
+
+        self.client.logout()
+        response = self.client.get(reverse("books:lookup"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response["Location"])
+
+    # --- manage_bookshelf: adicionar/remover reflete em BookStatus e books_lookup ---
+    def test_adicionar_como_lendo_grava_bookstatus_e_aparece_no_lookup(self):
+        response = self.shelf(self.b1, BookStatus.Status.READING)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["success"])
+        self.assertEqual(body["book_id"], self.b1.id)
+        self.assertEqual(body["status"], "READING")
+        self.assertEqual(body["status_label"], "Lendo")
+        self.assertEqual(body["progress"], 0)
+        self.assertTrue(BookStatus.objects.filter(
+            user=self.user, book=self.b1, status=BookStatus.Status.READING).exists())
+        self.assertEqual(self.lookup(), [self.b1.id])
+        self.assertEqual(
+            self.client.get(reverse("books:manage_bookshelf")).json(),
+            {str(self.b1.id): "READING"},
+        )
+
+    def test_remover_da_estante_apaga_bookstatus_e_some_do_lookup(self):
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.shelf(self.b2, BookStatus.Status.READING)
+        self.assertEqual(self.lookup(), [self.b1.id, self.b2.id])
+
+        # status nulo e status vazio removem da estante
+        for status, book in ((None, self.b1), ("", self.b2)):
+            with self.subTest(status=status):
+                response = self.shelf(book, status)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.json()["success"])
+                self.assertEqual(response.json()["status"], "")
+                self.assertFalse(
+                    BookStatus.objects.filter(user=self.user, book=book).exists())
+
+        self.assertEqual(self.lookup(), [])
+        self.assertEqual(self.client.get(reverse("books:manage_bookshelf")).json(), {})
+
+    def test_remover_livro_que_nao_esta_na_estante_e_idempotente(self):
+        response = self.shelf(self.b1, None)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(BookStatus.objects.count(), 0)
+
+    def test_trocar_de_status_entra_e_sai_do_lookup(self):
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.assertEqual(self.lookup(), [self.b1.id])
+
+        self.shelf(self.b1, BookStatus.Status.READ)
+        self.assertEqual(self.lookup(), [])
+
+        self.shelf(self.b1, BookStatus.Status.WANT_TO_READ)
+        self.assertEqual(self.lookup(), [])
+
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.assertEqual(self.lookup(), [self.b1.id])
+        self.assertEqual(BookStatus.objects.filter(user=self.user, book=self.b1).count(), 1)
+
+    def test_marcar_como_lido_tira_o_livro_do_lookup(self):
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.assertEqual(self.lookup(), [self.b1.id])
+
+        response = self.client.post(reverse("books:mark_book_as_read", args=[self.b1.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            BookStatus.objects.get(user=self.user, book=self.b1).status,
+            BookStatus.Status.READ,
+        )
+        self.assertEqual(self.lookup(), [])
+
+    def test_estantes_de_usuarios_diferentes_sao_independentes(self):
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.client.force_login(self.other)
+        self.shelf(self.b1, BookStatus.Status.READING)
+        self.shelf(self.b1, None)  # o outro usuário remove o livro dele
+
+        self.client.force_login(self.user)
+        self.assertEqual(self.lookup(), [self.b1.id])
+        self.assertTrue(BookStatus.objects.filter(user=self.user, book=self.b1).exists())
+        self.assertFalse(BookStatus.objects.filter(user=self.other, book=self.b1).exists())
+
+    def test_get_da_estante_devolve_so_os_livros_do_usuario_logado(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+        self.put(self.user, self.b2, BookStatus.Status.READ)
+        self.put(self.other, self.b3, BookStatus.Status.WANT_TO_READ)
+
+        data = self.client.get(reverse("books:manage_bookshelf")).json()
+
+        self.assertEqual(data, {str(self.b1.id): "READING", str(self.b2.id): "READ"})
+
+    def test_status_invalido_e_recusado_sem_gravar(self):
+        # valor do banco é "READING"; rótulo ("Lendo") e minúsculas não valem
+        for invalid in ("Lendo", "reading", "I_HATE_BOOKS", 5, ["READING"]):
+            with self.subTest(status=invalid):
+                response = self.shelf(self.b1, invalid)
+                self.assertEqual(response.status_code, 403)
+                self.assertFalse(response.json()["success"])
+
+        self.assertEqual(BookStatus.objects.count(), 0)
+
+    def test_validate_status_so_aceita_o_valor_do_banco(self):
+        for valid in ("READING", "READ", "WANT_TO_READ"):
+            self.assertTrue(BookStatus.validate_status(valid))
+        for invalid in ("Lendo", "Lido", "reading", "", None, 1):
+            self.assertFalse(BookStatus.validate_status(invalid))
+
+    def test_entradas_invalidas_do_manage_bookshelf(self):
+        missing_book = Book.objects.order_by("-id").first().id + 999
+        cases = [
+            ("json quebrado", "{oops", 400),
+            ("corpo que não é objeto", json.dumps([1, 2]), 400),
+            ("sem book_id", json.dumps({"status": "READING"}), 400),
+            ("book_id texto", json.dumps({"book_id": "abc", "status": "READING"}), 400),
+            ("book_id booleano", json.dumps({"book_id": True, "status": "READING"}), 400),
+            ("book_id zero", json.dumps({"book_id": 0, "status": "READING"}), 400),
+            ("book_id enorme", json.dumps({"book_id": 10 ** 12, "status": "READING"}), 400),
+            ("remover com book_id texto", json.dumps({"book_id": "abc", "status": None}), 400),
+            ("livro inexistente", json.dumps({"book_id": missing_book, "status": "READING"}), 404),
+        ]
+
+        for label, payload, expected in cases:
+            with self.subTest(caso=label):
+                response = self.shelf_raw(payload)
+                self.assertEqual(response.status_code, expected, response.content)
+                self.assertFalse(response.json()["success"])
+
+        self.assertEqual(BookStatus.objects.count(), 0)
+
+    def test_manage_bookshelf_exige_login_e_metodo_valido(self):
+        self.assertEqual(
+            self.client.put(reverse("books:manage_bookshelf")).status_code, 405)
+
+        self.client.logout()
+        for method in ("get", "post"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(reverse("books:manage_bookshelf"))
+                self.assertEqual(response.status_code, 302)
+                self.assertIn(reverse("accounts:login"), response["Location"])
+
+    # --- busca e perfil: status e estante só do usuário logado ---
+    def test_busca_devolve_status_apenas_do_usuario_logado(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+        self.put(self.other, self.b1, BookStatus.Status.READ)
+
+        mine = {self.b1.id, self.b2.id, self.b3.id}
+
+        def statuses():
+            results = self.client.get(reverse("books:search"), {"q": ""}).json()["results"]
+            return {r["id"]: r["status"] for r in results if r["id"] in mine}
+
+        self.assertEqual(
+            statuses(), {self.b1.id: "READING", self.b2.id: "", self.b3.id: ""})
+
+        self.client.force_login(self.other)
+        self.assertEqual(
+            statuses(), {self.b1.id: "READ", self.b2.id: "", self.b3.id: ""})
+
+    def test_estante_do_perfil_vem_do_banco_so_com_livros_do_usuario(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+        self.put(self.other, self.b2, BookStatus.Status.READING)
+
+        response = self.client.get(reverse("accounts:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item.book_id for item in response.context["shelf_items"]], [self.b1.id])
+        self.assertContains(response, "A Livro Um")
+        self.assertNotContains(response, "B Livro Dois")
+
+        # alterar a estante pelo endpoint muda o que o perfil renderiza no próximo GET
+        self.shelf(self.b1, None)
+        self.shelf(self.b3, BookStatus.Status.READING)
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(
+            [item.book_id for item in response.context["shelf_items"]], [self.b3.id])
+
+    # --- colectureShelf fora do backend ---
+    def test_paginas_renderizadas_nao_usam_colecture_shelf(self):
+        self.put(self.user, self.b1, BookStatus.Status.READING)
+
+        for name in ("accounts:profile", "main:search", "books:reading_session"):
+            with self.subTest(pagina=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, "colectureShelf")
+
+    def test_scripts_da_busca_e_do_perfil_nao_gravam_colecture_shelf(self):
+        # reading_session.js só será refatorado na Fase 4, por isso não entra aqui
+        project_root = Path(__file__).resolve().parents[1]
+        for relative in (
+            "main/static/main/js/search.js",
+            "accounts/static/accounts/js/profile_shelf.js",
+        ):
+            with self.subTest(arquivo=relative):
+                content = (project_root / relative).read_text(encoding="utf-8")
+                self.assertNotIn("colectureShelf", content)
