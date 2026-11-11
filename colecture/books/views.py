@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.core.exceptions import ValidationError
 from django.db.models import Avg, Count
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
@@ -20,6 +21,7 @@ from .forms import BookForm, BookReviewForm, ReadingSessionForm
 from .models import Book, BookReview, BookStatus, ReadingSession
 
 SEARCH_LIMIT = 50
+MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
 
 
 # Registrar um novo livro
@@ -331,8 +333,82 @@ def save_reading_progress(request, book_id):
     })
 
 
+# Persiste no banco (ReadingSession) a sessão registrada na tela "Registrar leitura".
+# O histórico detalhado (edição, lista do pop-up) continua no localStorage;
+# aqui entram só os dados que alimentam metas, ofensiva e estatísticas do perfil.
+# Corpo JSON: {"pages_read": <páginas lidas na sessão>, "minute_count": <minutos>}.
+@login_required
+@require_POST
+def save_reading_session(request, book_id):
+    try:
+        payload = json.loads(request.body or '{}')
+        pages_read = int(payload.get('pages_read'))
+        minute_count = int(payload.get('minute_count'))
+    except (ValueError, TypeError, AttributeError):
+        return JsonResponse(
+            {'success': False, 'error': 'Dados da sessão inválidos.'},
+            status=400
+        )
+
+    if pages_read < 1 or minute_count < 1 or minute_count > MAX_SESSION_MINUTES:
+        return JsonResponse(
+            {'success': False, 'error': 'Informe páginas e tempo maiores que zero (até 24h).'},
+            status=400
+        )
+
+    book = get_object_or_404(Book, pk=book_id)
+
+    if not book.pages:
+        return JsonResponse(
+            {'success': False, 'error': 'O livro precisa ter a quantidade de páginas informada.'},
+            status=400
+        )
+
+    with transaction.atomic():
+        previous_pages = (
+            ReadingSession.objects.filter(user=request.user, book=book)
+            .aggregate(total=Sum('pages_read'))['total'] or 0
+        )
+
+        # Arredondamentos no cliente podem passar 1 página do total: limita ao que resta
+        pages_read = min(pages_read, book.pages - previous_pages)
+        if pages_read < 1:
+            return JsonResponse(
+                {'success': False, 'error': 'Todas as páginas deste livro já foram registradas.'},
+                status=400
+            )
+
+        reading_session = ReadingSession(
+            user=request.user,
+            book=book,
+            pages_read=pages_read,
+            minute_count=minute_count,
+        )
+        try:
+            reading_session.full_clean()
+        except ValidationError as error:
+            return JsonResponse(
+                {'success': False, 'error': ' '.join(error.messages)},
+                status=400
+            )
+        reading_session.save()
+
+        # sessão e ofensiva são salvas juntas (mesma transação)
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.register_reading_day(reading_session.date):
+            profile.save(update_fields=['streak', 'last_read_date'])
+
+    return JsonResponse({
+        'success': True,
+        'id': reading_session.id,
+        'pages_read': reading_session.pages_read,
+        'minute_count': reading_session.minute_count,
+        'date': _iso_date(reading_session.date),
+    })
+
+
 LOOKUP_LIMIT = 100
- 
+
  
 # Dados dos livros que o usuário marcou como "Lendo" (o status fica no localStorage,
 # então o JS manda os ids e recebe título, autor, páginas e capa).
