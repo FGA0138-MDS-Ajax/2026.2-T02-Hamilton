@@ -58,6 +58,7 @@
     detail: $('[data-rs-detail]'),
     eta: $('[data-rs-eta]'),
     finished: $('[data-rs-finished]'),
+    finishedMsg: $('[data-rs-finished-msg]'),
     markRead: $('[data-rs-mark-read]'),
     form: $('[data-rs-form]'),
     fields: $('[data-rs-fields]'),
@@ -158,6 +159,10 @@
   function applyState(data) {
     sessions = Array.isArray(data.sessions) ? data.sessions : [];
     bookStatus = data.book_status || null;
+  }
+
+  function isMarkedRead() {
+    return !!bookStatus && bookStatus.status === 'READ';
   }
 
   // Busca histórico + status do livro no servidor e atualiza o estado
@@ -436,7 +441,16 @@
       el.eta.classList.remove('is-muted');
     }
 
+    // Ao chegar em 100% o servidor já grava o status "Lido"; o botão só
+    // aparece como alternativa se o status ainda não estiver "Lido".
+    var isRead = isMarkedRead();
     el.finished.hidden = !done;
+    el.markRead.hidden = !done || isRead;
+    if (el.finishedMsg) {
+      el.finishedMsg.textContent = isRead
+        ? 'O status foi alterado para “Lido” automaticamente.'
+        : 'Deseja alterar a tag para “Lido”?';
+    }
     el.fields.disabled = done;
 
     renderPreview();
@@ -634,11 +648,14 @@
       })
       .then(function (data) {
         if (!current || current.id !== bookId) return;
+        var wasRead = isMarkedRead();
         applyState(data);
         editingId = null;
         renderTypeUI();
         renderSummary();
-        notify('success', 'Atualização editada.');
+        notify('success', !wasRead && isMarkedRead()
+          ? 'Atualização editada. Você chegou a 100% e o livro foi marcado como lido.'
+          : 'Atualização editada.');
       })
       .catch(function (err) {
         // erro explícito: no próprio formulário (se ainda aberto) e em toast
@@ -822,7 +839,9 @@
 
           var after = summaryOf(current);
           if (after.percent >= 100) {
-            notify('success', 'Sessão registrada! Você chegou a 100%.');
+            notify('success', isMarkedRead()
+              ? 'Sessão registrada! Você chegou a 100% e “' + current.title + '” foi marcado como lido.'
+              : 'Sessão registrada! Você chegou a 100%.');
             el.finished.focus();
           } else {
             notify('success', 'Sessão registrada! Você está em ' + formatPercent(after.percent) + '.');

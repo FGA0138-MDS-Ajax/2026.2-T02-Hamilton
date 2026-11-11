@@ -357,7 +357,15 @@ def save_reading_progress(request, book_id):
         Decimal('0.001'), rounding=ROUND_HALF_UP
     )
     fields = ['reading_progress']
-    if book_status.status == BookStatus.Status.WANT_TO_READ:
+    if percent >= 100:
+        # 100% lido: muda o status para "Lido" automaticamente
+        if book_status.status != BookStatus.Status.READ:
+            book_status.status = BookStatus.Status.READ
+            fields.append('status')
+        if book_status.finished_at is None:
+            book_status.finished_at = timezone.localdate()
+            fields.append('finished_at')
+    elif book_status.status == BookStatus.Status.WANT_TO_READ:
         book_status.status = BookStatus.Status.READING
         fields.append('status')
     book_status.save(update_fields=fields)

@@ -91,14 +91,15 @@
             </button>
           </aside>
 
-          {# 100%: sugerir marcar como lido #}
+          {# 100%: o servidor muda o status para "Lido" automaticamente #}
           <div class="rs-finished" data-rs-finished hidden tabindex="-1">
             <span class="rs-finished-icon" aria-hidden="true"><i class="bx bx-trophy"></i></span>
             <div class="rs-finished-text">
               <strong>Livro concluído (100%)!</strong>
-              <span>Deseja alterar a tag para “Lido”?</span>
+              <span data-rs-finished-msg>O status foi alterado para “Lido” automaticamente.</span>
             </div>
-            <button type="button" class="rs-btn rs-btn--success" data-rs-mark-read>Marcar como lido</button>
+            {# só aparece se, por algum motivo, o status ainda não estiver "Lido" #}
+            <button type="button" class="rs-btn rs-btn--success" data-rs-mark-read hidden>Marcar como lido</button>
           </div>
         </div>
 
