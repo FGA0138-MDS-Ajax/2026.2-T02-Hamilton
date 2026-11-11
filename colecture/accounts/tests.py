@@ -494,7 +494,9 @@ class CTEstantePerfil(TestCase):
     def test_clique_no_card_abre_registro_no_livro_sem_seletor(self):
         response = self.client.get(reverse("books:reading_session"))
         self.assertNotContains(response, 'id="rsBook"')  # sem o seletor de livro
-        self.assertContains(response, "data-progress-url=")
+        # A tela usa lookup/sessões; data-progress-url foi removido
+        self.assertContains(response, "data-sessions-url=")
+        self.assertNotContains(response, "data-progress-url=")
 
     def test_salvar_progresso_atualiza_estante(self):
         import json

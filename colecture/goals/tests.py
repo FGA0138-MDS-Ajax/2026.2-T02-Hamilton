@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta, date
 
 from django.contrib.auth import get_user_model
@@ -8,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
-from books.models import Book, BookStatus
+from books.models import Book, BookStatus, ReadingSession
 from communities.models import Community, Membership
 from forums.models import Forum
 
@@ -722,3 +723,112 @@ class ProfileStreakModelTests(TestCase):
             self.profile.full_clean()
 
 
+
+
+# ---------------------------------------------------------------------------
+#  Metas após criar/editar sessões pelos endpoints JSON
+# ---------------------------------------------------------------------------
+class GoalReadingSessionApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("meta_leitor", password="x")
+        self.other = User.objects.create_user("meta_outro", password="x")
+        self.profile = Profile.objects.create(user=self.user)
+        self.other_profile = Profile.objects.create(user=self.other)
+        self.book = Book.objects.create(isbn="9780590353403", title="Com páginas", author="A", pages=100)
+        self.book_no_pages = Book.objects.create(isbn="9780261103573", title="Sem total", author="A", pages=None)
+        self.client.force_login(self.user)
+
+    def make_goal(self, goal_type, target=500, profile=None, **kwargs):
+        profile = profile or self.profile
+        goal = Goal.objects.create(
+            name="Meta", owner_profile=profile, goal_type=goal_type, target=target, **kwargs)
+        participation = GoalParticipation.objects.create(
+            user=profile.user, goal=goal, joined_at=timezone.now() - timedelta(days=30))
+        # created_at é auto_now_add (hoje) e o progresso individual ignora sessões anteriores à
+        # criação da meta: recua a criação junto com a entrada para aceitar sessões retroativas
+        Goal.objects.filter(pk=goal.pk).update(created_at=timezone.now() - timedelta(days=30))
+        goal.refresh_from_db()
+        return goal, participation
+
+    def post(self, url, payload):
+        return self.client.post(url, data=json.dumps(payload), content_type="application/json")
+
+    def create(self, book=None, **payload):
+        book = book or self.book
+        if "pages" in payload:  # atalho: pages=N -> pages_read=N
+            payload["pages_read"] = payload.pop("pages")
+        payload.setdefault("minute_count", 10)
+        response = self.post(reverse("books:save_reading_session", args=[book.id]), payload)
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.json()["session"]["id"]
+
+    def edit(self, session_id, book=None, **payload):
+        book = book or self.book
+        return self.post(reverse("books:edit_reading_session", args=[book.id, session_id]), payload)
+
+    def when(self, days):
+        base = timezone.localtime().replace(hour=12, minute=0, second=0, microsecond=0)
+        return (base - timedelta(days=days)).isoformat()
+
+    def pages(self, goal, participation):
+        return (
+            GoalService.get_user_contribution(participation),
+            GoalService.get_individual_progress(goal)["current"],
+        )
+
+    def test_meta_de_paginas_reflete_criacao_e_edicao_com_cascata(self):
+        goal, participation = self.make_goal(Goal.GoalType.PAGE_COUNT, book=self.book)
+        self.create(pages=10, created_at=self.when(2))
+        second = self.create(pages=20, created_at=self.when(1))
+        self.assertEqual(self.pages(goal, participation), (30, 30))
+
+        self.assertEqual(self.edit(second, pages_read=35).status_code, 200)
+
+        self.assertEqual(self.pages(goal, participation), (45, 45))
+
+    def test_meta_de_horas_reflete_edicao_do_tempo(self):
+        goal, participation = self.make_goal(Goal.GoalType.HOUR_COUNT, target=600, book=self.book)
+        session_id = self.create(pages=10, minute_count=30)
+        self.create(pages=5, minute_count=15)
+        self.assertEqual(self.pages(goal, participation), (45, 45))
+
+        self.assertEqual(self.edit(session_id, minute_count=90).status_code, 200)
+
+        self.assertEqual(self.pages(goal, participation), (105, 105))
+
+    def test_mover_sessao_para_antes_da_entrada_na_meta_remove_a_contribuicao(self):
+        goal, participation = self.make_goal(Goal.GoalType.PAGE_COUNT, book=self.book)
+        participation.joined_at = timezone.now() - timedelta(days=1)
+        participation.save()
+        session_id = self.create(pages=12)
+        self.assertEqual(GoalService.get_user_contribution(participation), 12)
+
+        self.edit(session_id, created_at=self.when(5))
+
+        self.assertEqual(GoalService.get_user_contribution(participation), 0)
+
+    def test_sessao_em_percentual_conta_horas_mas_nao_paginas(self):
+        pages_goal, pages_part = self.make_goal(Goal.GoalType.PAGE_COUNT, book=self.book_no_pages)
+        hours_goal, hours_part = self.make_goal(Goal.GoalType.HOUR_COUNT, target=600, book=self.book_no_pages)
+        session_id = self.create(book=self.book_no_pages, stopped_percent=40, minute_count=25)
+
+        self.assertEqual(self.pages(pages_goal, pages_part), (0, 0))
+        self.assertEqual(self.pages(hours_goal, hours_part), (25, 25))
+
+        self.edit(session_id, book=self.book_no_pages, minute_count=50)
+        self.assertEqual(self.pages(hours_goal, hours_part), (50, 50))
+
+    def test_metas_de_um_usuario_nao_sao_afetadas_por_sessoes_de_outro(self):
+        goal, participation = self.make_goal(Goal.GoalType.PAGE_COUNT, book=self.book)
+        other_goal, other_participation = self.make_goal(
+            Goal.GoalType.PAGE_COUNT, profile=self.other_profile, book=self.book)
+        mine = self.create(pages=10)
+
+        self.client.force_login(self.other)
+        theirs = self.create(pages=40)
+        # outro usuário não consegue editar a minha sessão
+        self.assertEqual(self.edit(mine, pages_read=99).status_code, 404)
+        self.assertEqual(self.edit(theirs, pages_read=50).status_code, 200)
+
+        self.assertEqual(self.pages(goal, participation), (10, 10))
+        self.assertEqual(self.pages(other_goal, other_participation), (50, 50))

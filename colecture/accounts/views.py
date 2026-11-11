@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required;
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.http import Http404
 
 from datetime import date, timedelta
@@ -247,9 +248,11 @@ def streak_day_history_view(request, day):
         .order_by('book__title', 'pk')
     )
 
+    # pages_read pode ser nulo (livro sem total de páginas, sessão em percentual):
+    # o Coalesce garante 0 e minute_count continua somando todas as sessões
     totals = sessions.aggregate(
-        total_pages=Sum('pages_read'),
-        total_minutes=Sum('minute_count')
+        total_pages=Coalesce(Sum('pages_read'), 0),
+        total_minutes=Coalesce(Sum('minute_count'), 0)
     )
 
     context = {

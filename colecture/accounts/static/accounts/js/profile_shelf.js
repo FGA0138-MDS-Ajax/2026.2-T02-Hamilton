@@ -5,6 +5,10 @@
  *    (Quero ler passa para Lendo); em Lido abre a página do livro;
  *  - Tag clicável abre o pop-up "Alterar estante" para trocar a tag a qualquer momento;
  *  - Contadores, card e toast (showToast de main/js/toast.js) atualizados após cada mudança.
+ *
+ * A estante vem do banco (BookStatus): o HTML é renderizado pelo servidor e toda mudança
+ * é gravada pelos endpoints books:manage_bookshelf / books:mark_book_as_read.
+ * Nada é copiado para o localStorage.
  */
 (function () {
   'use strict';
@@ -21,9 +25,6 @@
   var shelfUrl = shelf.getAttribute('data-shelf-url');
   var progressUrl = shelf.getAttribute('data-progress-url');
 
-  // A tela de registrar leitura lê os status do localStorage (mesma chave da pesquisa)
-  var SHELF_STORAGE_KEY = 'colectureShelf';
-
   var LABELS = { READ: 'Lido', READING: 'Lendo', WANT_TO_READ: 'Quero ler' };
   var activeFilter = 'ALL';
 
@@ -33,14 +34,6 @@
 
   function toast(type, title, desc) {
     if (typeof window.showToast === 'function') window.showToast(type, title, desc);
-  }
-
-  function syncLocalShelf() {
-    var data = {};
-    cards().forEach(function (card) {
-      data[card.getAttribute('data-book-id')] = card.getAttribute('data-status');
-    });
-    try { localStorage.setItem(SHELF_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
   }
 
   // ---------- Requisições ----------
@@ -112,7 +105,6 @@
   function refreshShelf() {
     updateCounts();
     applyFilter(activeFilter);
-    syncLocalShelf();
   }
 
   // ---------- Card ----------
@@ -172,7 +164,6 @@
     }
 
     if (status === 'READING') {
-      syncLocalShelf();
       window.location.href = progressPageFor(card);
       return;
     }
@@ -321,6 +312,5 @@
     if (event.persisted) window.location.reload();
   });
 
-  syncLocalShelf();
   applyFilter(activeFilter);
 })();

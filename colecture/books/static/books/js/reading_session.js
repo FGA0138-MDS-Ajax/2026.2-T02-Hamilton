@@ -1,29 +1,29 @@
 /* Aba "Registrar leitura" (R18).
  *
- * De onde vêm os dados:
- *  - Status "Lendo": localStorage "colectureShelf" ({ idDoLivro: "reading" | "read" | ... }),
- *    o mesmo que o search.js grava.
- *  - Sessões: localStorage "colectureSessions" ({ idDoLivro: [sessão, ...] }).
- *  - Título/autor/páginas/capa: endpoint books:lookup (?ids=1,2,3).
+ * TUDO vem do servidor; este script não guarda nada no armazenamento do navegador:
+ *  - Livros "Lendo":      GET  books:lookup                       (sem ?ids=)
+ *  - Histórico/progresso: GET  books:list_reading_sessions        (sessões + book_status)
+ *  - Criar sessão:        POST books:save_reading_session
+ *  - Editar sessão:       PATCH books:edit_reading_session
+ *  - Marcar como lido:    POST books:mark_book_as_read
  *
- * O progresso é guardado em percentual em cada sessão, assim registros por
- * páginas e por % podem ser misturados no mesmo livro.
+ * Cada ação chama o endpoint e re-renderiza com a RESPOSTA. Se a chamada falhar
+ * (rede, sessão expirada, 400/404/5xx), a tela mostra o erro e nada é gravado em
+ * lugar nenhum: o formulário continua preenchido para tentar de novo.
  */
 (function () {
   var root = document.getElementById('readingSession');
   if (!root) return;
 
-  var SHELF_KEY = 'colectureShelf';
-  var SESSIONS_KEY = 'colectureSessions';
   var MAX_MINUTES = 1440;
-  var MINUTES_PER_PAGE = 2; // velocidade média usada quando o usuário não informa o tempo
+  var MINUTES_PER_PAGE = 2; // velocidade média usada quando ainda não há sessões com tempo
 
   // ---------- Toast (F06) ----------
-  // Único ponto que conversa com o toast do repositório. Se a função de lá
-  // tiver outro nome ou outra ordem de parâmetros, ajuste só aqui.
+  // Único ponto que conversa com o toast do repositório (main/js/toast.js:
+  // showToast(type, title, description)).
   function notify(type, message) {
     if (typeof window.showToast === 'function') {
-      window.showToast(type, message); // main/js/toast.js: showToast(type, title, description)
+      window.showToast(type, message);
     } else {
       (type === 'error' ? console.error : console.log)('[toast ' + type + '] ' + message);
     }
@@ -61,6 +61,7 @@
     markRead: $('[data-rs-mark-read]'),
     form: $('[data-rs-form]'),
     fields: $('[data-rs-fields]'),
+    submit: $('[data-rs-form] button[type="submit"]'),
     typePages: $('#rsTypePages'),
     typePercent: $('#rsTypePercent'),
     noPages: $('[data-rs-no-pages]'),
@@ -73,105 +74,156 @@
     minutesError: $('#rsMinutesError')
   };
 
+  // URLs com "0" no lugar do id do livro (e da sessão, na edição)
   var lookupUrl = root.dataset.lookupUrl;
-  // URLs com "0" no lugar do id do livro (preenchidas em bookUrl)
-  var progressUrl = root.dataset.progressUrl;
-  var markReadUrl = root.dataset.markReadUrl;
+  var sessionsUrl = root.dataset.sessionsUrl; // GET  /shelf/0/sessions/
+  var sessionUrl = root.dataset.sessionUrl;   // POST /shelf/0/session/
+  var editUrl = root.dataset.editUrl;         // PATCH /shelf/0/sessions/0/
+  var markReadUrl = root.dataset.markReadUrl; // POST /shelf/0/mark-read/
   var csrf = root.dataset.csrf;
+
   // Livro escolhido no card do perfil (?book=<id>): abre direto nele, sem seletor
   var requestedId = new URLSearchParams(window.location.search).get('book');
-  var books = [];          // livros "Lendo" com dados do servidor
+
+  // ---------- Estado (só em memória, sempre vindo do servidor) ----------
+  var books = [];          // livros "Lendo" (lookup)
   var current = null;      // livro selecionado
+  var sessions = [];       // sessões do livro, da mais antiga para a mais recente
+  var bookStatus = null;   // book_status devolvido pela API (ou null)
   var triedSubmit = false; // só mostra erros "ao vivo" depois da 1ª tentativa
+  var editingId = null;    // id da sessão em edição no pop-up
+  var busy = false;        // há uma gravação em andamento (evita duplo envio)
+  var loadToken = 0;       // descarta respostas de carregamentos antigos
 
-  // ---------- Armazenamento ----------
-  function readStore(key) {
-    try {
-      var raw = localStorage.getItem(key);
-      var data = raw ? JSON.parse(raw) : {};
-      return data && typeof data === 'object' ? data : {};
-    } catch (e) {
-      return {};
-    }
+  // ---------- Chamadas à API ----------
+  var MSG_NETWORK = 'Sem conexão com o servidor. Verifique sua internet e tente de novo. Nada foi salvo.';
+  var MSG_AUTH = 'Sua sessão expirou. Recarregue a página e entre de novo. Nada foi salvo.';
+  var MSG_UNCONFIRMED = 'Não foi possível confirmar a resposta do servidor. Recarregue a página para conferir seu histórico.';
+
+  function apiError(message, extra) {
+    var err = new Error(message);
+    err.status = (extra && extra.status) || 0;
+    err.field = (extra && extra.field) || '';
+    err.network = !!(extra && extra.network);
+    return err;
   }
 
-  function writeStore(key, data) {
-    localStorage.setItem(key, JSON.stringify(data)); 
-    // Toda mudança nas sessões (registro ou edição) atualiza o progresso no banco
-    if (key === SESSIONS_KEY && current) syncProgress(current);
-  }
-
-  // ---------- Banco de dados (estante do perfil) ----------
   function bookUrl(template, bookId) {
     return template.replace('/shelf/0/', '/shelf/' + encodeURIComponent(bookId) + '/');
   }
 
-  function postJson(url, body) {
-    return fetch(url, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body: body ? JSON.stringify(body) : undefined
-    }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
+  function sessionItemUrl(bookId, sessionId) {
+    return bookUrl(editUrl, bookId).replace(/\/0\/$/, '/' + encodeURIComponent(sessionId) + '/');
+  }
+
+  // Resolve com o JSON da resposta; rejeita com Error (message em português)
+  // para rede, sessão expirada, resposta inválida ou {success:false}.
+  function api(method, url, body) {
+    var headers = { 'Accept': 'application/json' };
+    var opts = { method: method, credentials: 'same-origin', headers: headers };
+    if (method !== 'GET') {
+      headers['X-CSRFToken'] = csrf;
+      if (body) {
+        headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+    }
+
+    return fetch(url, opts)
+      .then(function (res) {
+        return res.json().then(
+          function (data) { return { res: res, data: data }; },
+          function () { return { res: res, data: null }; }
+        );
+      }, function () {
+        throw apiError(MSG_NETWORK, { network: true });
+      })
+      .then(function (r) {
+        var res = r.res, data = r.data;
+        // login redirecionado (HTML) ou CSRF/permissão recusados
+        if (res.redirected || res.status === 401 || (res.status === 403 && data === null)) {
+          throw apiError(MSG_AUTH, { status: res.status });
+        }
+        if (!res.ok || (data && data.success === false)) {
+          throw apiError(
+            (data && data.error) || 'O servidor respondeu com erro (HTTP ' + res.status + '). Nada foi salvo.',
+            { status: res.status, field: data && data.field }
+          );
+        }
+        if (data === null) throw apiError(MSG_UNCONFIRMED, { status: res.status });
+        return data;
+      });
+  }
+
+  function applyState(data) {
+    sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    bookStatus = data.book_status || null;
+  }
+
+  // Busca histórico + status do livro no servidor e atualiza o estado
+  function fetchSessions(bookId) {
+    return api('GET', bookUrl(sessionsUrl, bookId)).then(function (data) {
+      return data;
     });
   }
 
-  function syncProgress(book) {
-    var percent = summaryOf(book).percent;
-    postJson(bookUrl(progressUrl, book.id), { percent: percent }).catch(function () {
-      notify('error', 'Não foi possível salvar o progresso na sua estante.');
+  function signature(list) {
+    return (list || []).map(function (s) {
+      return [s.id, s.cumulative_pages, s.cumulative_percent, s.minute_count].join(':');
+    }).join('|');
+  }
+
+  // Antes de gravar, confere se o histórico em tela ainda é o do servidor
+  // (outra aba/dispositivo pode ter mudado). Se mudou, atualiza a tela e aborta.
+  function ensureFresh(bookId) {
+    return fetchSessions(bookId).then(function (data) {
+      if (!current || current.id !== String(bookId)) throw apiError('Livro trocado durante a operação.');
+      if (signature(data.sessions) !== signature(sessions)) {
+        applyState(data);
+        editingId = null;
+        renderTypeUI();
+        renderSummary();
+        throw apiError('Seu histórico foi alterado em outra aba ou dispositivo e foi atualizado aqui. Confira os valores e tente de novo.');
+      }
+      return data;
     });
   }
 
-function readingIds() {
-  var shelf = readStore(SHELF_KEY);
-  return Object.keys(shelf).filter(function (id) {
-    return shelf[id] === 'READING' || shelf[id] === 'WANT_TO_READ';
-  });
-}
-
-  function sessionsOf(bookId) {
-    var all = readStore(SESSIONS_KEY);
-    return Array.isArray(all[bookId]) ? all[bookId] : [];
-  }
-
-  function saveSession(bookId, session) {
-    var all = readStore(SESSIONS_KEY);
-    if (!Array.isArray(all[bookId])) all[bookId] = [];
-    all[bookId].push(session);
-    writeStore(SESSIONS_KEY, all);
-  }
-
-
+  // ---------- Resumo (calculado só a partir das sessões vindas da API) ----------
   function summaryOf(book) {
-    var list = sessionsOf(book.id);
-    var percent = 0, timedPercent = 0, minutes = 0;
-
-    list.forEach(function (s) {
-      var p = Number(s.percent) || 0;
-      percent += p;
-      if (s.minutes > 0) { minutes += s.minutes; timedPercent += p; }
-    });
-
-    percent = Math.min(100, Math.round(percent * 1000) / 1000);
+    var last = sessions.length ? sessions[sessions.length - 1] : null;
+    var percent = last ? Number(last.cumulative_percent) || 0 : 0;
+    percent = Math.min(100, percent);
     if (percent > 99.999) percent = 100;
 
-    var pagesRead = book.pages ? Math.min(book.pages, Math.round(percent * book.pages / 100)) : null;
+    var pagesRead = null;
+    if (book.pages) {
+      pagesRead = last && last.cumulative_pages != null
+        ? Number(last.cumulative_pages) || 0
+        : Math.round(percent * book.pages / 100);
+      pagesRead = Math.min(book.pages, pagesRead);
+    }
+
+    var minutes = 0;
+    sessions.forEach(function (s) { minutes += Number(s.minute_count) || 0; });
 
     var eta = null;
-    if (minutes > 0 && timedPercent > 0) {
-      eta = Math.max(0, Math.round((100 - percent) * minutes / timedPercent));
+    if (minutes > 0 && percent > 0) {
+      eta = Math.max(0, Math.round((100 - percent) * minutes / percent));
     } else if (book.pages) {
       eta = Math.max(0, Math.round(book.pages * (100 - percent) / 100 * MINUTES_PER_PAGE));
     }
 
-    return { percent: percent, pagesRead: pagesRead, count: list.length, eta: eta };
+    return { percent: percent, pagesRead: pagesRead, count: sessions.length, eta: eta };
   }
 
   function formatPercent(p) {
     return Math.floor(p) + '%';
+  }
+
+  // Ex.: 35,5% (até 2 casas, só para mensagens)
+  function formatExactPercent(p) {
+    return String(Math.round(p * 100) / 100).replace('.', ',') + '%';
   }
 
   function formatMinutes(total) {
@@ -199,18 +251,13 @@ function readingIds() {
     return 100 - Math.floor(sum.percent);
   }
 
-  function sessionPercent(book, sum, type, amount) {
-    if (type === 'pages') {
-      return ((sum.pagesRead + amount) / book.pages) * 100 - sum.percent;
-    }
-    return amount;
-  }
-
   function parseNumber(input) {
     var v = input.value.trim().replace(',', '.');
     return v === '' ? null : Number(v);
   }
 
+  // Devolve o que a API espera: páginas lidas na sessão (pages_read, delta) ou o
+  // percentual em que parou (stopped_percent). null = inválido (erro já exibido).
   function validateAmount() {
     var type = currentType();
     var sum = summaryOf(current);
@@ -224,6 +271,8 @@ function readingIds() {
         msg = 'Use um número inteiro de página.';
       } else if (value > current.pages) {
         msg = 'Este livro tem ' + current.pages + ' páginas.';
+      } else if (value <= sum.pagesRead) {
+        msg = 'Você já está na página ' + sum.pagesRead + '. Informe uma página maior.';
       }
       setError(el.amount, el.amountError, msg);
       return msg ? null : value - sum.pagesRead;
@@ -236,12 +285,13 @@ function readingIds() {
       msg = 'Use um número inteiro de percentual (ex.: 12).';
     } else if (value > 100) {
       msg = 'O percentual vai até 100%.';
+    } else if (value <= sum.percent) {
+      msg = 'Você já está em ' + formatExactPercent(sum.percent) + '. Informe um percentual maior.';
     }
 
     setError(el.amount, el.amountError, msg);
-    return msg ? null : value - sum.percent;
+    return msg ? null : value;
   }
-
 
   function maskDuration(value) {
     var d = value.replace(/\D/g, '').replace(/^0+(?=\d{3})/, '').slice(0, 4);
@@ -274,6 +324,8 @@ function readingIds() {
 
   function validateMinutes() {
     var result = parseDuration(el.minutes.value);
+    // o tempo é obrigatório (ReadingSession.minute_count exige >= 1)
+    if (!result.msg && !result.total) result.msg = 'Informe o tempo da leitura (ex.: 1:30).';
     setError(el.minutes, el.minutesError, result.msg);
     return result.msg ? false : result.total;
   }
@@ -302,11 +354,18 @@ function readingIds() {
     setError(el.minutes, el.minutesError, '');
   }
 
+  function setBusy(value) {
+    busy = value;
+    if (el.submit) el.submit.disabled = value;
+    el.markRead.disabled = value;
+  }
+
   // ---------- Renderização ----------
   function renderTypeUI() {
     var hasPages = !!current.pages;
     el.typePages.disabled = !hasPages;
     el.noPages.hidden = hasPages;
+    // livro sem páginas: só percentual (record_type='percent')
     if (!hasPages) el.typePercent.checked = true;
 
     var type = currentType();
@@ -317,7 +376,7 @@ function readingIds() {
       el.amountLabel.textContent = 'Em qual página você parou? ';
       el.suffix.textContent = 'pág.';
       el.amount.step = '1';
-      el.amount.min = '1'; // pode registrar uma página menor que a atual
+      el.amount.min = '1';
       el.amount.max = String(current.pages);
       el.amount.setAttribute('inputmode', 'numeric');
       el.remaining.textContent = sum.pagesRead
@@ -369,14 +428,13 @@ function readingIds() {
       el.eta.textContent = 'Leitura concluída!';
       el.eta.classList.remove('is-muted');
     } else if (sum.eta === null) {
-      // só acontece em livro sem número de páginas e sem nenhuma sessão com tempo
+      // só acontece em livro sem número de páginas e sem nenhuma sessão
       el.eta.textContent = 'Informe o tempo de uma sessão para calcular';
       el.eta.classList.add('is-muted');
     } else {
       el.eta.textContent = formatMinutes(sum.eta);
       el.eta.classList.remove('is-muted');
     }
-
 
     el.finished.hidden = !done;
     el.fields.disabled = done;
@@ -387,7 +445,6 @@ function readingIds() {
 
   // ---------- Histórico (pop-up) ----------
   var MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-  var editingIndex = null; // registro sendo editado (índice na lista cronológica)
 
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
@@ -399,73 +456,54 @@ function readingIds() {
       ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
-  // Progresso acumulado ao fim de cada sessão (ordem cronológica): { percent, pages }
-  function timelineOf(book, list) {
-    var cum = 0;
-    return list.map(function (s) {
-      cum = Math.min(100, cum + (Number(s.percent) || 0));
-      var pages = null;
-      if (book.pages) {
-        pages = (s.type === 'pages' && s.page) ? s.page : Math.min(book.pages, Math.round(cum * book.pages / 100));
-      }
-      return { percent: cum, pages: pages };
-    });
+  function cumPages(s) {
+    return s && s.cumulative_pages != null ? Number(s.cumulative_pages) || 0 : 0;
   }
 
-  // Recalcula a quantidade lida (amount) do registro j depois de uma edição
-  function refreshAmount(book, list, j) {
-    var tl = timelineOf(book, list);
-    var s = list[j];
-    if (s.type === 'pages' && book.pages) {
-      s.amount = tl[j].pages - (j > 0 ? tl[j - 1].pages : 0);
-    } else {
-      s.amount = Math.round(Number(s.percent) || 0);
-    }
+  function cumPercent(s) {
+    return s ? Number(s.cumulative_percent) || 0 : 0;
   }
 
-  function writeSessions(bookId, list) {
-    var all = readStore(SESSIONS_KEY);
-    all[bookId] = list;
-    writeStore(SESSIONS_KEY, all);
+  function findSession(id) {
+    for (var i = 0; i < sessions.length; i++) if (sessions[i].id === id) return i;
+    return -1;
   }
 
   // Lista do pop-up (mais recente primeiro)
   function renderHistory() {
-    var list = sessionsOf(current.id);
-    var tl = timelineOf(current, list);
-
     el.historyBook.textContent = current.title;
     el.history.innerHTML = '';
-    el.historyEmpty.hidden = list.length > 0;
+    el.historyEmpty.hidden = sessions.length > 0;
 
-    for (var i = list.length - 1; i >= 0; i--) {
-      if (i === editingIndex) el.history.appendChild(editItem(list, tl, i));
-      else el.history.appendChild(historyItem(list[i], tl, i));
+    for (var i = sessions.length - 1; i >= 0; i--) {
+      if (sessions[i].id === editingId) el.history.appendChild(editItem(i));
+      else el.history.appendChild(historyItem(i));
     }
   }
 
   // Ex.: "263/433 pág. (60%)" + "08/nov/2026 15:00 · +32 págs · 1 h 30 min"
-  function historyItem(s, tl, i) {
+  function historyItem(i) {
+    var s = sessions[i];
+    var prev = i > 0 ? sessions[i - 1] : null;
     var li = document.createElement('li');
     li.className = 'rs-history-item';
-    li.dataset.index = i;
+    li.dataset.id = s.id;
 
     var text = document.createElement('div');
     text.className = 'rs-history-text';
 
     var title = document.createElement('strong');
     title.textContent = current.pages
-      ? tl[i].pages + '/' + current.pages + ' pág. (' + formatPercent(tl[i].percent) + ')'
-      : formatPercent(tl[i].percent);
+      ? cumPages(s) + '/' + current.pages + ' pág. (' + formatPercent(cumPercent(s)) + ')'
+      : formatPercent(cumPercent(s));
 
-    // Pode ser negativo se a atualização foi editada para uma página menor que a anterior
     var diff = current.pages
-      ? tl[i].pages - (i > 0 ? tl[i - 1].pages : 0)
-      : Math.round(Number(s.percent) || 0);
+      ? (s.pages_read != null ? Number(s.pages_read) : cumPages(s) - cumPages(prev))
+      : Math.round(cumPercent(s) - cumPercent(prev));
     var read = (diff < 0 ? '−' : '+') + Math.abs(diff) + (current.pages ? ' págs' : '%');
 
     var meta = document.createElement('span');
-    meta.textContent = [formatDateTime(s.date), read, s.minutes ? formatDuration(s.minutes) : '']
+    meta.textContent = [formatDateTime(s.created_at), read, s.minute_count ? formatDuration(s.minute_count) : '']
       .filter(Boolean).join(' · ');
 
     text.appendChild(title);
@@ -486,21 +524,25 @@ function readingIds() {
     return li;
   }
 
+  function editByPages(s) {
+    return s.record_type === 'pages' && !!current.pages;
+  }
+
   // Formulário de edição dentro do próprio item
-  function editItem(list, tl, i) {
-    var s = list[i];
-    var byPages = s.type === 'pages' && !!current.pages;
+  function editItem(i) {
+    var s = sessions[i];
+    var byPages = editByPages(s);
 
     var li = document.createElement('li');
     li.className = 'rs-history-item rs-history-item--form';
-    li.dataset.index = i;
+    li.dataset.id = s.id;
     li.innerHTML =
       '<form class="rs-edit" novalidate>' +
         '<div class="rs-edit-grid">' +
           '<div>' +
             '<label for="rsEditAmount">' + (byPages ? 'Página em que parou' : 'Percentual em que parou') + '</label>' +
             '<div class="rs-input-group">' +
-              '<input id="rsEditAmount" name="amount" class="rs-input" type="number" inputmode="numeric" min="1" step="1" />' +
+              '<input id="rsEditAmount" name="amount" class="rs-input" type="number" inputmode="' + (byPages ? 'numeric' : 'decimal') + '" min="1" step="' + (byPages ? '1' : 'any') + '" />' +
               '<span class="rs-addon" aria-hidden="true">' + (byPages ? 'pág.' : '%') + '</span>' +
             '</div>' +
           '</div>' +
@@ -520,67 +562,91 @@ function readingIds() {
       '</form>';
 
     var form = li.querySelector('form');
-    form.elements.amount.value = byPages ? tl[i].pages : Math.round(tl[i].percent);
-    form.elements.duration.value = s.minutes ? formatHM(s.minutes) : '';
+    form.elements.amount.value = byPages ? cumPages(s) : cumPercent(s);
+    form.elements.duration.value = s.minute_count ? formatHM(s.minute_count) : '';
     return li;
   }
 
-  // Salva a edição: o registro seguinte é ajustado para manter o progresso dele
-  function saveEdit(i, form) {
-    var list = sessionsOf(current.id);
-    var tl = timelineOf(current, list);
-    var s = list[i];
-    if (!s) return;
+  function showEditError(form, msg) {
+    var box = form.querySelector('.rs-error');
+    box.textContent = msg;
+    box.hidden = !msg;
+  }
 
-    var byPages = s.type === 'pages' && !!current.pages;
-    var prev = i > 0 ? tl[i - 1] : { percent: 0, pages: 0 };
-    var next = i < list.length - 1 ? tl[i + 1] : null;
-    var raw = form.elements.amount.value.trim();
+  function setEditBusy(form, value) {
+    Array.prototype.forEach.call(form.querySelectorAll('button'), function (b) { b.disabled = value; });
+  }
+
+  // Salva a edição pela API (PATCH). O servidor recalcula os acumulados de todas
+  // as sessões; a tela é redesenhada com a resposta.
+  function saveEdit(id, form) {
+    if (busy) return;
+    var idx = findSession(id);
+    if (idx === -1) return;
+
+    var s = sessions[idx];
+    var prev = idx > 0 ? sessions[idx - 1] : null;
+    var byPages = editByPages(s);
+    var raw = form.elements.amount.value.trim().replace(',', '.');
     var value = Number(raw);
     var msg = '';
-    var newCum = 0;
 
-    if (raw === '' || isNaN(value) || !Number.isInteger(value) || value <= 0) {
-      msg = byPages ? 'Informe a página em que parou (número inteiro).' : 'Informe o percentual como número inteiro maior que zero.';
+    if (raw === '' || isNaN(value) || value <= 0) {
+      msg = byPages ? 'Informe a página em que parou (número inteiro).' : 'Informe o percentual como número maior que zero.';
     } else if (byPages) {
-      // Pode ser qualquer página do livro, inclusive menor que a da atualização anterior
-      if (value > current.pages) msg = 'Este livro tem ' + current.pages + ' páginas.';
-      newCum = value === current.pages ? 100 : value / current.pages * 100;
+      if (!Number.isInteger(value)) msg = 'Use um número inteiro de página.';
+      else if (value > current.pages) msg = 'Este livro tem ' + current.pages + ' páginas.';
+      else if (value <= cumPages(prev)) msg = 'Informe uma página maior que a da atualização anterior (' + cumPages(prev) + ').';
     } else {
-      // Percentual em que parou (acumulado), não o quanto leu na sessão
       if (value > 100) msg = 'O percentual vai até 100%.';
-      newCum = value;
+      else if (Math.round(value * 100) / 100 !== value) msg = 'Use no máximo 2 casas decimais.';
+      else if (value <= cumPercent(prev)) msg = 'Informe um percentual maior que o da atualização anterior (' + formatExactPercent(cumPercent(prev)) + ').';
     }
 
     var dur = parseDuration(form.elements.duration.value);
     if (!msg) msg = dur.msg;
+    if (!msg && !dur.total) msg = 'Informe o tempo da leitura (ex.: 1:30).';
 
-    if (msg) {
-      var box = form.querySelector('.rs-error');
-      box.textContent = msg;
-      box.hidden = false;
+    if (msg) { showEditError(form, msg); return; }
+
+    // Só envia o que mudou (evita regravar um percentual arredondado sem querer)
+    var body = {};
+    if (value !== (byPages ? cumPages(s) : cumPercent(s))) {
+      if (byPages) body.pages_read = value - cumPages(prev); // páginas lidas na sessão
+      else body.stopped_percent = value;                     // posição em que parou
+    }
+    if (dur.total !== Number(s.minute_count)) body.minute_count = dur.total;
+
+    if (!Object.keys(body).length) {
+      editingId = null;
+      renderHistory();
       return;
     }
 
-    s.percent = newCum - prev.percent;
-    if (byPages) s.page = value;
-    s.minutes = dur.total || null;
-    if (next) list[i + 1].percent = next.percent - newCum;
+    var bookId = current.id;
+    showEditError(form, '');
+    setBusy(true);
+    setEditBusy(form, true);
 
-    refreshAmount(current, list, i);
-    if (next) refreshAmount(current, list, i + 1);
-
-    try {
-      writeSessions(current.id, list);
-    } catch (err) {
-      notify('error', 'Não foi possível salvar a edição. Tente de novo.');
-      return;
-    }
-
-    editingIndex = null;
-    renderTypeUI();
-    renderSummary();
-    notify('success', 'Atualização editada.');
+    ensureFresh(bookId)
+      .then(function () {
+        return api('PATCH', sessionItemUrl(bookId, id), body);
+      })
+      .then(function (data) {
+        if (!current || current.id !== bookId) return;
+        applyState(data);
+        editingId = null;
+        renderTypeUI();
+        renderSummary();
+        notify('success', 'Atualização editada.');
+      })
+      .catch(function (err) {
+        // erro explícito: no próprio formulário (se ainda aberto) e em toast
+        var open = el.history.querySelector('.rs-edit');
+        if (open) { showEditError(open, err.message); setEditBusy(open, false); }
+        notify('error', err.message);
+      })
+      .then(function () { setBusy(false); });
   }
 
   function closeMenus() {
@@ -603,16 +669,16 @@ function readingIds() {
   function renderPreview() {
     var sum = summaryOf(current);
     var value = parseNumber(el.amount);
-    var add = 0;
     var type = currentType();
+    var add = 0;
 
-    // por páginas o campo é a página onde parou -> converte para páginas lidas
-    // por % o campo é o percentual atual -> converte para o percentual lido na sessão
-    if (type === 'pages' && value !== null) value = value - sum.pagesRead;
-    else if (type === 'percent' && value !== null) value = value - sum.percent;
+    // páginas: o campo é a página onde parou; %: é o percentual em que você está
+    var position = type === 'pages' ? sum.pagesRead : sum.percent;
+    var max = type === 'pages' ? current.pages : 100;
 
-    if (value !== null && !isNaN(value) && value > 0 && value <= remainingFor(current, sum, type)) {
-      add = Math.max(0, sessionPercent(current, sum, type, value));
+    if (value !== null && !isNaN(value) && value > position && value <= max) {
+      var target = type === 'pages' ? value / current.pages * 100 : value;
+      add = Math.max(0, target - sum.percent);
     }
 
     el.preview.style.left = sum.percent + '%';
@@ -631,46 +697,49 @@ function readingIds() {
     el.content.hidden = state !== 'content';
   }
 
-  // ---------- Carregamento ----------
-  function load() {
-    var ids = readingIds();
-    if (requestedId && /^\d+$/.test(requestedId) && ids.indexOf(requestedId) === -1) ids.push(requestedId);
-    if (!ids.length) { books = []; show('empty'); return; }
+  function findBook(id) {
+    for (var i = 0; i < books.length; i++) if (books[i].id === String(id)) return books[i];
+    return null;
+  }
 
+  // ---------- Carregamento ----------
+  // 1) livros "Lendo" (servidor), 2) histórico do livro escolhido (servidor).
+  function load() {
+    var token = ++loadToken;
     show('loading');
 
-    fetch(lookupUrl + '?ids=' + encodeURIComponent(ids.join(',')), {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin'
-    })
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    api('GET', lookupUrl)
       .then(function (data) {
-        // Mantém só os que continuam "Lendo" e existem no banco
+        if (token !== loadToken) return;
+
         books = (data.results || []).map(function (b) {
           return { id: String(b.id), title: b.title, author: b.author, genre: b.genre || '', pages: b.pages || null, icon: b.icon || '' };
         });
 
-        if (!books.length) { show('empty'); return; }
+        if (!books.length) {
+          current = null; sessions = []; bookStatus = null;
+          show('empty');
+          return;
+        }
 
-        var keep = current && books.some(function (b) { return b.id === current.id; });
-        current = (keep ? findBook(current.id) : findBook(requestedId)) || books[0];
-        show('content');
-        renderAll();
-        // Leva para o banco sessões já registradas antes (só se houver alguma)
-        if (summaryOf(current).count) syncProgress(current);
+        var keep = current && findBook(current.id);
+        current = keep || findBook(requestedId) || books[0];
+
+        return fetchSessions(current.id).then(function (state) {
+          if (token !== loadToken) return;
+          applyState(state);
+          editingId = null;
+          show('content');
+          renderAll();
+        });
       })
-      .catch(function () {
+      .catch(function (err) {
+        if (token !== loadToken) return;
+        var p = el.loadError.querySelector('p');
+        if (p) p.textContent = err.message;
         show('error');
-        notify('error', 'Não foi possível carregar seus livros em leitura.');
+        notify('error', err.message);
       });
-  }
-
-  function findBook(id) {
-    for (var i = 0; i < books.length; i++) if (books[i].id === String(id)) return books[i];
-    return null;
   }
 
   // ---------- Eventos ----------
@@ -705,6 +774,7 @@ function readingIds() {
 
   el.form.addEventListener('submit', function (e) {
     e.preventDefault();
+    if (busy) return;
     triedSubmit = true;
 
     var amount = validateAmount();
@@ -716,72 +786,82 @@ function readingIds() {
       return;
     }
 
-    // Garante que o livro ainda está como "Lendo" (pode ter mudado em outra aba)
-    if (readingIds().indexOf(current.id) === -1) {
-      notify('error', 'Este livro não está mais marcado como “Lendo”.');
-      load();
-      return;
-    }
-
     var type = currentType();
-    var sum = summaryOf(current);
-    var session = {
-      date: new Date().toISOString(),
-      type: type,
-      amount: amount, // páginas lidas na sessão (ou %)
-      page: type === 'pages' ? sum.pagesRead + amount : null, // página onde parou
-      percent: sessionPercent(current, sum, type, amount),
-      minutes: minutes || null
-    };
+    var bookId = current.id;
+    var body = { record_type: type, minute_count: minutes };
+    if (type === 'pages') body.pages_read = amount;
+    else body.stopped_percent = amount;
 
-    try {
-      saveSession(current.id, session);
-    } catch (err) {
-      notify('error', 'Não foi possível salvar a sessão. Verifique o armazenamento do navegador e tente de novo.');
-      return;
-    }
+    setBusy(true);
 
-    resetForm();
-    renderTypeUI();
-    renderSummary();
+    // Confere no servidor se o livro ainda está "Lendo" e se o histórico em tela
+    // é o atual; só então grava. Nada fica salvo no navegador.
+    fetchSessions(bookId)
+      .then(function (state) {
+        if (!current || current.id !== bookId) return null;
 
-    var after = summaryOf(current);
-    if (after.percent >= 100) {
-      notify('success', 'Sessão registrada! Você chegou a 100%.');
-      el.finished.focus();
-    } else {
-      notify('success', 'Sessão registrada! Você está em ' + formatPercent(after.percent) + '.');
-    }
+        if (!state.book_status || state.book_status.status !== 'READING') {
+          notify('error', 'Este livro não está mais marcado como “Lendo”.');
+          load();
+          return null;
+        }
+        if (signature(state.sessions) !== signature(sessions)) {
+          applyState(state);
+          renderTypeUI();
+          renderSummary();
+          notify('error', 'Seu histórico foi alterado em outra aba ou dispositivo e foi atualizado aqui. Confira os valores e registre de novo.');
+          return null;
+        }
+
+        return api('POST', bookUrl(sessionUrl, bookId), body).then(function (data) {
+          if (!current || current.id !== bookId) return;
+          applyState(data);
+          resetForm();
+          renderTypeUI();
+          renderSummary();
+
+          var after = summaryOf(current);
+          if (after.percent >= 100) {
+            notify('success', 'Sessão registrada! Você chegou a 100%.');
+            el.finished.focus();
+          } else {
+            notify('success', 'Sessão registrada! Você está em ' + formatPercent(after.percent) + '.');
+          }
+        });
+      })
+      .catch(function (err) {
+        // 400 do servidor com campo conhecido: mostra junto do campo
+        if (err.field === 'pages_read' || err.field === 'stopped_percent') {
+          setError(el.amount, el.amountError, err.message);
+        } else if (err.field === 'minute_count') {
+          setError(el.minutes, el.minutesError, err.message);
+        }
+        notify('error', err.message);
+      })
+      .then(function () { setBusy(false); });
   });
 
   // Sugestão ao chegar em 100%
   el.markRead.addEventListener('click', function () {
+    if (busy) return;
     var book = current;
-    el.markRead.disabled = true;
+    setBusy(true);
 
-    // Salva no banco (status Lido + data de conclusão) e depois no localStorage
-    postJson(bookUrl(markReadUrl, book.id))
+    api('POST', bookUrl(markReadUrl, book.id))
       .then(function () {
-        var shelf = readStore(SHELF_KEY);
-        shelf[book.id] = 'READ';
-        writeStore(SHELF_KEY, shelf);
-
         notify('success', '“' + book.title + '” foi marcado como lido.');
-        books = books.filter(function (b) { return b.id !== book.id; });
-
-        if (!books.length) { show('empty'); return; }
-        current = books[0];
-        renderAll();
+        current = null; // o livro lido sai da lista; recarrega do servidor
+        load();
       })
-      .catch(function () {
-        notify('error', 'Não foi possível marcar o livro como lido. Tente de novo.');
+      .catch(function (err) {
+        notify('error', err.message);
       })
-      .then(function () { el.markRead.disabled = false; });
+      .then(function () { setBusy(false); });
   });
 
   // ---------- Pop-up do histórico ----------
   el.historyOpen.addEventListener('click', function () {
-    editingIndex = null;
+    editingId = null;
     renderHistory();
     el.historyModal.showModal();
   });
@@ -802,35 +882,35 @@ function readingIds() {
   });
 
   el.historyModal.addEventListener('close', function () {
-    editingIndex = null;
+    editingId = null;
     closeMenus();
   });
 
-  // Ações dos itens (menu ⋮, editar, excluir, cancelar)
+  // Ações dos itens (menu ⋮, editar, cancelar)
   el.history.addEventListener('click', function (e) {
     var btn = e.target.closest('button');
-    if (!btn) return;
-    var item = btn.closest('[data-index]');
-    var i = item ? Number(item.dataset.index) : null;
+    if (!btn || busy) return;
+    var item = btn.closest('[data-id]');
+    var id = item ? Number(item.dataset.id) : null;
     var action = btn.dataset.action;
 
     if (action === 'menu') { toggleMenu(btn); return; }
     closeMenus();
 
     if (action === 'edit') {
-      editingIndex = i;
+      editingId = id;
       renderHistory();
       el.history.querySelector('#rsEditAmount').focus();
     } else if (action === 'cancel') {
-      editingIndex = null;
+      editingId = null;
       renderHistory();
     }
   });
 
   el.history.addEventListener('submit', function (e) {
     e.preventDefault();
-    var item = e.target.closest('[data-index]');
-    if (item) saveEdit(Number(item.dataset.index), e.target);
+    var item = e.target.closest('[data-id]');
+    if (item) saveEdit(Number(item.dataset.id), e.target);
   });
 
   // Máscara h:mm também no campo de tempo da edição
@@ -844,12 +924,6 @@ function readingIds() {
   });
 
   el.retry.addEventListener('click', load);
-
-  // Se o status mudar em outra aba do navegador, recarrega
-  window.addEventListener('storage', function (e) {
-    if (e.key === SHELF_KEY) load();
-    if (e.key === SESSIONS_KEY && current) { renderTypeUI(); renderSummary(); }
-  });
 
   load();
 })();
