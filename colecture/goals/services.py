@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.contrib.auth import get_user_model;
 
@@ -298,8 +299,12 @@ class GoalService:
             sessions = sessions.filter(book=goal.book)
 
         if goal.goal_type == Goal.GoalType.PAGE_COUNT:
-            contribution = sessions.aggregate(
-                total=Sum("pages_read")
+            # sessões sem pages_read (livros sem total de páginas, registradas em
+            # percentual) não contam para metas de páginas
+            contribution = sessions.filter(
+                pages_read__isnull=False
+            ).aggregate(
+                total=Coalesce(Sum("pages_read"), 0)
             )["total"]
 
         elif goal.goal_type == Goal.GoalType.HOUR_COUNT:
@@ -372,11 +377,14 @@ class GoalService:
         if goal.book_id:
             sessions = sessions.filter(book_id=goal.book_id)
 
-        field = (
-            "minute_count" if goal.goal_type == Goal.GoalType.HOUR_COUNT
-            else "pages_read"
-        )
-        current = sessions.aggregate(total=Sum(field))["total"] or 0
+        if goal.goal_type == Goal.GoalType.HOUR_COUNT:
+            field = "minute_count"
+        else:
+            # metas de páginas ignoram sessões com pages_read nulo (registradas
+            # em percentual); metas de horas continuam contando todas as sessões
+            field = "pages_read"
+            sessions = sessions.filter(pages_read__isnull=False)
+        current = sessions.aggregate(total=Coalesce(Sum(field), 0))["total"] or 0
         target = goal.target
         remaining = max(target - current, 0)
 
