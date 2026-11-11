@@ -62,7 +62,12 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
-    
+
+    # Se o usuário faltou pelo menos um dia inteiro, zera a ofensiva
+    # antes de exibir (senão ela só seria zerada na próxima leitura).
+    if profile.reset_streak_if_broken():
+        profile.save(update_fields=["streak"])
+
     individual_goal = GoalService.get_current_individual_goal(profile)
     goal_progress = (
         GoalService.get_individual_progress(individual_goal) if individual_goal else None
