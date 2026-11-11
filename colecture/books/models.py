@@ -221,9 +221,16 @@ class ReadingSession(models.Model):
         related_name="reading_sessions"
     )
 
+    class RecordType(models.TextChoices):
+        PAGES = "pages", "Páginas"
+        PERCENT = "percent", "Percentual"
+
     #quantidade de páginas lidas nesta sessão específica
+    #(None em livros sem total de páginas: nesses casos a sessão usa record_type="percent")
     pages_read = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
+        validators=[MinValueValidator(1)],
+        null=True,
+        blank=True
     )
 
     minute_count = models.PositiveIntegerField(
@@ -231,6 +238,36 @@ class ReadingSession(models.Model):
     )
 
     date = models.DateField(default=timezone.localdate)
+
+    #momento (com hora) em que a sessão foi registrada; permite ordenar sessões do mesmo dia
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    #como o progresso foi informado: por página ("pages") ou por percentual ("percent")
+    record_type = models.CharField(
+        max_length=7,
+        choices=RecordType.choices,
+        default=RecordType.PAGES
+    )
+
+    #onde o leitor parou ao fim da sessão (conforme o record_type)
+    stopped_page = models.PositiveIntegerField(null=True, blank=True)
+    stopped_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    #progresso acumulado no livro (por usuário) ao fim desta sessão
+    cumulative_pages = models.PositiveIntegerField(null=True, blank=True)
+    cumulative_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
 
     def clean(self):
         super().clean()
@@ -257,6 +294,23 @@ class ReadingSession(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        #sessões de páginas criadas sem acumulado (ex.: views atuais) recebem o
+        #acumulado calculado a partir das sessões anteriores do mesmo usuário/livro
+        if (
+            self._state.adding
+            and self.record_type == self.RecordType.PAGES
+            and self.pages_read is not None
+            and self.cumulative_pages is None
+        ):
+            previous = ReadingSession.objects.filter(
+                user_id=self.user_id, book_id=self.book_id
+            ).aggregate(total=models.Sum("pages_read"))["total"] or 0
+            self.cumulative_pages = previous + self.pages_read
+            if self.stopped_page is None:
+                self.stopped_page = self.cumulative_pages
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user} - {self.book} ({self.date})"    
