@@ -528,3 +528,35 @@ class CTEstantePerfil(TestCase):
         self.client.force_login(self.outro)
         response = self.client.post(url, json.dumps({"percent": 10}), content_type="application/json")
         self.assertEqual(response.status_code, 404)
+
+
+class ProfileViewStreakResetTests(TestCase):
+    """O perfil deve zerar a ofensiva quebrada ao ser exibido."""
+
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.today = timezone.localdate()
+        self.timedelta = timedelta
+        self.user = get_user_model().objects.create_user(
+            username="leitor", email="leitor@email.com", password="senha123")
+        self.client.force_login(self.user)
+        self.url = reverse("accounts:profile")
+
+    def test_ofensiva_quebrada_e_zerada_ao_abrir_o_perfil(self):
+        Profile.objects.create(
+            user=self.user, streak=5,
+            last_read_date=self.today - self.timedelta(days=3))
+
+        self.client.get(self.url)
+
+        self.assertEqual(Profile.objects.get(user=self.user).streak, 0)
+
+    def test_ofensiva_de_ontem_e_preservada(self):
+        Profile.objects.create(
+            user=self.user, streak=5,
+            last_read_date=self.today - self.timedelta(days=1))
+
+        self.client.get(self.url)
+
+        self.assertEqual(Profile.objects.get(user=self.user).streak, 5)
