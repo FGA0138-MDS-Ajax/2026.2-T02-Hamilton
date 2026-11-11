@@ -9,7 +9,7 @@
 
 
 ## 2. Planejamentos e resultados
-A sprint 2 foi dedicada à implementação do ciclo de vida das comunidades, contemplando seu CRUD completo. Foram entregues:
+A sprint 3 foi dedicada à implementação do ciclo de vida das comunidades, contemplando seu CRUD completo. Foram entregues:
 
 * Lista de comunidades nas quais o usuário participa; e
 * Recursos de edição, saída e arquivamento de comunidades;
