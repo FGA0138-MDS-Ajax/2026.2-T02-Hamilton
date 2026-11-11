@@ -86,7 +86,13 @@
 
                                 <span>
                                     <i class="bx bx-book"></i>
-                                    {{ session.pages_read }} páginas
+                                    {% if session.pages_read is not None %}
+                                        {{ session.pages_read }} páginas
+                                    {% elif session.stopped_percent is not None %}
+                                        parou em {{ session.stopped_percent }}%
+                                    {% else %}
+                                        leitura em percentual
+                                    {% endif %}
                                 </span>
 
                                 <span>
