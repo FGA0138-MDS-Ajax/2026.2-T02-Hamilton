@@ -10,18 +10,27 @@ from django.core.exceptions import ValidationError
 from django.db.models import Avg, Count
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
+from django.utils import timezone
 from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP;
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from accounts.models import Profile
 from .forms import BookForm, BookReviewForm, ReadingSessionForm
 from .models import Book, BookReview, BookStatus, ReadingSession
+from .services import (
+    MAX_SESSION_MINUTES,  # noqa: F401  (reexportado: limite de 24h por sessão)
+    ReadingSessionError,
+    build_session_response,
+    created_at_from_date,
+    parse_session_payload,
+    persist_reading_session,
+    serialize_book_status,
+    serialize_session,
+)
 
 SEARCH_LIMIT = 50
-MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
 
 
 # Registrar um novo livro
@@ -333,78 +342,87 @@ def save_reading_progress(request, book_id):
     })
 
 
-# Persiste no banco (ReadingSession) a sessão registrada na tela "Registrar leitura".
-# O histórico detalhado (edição, lista do pop-up) continua no localStorage;
-# aqui entram só os dados que alimentam metas, ofensiva e estatísticas do perfil.
-# Corpo JSON: {"pages_read": <páginas lidas na sessão>, "minute_count": <minutos>}.
+def _session_error(error):
+    body = {'success': False, 'error': error.message}
+    if error.field:
+        body['field'] = error.field
+    return JsonResponse(body, status=error.status)
+
+
+def _json_payload(request):
+    try:
+        return json.loads(request.body or '{}')
+    except (ValueError, UnicodeDecodeError):
+        raise ReadingSessionError('Dados da sessão inválidos.')
+
+
+# CREATE: registra uma sessão de leitura (tela "Registrar leitura").
+# Corpo JSON:
+#   {"record_type": "pages"|"percent" (opcional; deduzido do campo enviado),
+#    "pages_read": <páginas lidas na sessão>  (record_type="pages")
+#    "stopped_percent": <percentual em que parou, 0-100>  (record_type="percent"),
+#    "minute_count": <1 a 1440>, "created_at": <ISO 8601, opcional; padrão: agora>}
+# Recalcula acumulados, BookStatus e ofensiva na mesma transação e devolve o
+# histórico atualizado (ver services.build_session_response).
 @login_required
 @require_POST
 def save_reading_session(request, book_id):
-    try:
-        payload = json.loads(request.body or '{}')
-        pages_read = int(payload.get('pages_read'))
-        minute_count = int(payload.get('minute_count'))
-    except (ValueError, TypeError, AttributeError):
-        return JsonResponse(
-            {'success': False, 'error': 'Dados da sessão inválidos.'},
-            status=400
-        )
-
-    if pages_read < 1 or minute_count < 1 or minute_count > MAX_SESSION_MINUTES:
-        return JsonResponse(
-            {'success': False, 'error': 'Informe páginas e tempo maiores que zero (até 24h).'},
-            status=400
-        )
-
     book = get_object_or_404(Book, pk=book_id)
 
-    if not book.pages:
-        return JsonResponse(
-            {'success': False, 'error': 'O livro precisa ter a quantidade de páginas informada.'},
-            status=400
+    try:
+        data = parse_session_payload(_json_payload(request), book)
+        result = persist_reading_session(
+            request.user, book, data, clamp_to_remaining=True
         )
+    except ReadingSessionError as error:
+        return _session_error(error)
 
-    with transaction.atomic():
-        previous_pages = (
-            ReadingSession.objects.filter(user=request.user, book=book)
-            .aggregate(total=Sum('pages_read'))['total'] or 0
-        )
+    return JsonResponse(build_session_response(result))
 
-        # Arredondamentos no cliente podem passar 1 página do total: limita ao que resta
-        pages_read = min(pages_read, book.pages - previous_pages)
-        if pages_read < 1:
-            return JsonResponse(
-                {'success': False, 'error': 'Todas as páginas deste livro já foram registradas.'},
-                status=400
-            )
 
-        reading_session = ReadingSession(
-            user=request.user,
-            book=book,
-            pages_read=pages_read,
-            minute_count=minute_count,
-        )
-        try:
-            reading_session.full_clean()
-        except ValidationError as error:
-            return JsonResponse(
-                {'success': False, 'error': ' '.join(error.messages)},
-                status=400
-            )
-        reading_session.save()
+# LIST: sessões do usuário logado no livro, da mais antiga para a mais recente
+# (created_at, id), para o pop-up de histórico.
+@login_required
+@require_GET
+def list_reading_sessions(request, book_id):
+    book = get_object_or_404(Book, pk=book_id)
+    sessions = ReadingSession.objects.filter(
+        user=request.user, book=book
+    ).order_by('created_at', 'id')
 
-        # sessão e ofensiva são salvas juntas (mesma transação)
-        profile, _ = Profile.objects.get_or_create(user=request.user)
-        if profile.register_reading_day(reading_session.date):
-            profile.save(update_fields=['streak', 'last_read_date'])
+    book_status = BookStatus.objects.filter(user=request.user, book=book).first()
 
     return JsonResponse({
         'success': True,
-        'id': reading_session.id,
-        'pages_read': reading_session.pages_read,
-        'minute_count': reading_session.minute_count,
-        'date': _iso_date(reading_session.date),
+        'book_id': book.id,
+        'pages': book.pages,
+        'book_status': serialize_book_status(book_status) if book_status else None,
+        'sessions': [serialize_session(s) for s in sessions],
     })
+
+
+# EDIT: edita uma sessão do próprio usuário (POST ou PATCH, mesmo corpo do CREATE,
+# todos os campos opcionais). Sessão de outro usuário responde 404 (não revela que existe).
+# Recalcula os acumulados em cascata, refaz a ofensiva e ressincroniza o BookStatus.
+@login_required
+@require_http_methods(['POST', 'PATCH'])
+def edit_reading_session(request, book_id, session_id):
+    session = get_object_or_404(
+        ReadingSession.objects.select_related('book'),
+        pk=session_id,
+        book_id=book_id,
+        user=request.user,
+    )
+
+    try:
+        data = parse_session_payload(_json_payload(request), session.book, existing=session)
+        result = persist_reading_session(
+            request.user, session.book, data, session=session
+        )
+    except ReadingSessionError as error:
+        return _session_error(error)
+
+    return JsonResponse(build_session_response(result))
 
 
 LOOKUP_LIMIT = 100
@@ -460,13 +478,6 @@ def register_reading_session(request):
 
             else:
                 with transaction.atomic():
-
-                    #busca ou cria o status do livro
-                    book_status, created = BookStatus.objects.get_or_create(
-                        user=request.user,
-                        book=book,
-                    )
-
                     #busca a quantidade de páginas já lidas
                     previous_page = (
                         ReadingSession.objects.filter(
@@ -501,33 +512,30 @@ def register_reading_session(request):
                         )
 
                     else:
-                        #calcula as páginas lidas nesta sessão
-                        pages_read = current_page - previous_page
-
-                        reading_session = form.save(commit=False)
-                        reading_session.pages_read = pages_read
-                        reading_session.user = request.user
-                        reading_session.full_clean()
-                        reading_session.save()
-
-                        #sessão e ofensiva são salvas juntas (mesma transação)
-                        profile, _ = Profile.objects.get_or_create(user=request.user)
-                        if profile.register_reading_day(reading_session.date):
-                            profile.save(update_fields=["streak", "last_read_date"])
-
-                        #atualiza o percentual total do livro
-                        book_status.reading_progress = (
-                            Decimal(current_page) / Decimal(book.pages)
-                        ).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
-
-                        if current_page >= book.pages:
-                            book_status.status = BookStatus.Status.READ
+                        #mesmo helper do endpoint JSON: cria a sessão, recalcula os
+                        #acumulados, sincroniza o BookStatus e a ofensiva
+                        try:
+                            persist_reading_session(
+                                request.user,
+                                book,
+                                {
+                                    "record_type": (
+                                        ReadingSession.RecordType.PERCENT
+                                        if current_percentage is not None
+                                        else ReadingSession.RecordType.PAGES
+                                    ),
+                                    #páginas lidas nesta sessão
+                                    "pages_read": current_page - previous_page,
+                                    "minute_count": form.cleaned_data["minute_count"],
+                                    "created_at": created_at_from_date(
+                                        form.cleaned_data.get("date") or timezone.localdate()
+                                    ),
+                                },
+                            )
+                        except ReadingSessionError as error:
+                            form.add_error(None, error.message)
                         else:
-                            book_status.status = BookStatus.Status.READING
-
-                        book_status.save(update_fields=["reading_progress", "status"])
-
-                        return redirect("books:register_reading_session")
+                            return redirect("books:register_reading_session")
 
     else:
         form = ReadingSessionForm(user=request.user)

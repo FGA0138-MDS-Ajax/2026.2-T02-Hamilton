@@ -1,5 +1,6 @@
 import json;
 import importlib
+from unittest import mock
 
 from datetime import timedelta, date
 from django.test import TestCase, Client;
@@ -1397,3 +1398,559 @@ class ReadingSessionDataModelTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["total_pages"], 0)
         self.assertEqual(response.context["total_minutes"], 25)
+
+
+# ---------------------------------------------------------------------------
+# Fase 2: endpoints JSON de sessões (CREATE / LIST / EDIT)
+# ---------------------------------------------------------------------------
+def days_ago(days, hour=12):
+    """created_at ISO 8601 (fuso local) de N dias atrás, às `hour` horas."""
+    base = timezone.localtime().replace(hour=hour, minute=0, second=0, microsecond=0)
+    return (base - timedelta(days=days)).isoformat()
+
+
+class SessionApiBase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="leitor_api", password="senha123")
+        self.other = User.objects.create_user(username="outro_api", password="senha123")
+        self.book = Book.objects.create(
+            isbn="9780590353403", title="Livro com páginas", author="Autor", pages=100)
+        self.book_no_pages = Book.objects.create(
+            isbn="9780261103573", title="Livro sem total", author="Autor", pages=None)
+        self.client.force_login(self.user)
+
+    # --- urls ---
+    def create_url(self, book=None):
+        return reverse("books:save_reading_session", args=[(book or self.book).id])
+
+    def list_url(self, book=None):
+        return reverse("books:list_reading_sessions", args=[(book or self.book).id])
+
+    def edit_url(self, session_id, book=None):
+        return reverse("books:edit_reading_session", args=[(book or self.book).id, session_id])
+
+    # --- chamadas ---
+    def send(self, method, url, payload=None):
+        return getattr(self.client, method)(
+            url, data=json.dumps(payload or {}), content_type="application/json")
+
+    def create(self, payload, book=None):
+        return self.send("post", self.create_url(book), payload)
+
+    def edit(self, session_id, payload, book=None, method="post"):
+        return self.send(method, self.edit_url(session_id, book), payload)
+
+    def create_ok(self, pages=None, percent=None, minutes=20, at=None, book=None):
+        payload = {"minute_count": minutes}
+        if pages is not None:
+            payload["pages_read"] = pages
+        if percent is not None:
+            payload["stopped_percent"] = percent
+        if at is not None:
+            payload["created_at"] = at
+        response = self.create(payload, book)
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.json()
+
+    def rows(self, book=None, user=None):
+        return list(
+            ReadingSession.objects.filter(user=user or self.user, book=book or self.book)
+            .order_by("created_at", "id")
+        )
+
+    def cumulatives(self, book=None, user=None):
+        return [s.cumulative_pages for s in self.rows(book, user)]
+
+    def profile(self):
+        return Profile.objects.get(user=self.user)
+
+
+class CreateReadingSessionApiTests(SessionApiBase):
+    def test_cria_sessao_de_paginas_com_acumulados_e_devolve_historico(self):
+        self.create_ok(pages=20, minutes=30)
+        body = self.create_ok(pages=15, minutes=10)
+
+        self.assertEqual(self.cumulatives(), [20, 35])
+        session = body["session"]
+        self.assertEqual(session["record_type"], "pages")
+        self.assertEqual(session["pages_read"], 15)
+        self.assertEqual(session["stopped_page"], 35)
+        self.assertEqual(session["cumulative_pages"], 35)
+        self.assertEqual(session["cumulative_percent"], 35.0)
+        self.assertEqual(session["date"], timezone.localdate().isoformat())
+        # histórico atualizado, da mais antiga para a mais recente
+        self.assertEqual([s["cumulative_pages"] for s in body["sessions"]], [20, 35])
+        self.assertEqual(body["book_status"]["status"], "READING")
+        self.assertEqual(body["book_status"]["progress"], 35)
+        self.assertEqual(body["streak"]["current"], 1)
+        # chaves legadas continuam presentes
+        self.assertEqual(body["pages_read"], 15)
+        self.assertEqual(body["id"], session["id"])
+
+    def test_percentual_em_livro_com_paginas_vira_paginas_lidas(self):
+        self.create_ok(percent=40)
+        body = self.create_ok(percent=55.5)
+
+        first, second = self.rows()
+        self.assertEqual((first.record_type, first.pages_read, first.cumulative_pages), ("percent", 40, 40))
+        self.assertEqual((second.pages_read, second.cumulative_pages), (16, 56))
+        self.assertEqual(body["session"]["cumulative_percent"], 56.0)
+
+    def test_percentual_que_nao_avanca_e_rejeitado_em_livro_com_paginas(self):
+        self.create_ok(percent=40)
+
+        for percent in (40, 30):
+            with self.subTest(percent=percent):
+                self.assertEqual(self.create({"stopped_percent": percent, "minute_count": 10}).status_code, 400)
+        self.assertEqual(len(self.rows()), 1)
+
+    def test_livro_sem_paginas_grava_percentual_e_sincroniza_bookstatus(self):
+        self.create_ok(percent=25, book=self.book_no_pages)
+        body = self.create_ok(percent=60, book=self.book_no_pages)
+
+        first, second = self.rows(self.book_no_pages)
+        self.assertIsNone(first.pages_read)
+        self.assertEqual(first.record_type, "percent")
+        self.assertEqual((first.stopped_percent, first.cumulative_percent), (Decimal("25.00"), Decimal("25.00")))
+        self.assertIsNone(second.cumulative_pages)
+        self.assertEqual(second.cumulative_percent, Decimal("60.00"))
+        self.assertEqual(body["book_status"]["progress"], 60)
+
+        book_status = BookStatus.objects.get(user=self.user, book=self.book_no_pages)
+        self.assertEqual(book_status.reading_progress, Decimal("0.600"))
+        self.assertEqual(book_status.status, BookStatus.Status.READING)
+
+        self.create_ok(percent=100, book=self.book_no_pages)
+        book_status.refresh_from_db()
+        self.assertEqual(book_status.status, BookStatus.Status.READ)
+        self.assertEqual(book_status.reading_progress, Decimal("1.000"))
+        self.assertEqual(book_status.finished_at, timezone.localdate())
+
+    def test_livro_sem_paginas_exige_percentual_e_que_ele_avance(self):
+        for payload in (
+            {"pages_read": 5, "minute_count": 10},
+            {"record_type": "pages", "pages_read": 5, "minute_count": 10},
+        ):
+            with self.subTest(payload=payload):
+                response = self.create(payload, self.book_no_pages)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["field"], "record_type")
+
+        self.create_ok(percent=50, book=self.book_no_pages)
+        for percent in (50, 40):
+            with self.subTest(percent=percent):
+                self.assertEqual(
+                    self.create({"stopped_percent": percent, "minute_count": 10}, self.book_no_pages).status_code, 400)
+        self.assertEqual(len(self.rows(self.book_no_pages)), 1)
+
+    def test_created_at_opcional_define_data_e_ordem(self):
+        body = self.create_ok(pages=10, at=days_ago(2))
+
+        self.assertEqual(body["session"]["date"], (timezone.localdate() - timedelta(days=2)).isoformat())
+        self.assertEqual(self.rows()[0].date, timezone.localdate() - timedelta(days=2))
+        # só a data também é aceita
+        body = self.create_ok(pages=5, at=(timezone.localdate() - timedelta(days=1)).isoformat())
+        self.assertEqual([s["pages_read"] for s in body["sessions"]], [10, 5])
+
+    def test_sessao_retroativa_no_meio_recalcula_a_cascata(self):
+        self.create_ok(pages=10, at=days_ago(3))
+        self.create_ok(pages=20, at=days_ago(1))
+        self.assertEqual(self.cumulatives(), [10, 30])
+
+        body = self.create_ok(pages=5, at=days_ago(2))
+
+        self.assertEqual([s.pages_read for s in self.rows()], [10, 5, 20])
+        self.assertEqual(self.cumulatives(), [10, 15, 35])
+        self.assertEqual([s["cumulative_pages"] for s in body["sessions"]], [10, 15, 35])
+        self.assertEqual(BookStatus.objects.get(user=self.user, book=self.book).reading_progress, Decimal("0.350"))
+
+    def test_inserir_no_meio_acima_do_total_do_livro_e_rejeitado_sem_gravar(self):
+        self.create_ok(pages=60, at=days_ago(3))
+        self.create_ok(pages=30, at=days_ago(1))
+
+        response = self.create({"pages_read": 20, "minute_count": 10, "created_at": days_ago(2)})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual([s.pages_read for s in self.rows()], [60, 30])
+        self.assertEqual(self.cumulatives(), [60, 90])
+
+    def test_bookstatus_vira_lido_ao_completar(self):
+        body = self.create_ok(pages=100)
+
+        self.assertEqual(body["book_status"]["status"], "READ")
+        book_status = BookStatus.objects.get(user=self.user, book=self.book)
+        self.assertEqual(book_status.reading_progress, Decimal("1.000"))
+        self.assertEqual(book_status.finished_at, timezone.localdate())
+
+    def test_sessao_retroativa_que_liga_dias_refaz_a_ofensiva(self):
+        self.create_ok(pages=5, at=days_ago(2))
+        self.create_ok(pages=5)  # hoje: o buraco do dia -1 quebra a ofensiva
+        self.assertEqual(self.profile().streak, 1)
+
+        body = self.create_ok(pages=5, at=days_ago(1))
+
+        self.assertEqual(self.profile().streak, 3)
+        self.assertEqual(body["streak"]["current"], 3)
+
+    def test_validacoes_do_servidor(self):
+        invalid = {
+            "sem corpo": {},
+            "sem tempo": {"pages_read": 5},
+            "pages_read texto": {"pages_read": "abc", "minute_count": 10},
+            "pages_read zero": {"pages_read": 0, "minute_count": 10},
+            "acima do total": {"pages_read": 101, "minute_count": 10},
+            "minutos zero": {"pages_read": 5, "minute_count": 0},
+            "mais de 24h": {"pages_read": 5, "minute_count": 1441},
+            "record_type invalido": {"record_type": "livro", "pages_read": 5, "minute_count": 10},
+            "pages e percent juntos": {"pages_read": 5, "stopped_percent": 10, "minute_count": 10},
+            "pages com record percent": {"record_type": "percent", "pages_read": 5, "minute_count": 10},
+            "percent com record pages": {"record_type": "pages", "stopped_percent": 5, "minute_count": 10},
+            "percent zero": {"stopped_percent": 0, "minute_count": 10},
+            "percent acima de 100": {"stopped_percent": 100.5, "minute_count": 10},
+            "created_at invalido": {"pages_read": 5, "minute_count": 10, "created_at": "ontem"},
+            "created_at futuro": {
+                "pages_read": 5, "minute_count": 10,
+                "created_at": (timezone.localtime() + timedelta(days=2)).isoformat()},
+        }
+        for name, payload in invalid.items():
+            with self.subTest(name):
+                response = self.create(payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(response.json()["success"])
+
+        # limites válidos
+        self.create_ok(pages=100, minutes=1440)
+        self.assertEqual(ReadingSession.objects.count(), 1)
+
+    def test_corpo_que_nao_e_json_e_rejeitado(self):
+        response = self.client.post(self.create_url(), data="{oi", content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_acumulado_e_independente_por_usuario(self):
+        self.create_ok(pages=20)
+        self.client.force_login(self.other)
+        self.create_ok(pages=7)
+
+        self.assertEqual(self.cumulatives(user=self.user), [20])
+        self.assertEqual(self.cumulatives(user=self.other), [7])
+
+    def test_falha_no_meio_desfaz_tudo(self):
+        with mock.patch("books.services._sync_streak", side_effect=RuntimeError("falha")):
+            with self.assertRaises(RuntimeError):
+                self.create({"pages_read": 10, "minute_count": 10})
+
+        self.assertEqual(ReadingSession.objects.count(), 0)
+        self.assertEqual(BookStatus.objects.count(), 0)
+
+    def test_anonimo_e_metodo_errado(self):
+        self.client.logout()
+        self.assertEqual(self.create({"pages_read": 5, "minute_count": 10}).status_code, 302)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.create_url()).status_code, 405)
+        self.assertEqual(ReadingSession.objects.count(), 0)
+
+
+class ListReadingSessionsApiTests(SessionApiBase):
+    def test_lista_ordenada_por_created_at_com_acumulados(self):
+        # criadas fora de ordem: a lista segue created_at, não o id
+        self.create_ok(pages=20, at=days_ago(1))
+        self.create_ok(pages=10, at=days_ago(3))
+        self.create_ok(pages=5, at=days_ago(2))
+
+        response = self.client.get(self.list_url())
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["pages"], 100)
+        self.assertEqual([s["pages_read"] for s in body["sessions"]], [10, 5, 20])
+        self.assertEqual([s["cumulative_pages"] for s in body["sessions"]], [10, 15, 35])
+        self.assertEqual(body["book_status"]["progress"], 35)
+        for key in ("id", "record_type", "minute_count", "stopped_page", "stopped_percent",
+                    "cumulative_percent", "date", "created_at"):
+            self.assertIn(key, body["sessions"][0])
+
+    def test_lista_vazia(self):
+        body = self.client.get(self.list_url()).json()
+
+        self.assertEqual(body["sessions"], [])
+        self.assertIsNone(body["book_status"])
+
+    def test_nao_ve_sessoes_de_outro_usuario_nem_de_outro_livro(self):
+        self.create_ok(pages=20)
+        self.create_ok(percent=30, book=self.book_no_pages)
+        self.client.force_login(self.other)
+        self.create_ok(pages=9)
+
+        mine = self.client.get(self.list_url()).json()["sessions"]
+        self.client.force_login(self.user)
+        yours = self.client.get(self.list_url()).json()["sessions"]
+
+        self.assertEqual([s["pages_read"] for s in mine], [9])
+        self.assertEqual([s["pages_read"] for s in yours], [20])
+
+    def test_livro_inexistente_anonimo_e_metodo_errado(self):
+        self.assertEqual(self.client.get(reverse("books:list_reading_sessions", args=[9999])).status_code, 404)
+        self.assertEqual(self.client.post(self.list_url()).status_code, 405)
+        self.client.logout()
+        self.assertEqual(self.client.get(self.list_url()).status_code, 302)
+
+
+class EditReadingSessionApiTests(SessionApiBase):
+    def three_sessions(self):
+        """Sessões de 10, 20 e 5 páginas em dias distintos (acumulados 10, 30, 35)."""
+        a = self.create_ok(pages=10, at=days_ago(3))["session"]["id"]
+        b = self.create_ok(pages=20, at=days_ago(2))["session"]["id"]
+        c = self.create_ok(pages=5, at=days_ago(1))["session"]["id"]
+        return a, b, c
+
+    def test_editar_paginas_recalcula_acumulados_em_cascata(self):
+        a, b, c = self.three_sessions()
+        self.assertEqual(self.cumulatives(), [10, 30, 35])
+
+        response = self.edit(b, {"pages_read": 30})
+
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(self.cumulatives(), [10, 40, 45])
+        self.assertEqual([s.pages_read for s in self.rows()], [10, 30, 5])
+        self.assertEqual([s["cumulative_pages"] for s in body["sessions"]], [10, 40, 45])
+        self.assertEqual(body["session"]["id"], b)
+        self.assertEqual([s.stopped_page for s in self.rows()], [10, 40, 45])
+        self.assertEqual(
+            [s.cumulative_percent for s in self.rows()],
+            [Decimal("10.00"), Decimal("40.00"), Decimal("45.00")])
+        self.assertEqual(BookStatus.objects.get(user=self.user, book=self.book).reading_progress, Decimal("0.450"))
+
+    def test_editar_a_primeira_sessao_empurra_todas_as_seguintes(self):
+        a, b, c = self.three_sessions()
+
+        self.edit(a, {"pages_read": 30})
+
+        self.assertEqual(self.cumulatives(), [30, 50, 55])
+
+    def test_editar_so_o_tempo_nao_mexe_nos_acumulados(self):
+        a, b, c = self.three_sessions()
+
+        response = self.edit(b, {"minute_count": 90}, method="patch")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ReadingSession.objects.get(pk=b).minute_count, 90)
+        self.assertEqual(self.cumulatives(), [10, 30, 35])
+
+    def test_editar_created_at_reordena_e_recalcula(self):
+        a, b, c = self.three_sessions()
+
+        # move a 1ª sessão (10 págs) para depois da 3ª
+        response = self.edit(a, {"created_at": days_ago(0, hour=1)})
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual([s.pk for s in self.rows()], [b, c, a])
+        self.assertEqual(self.cumulatives(), [20, 25, 35])
+        self.assertEqual(ReadingSession.objects.get(pk=a).date, timezone.localdate())
+
+    def test_editar_por_percentual_converte_relativo_a_sessao_anterior(self):
+        a, b, c = self.three_sessions()  # acumulados 10, 30, 35
+
+        response = self.edit(b, {"stopped_percent": 50})
+
+        self.assertEqual(response.status_code, 200, response.content)
+        edited = ReadingSession.objects.get(pk=b)
+        self.assertEqual((edited.record_type, edited.pages_read, edited.cumulative_pages), ("percent", 40, 50))
+        self.assertEqual(self.cumulatives(), [10, 50, 55])
+
+        # percentual atrás da sessão anterior não avança
+        self.assertEqual(self.edit(b, {"stopped_percent": 8}).status_code, 400)
+        self.assertEqual(self.cumulatives(), [10, 50, 55])
+
+    def test_editar_acima_do_total_do_livro_e_rejeitado_e_nada_muda(self):
+        a = self.create_ok(pages=60, at=days_ago(2))["session"]["id"]
+        self.create_ok(pages=30, at=days_ago(1))
+
+        response = self.edit(a, {"pages_read": 80})  # 80 + 30 > 100
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual([s.pages_read for s in self.rows()], [60, 30])
+        self.assertEqual(self.cumulatives(), [60, 90])
+
+    def test_livro_sem_paginas_percentual_fica_entre_vizinhas(self):
+        ids = [
+            self.create_ok(percent=percent, at=days_ago(days), book=self.book_no_pages)["session"]["id"]
+            for percent, days in ((20, 3), (50, 2), (80, 1))
+        ]
+        middle = ids[1]
+
+        self.assertEqual(self.edit(middle, {"stopped_percent": 90}, self.book_no_pages).status_code, 400)
+        self.assertEqual(self.edit(middle, {"stopped_percent": 80}, self.book_no_pages).status_code, 400)
+        self.assertEqual(self.edit(middle, {"stopped_percent": 20}, self.book_no_pages).status_code, 400)
+        self.assertEqual(self.edit(middle, {"record_type": "pages", "pages_read": 5}, self.book_no_pages).status_code, 400)
+
+        response = self.edit(middle, {"stopped_percent": 60}, self.book_no_pages)
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(
+            [s.cumulative_percent for s in self.rows(self.book_no_pages)],
+            [Decimal("20.00"), Decimal("60.00"), Decimal("80.00")])
+        self.assertEqual(
+            BookStatus.objects.get(user=self.user, book=self.book_no_pages).reading_progress, Decimal("0.800"))
+
+    def test_bookstatus_e_ressincronizado_ao_reduzir_ou_completar(self):
+        session_id = self.create_ok(pages=100)["session"]["id"]
+        book_status = BookStatus.objects.get(user=self.user, book=self.book)
+        self.assertEqual(book_status.status, BookStatus.Status.READ)
+
+        self.edit(session_id, {"pages_read": 60})
+        book_status.refresh_from_db()
+        self.assertEqual(book_status.status, BookStatus.Status.READING)
+        self.assertEqual(book_status.reading_progress, Decimal("0.600"))
+        self.assertIsNone(book_status.finished_at)
+
+        self.edit(session_id, {"pages_read": 100})
+        book_status.refresh_from_db()
+        self.assertEqual(book_status.status, BookStatus.Status.READ)
+        self.assertEqual(book_status.reading_progress, Decimal("1.000"))
+        self.assertIsNotNone(book_status.finished_at)
+
+    def test_ofensiva_apos_editar_remove_dia_que_tinha_so_aquela_sessao(self):
+        self.create_ok(pages=5, at=days_ago(2))
+        middle = self.create_ok(pages=5, at=days_ago(1))["session"]["id"]
+        self.create_ok(pages=5)
+        self.assertEqual(self.profile().streak, 3)
+
+        # mover a sessão do dia -1 para o dia -2 apaga o dia -1 da ofensiva
+        response = self.edit(middle, {"created_at": days_ago(2, hour=13)})
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(self.profile().streak, 1)
+        self.assertEqual(self.profile().last_read_date, timezone.localdate())
+        self.assertEqual(response.json()["streak"]["current"], 1)
+
+    def test_ofensiva_apos_editar_unica_sessao_para_dia_antigo_zera(self):
+        session_id = self.create_ok(pages=5)["session"]["id"]
+        self.assertEqual(self.profile().streak, 1)
+
+        response = self.edit(session_id, {"created_at": days_ago(5)})
+
+        self.assertEqual(response.status_code, 200)
+        profile = self.profile()
+        self.assertEqual(profile.streak, 0)  # leitura de 5 dias atrás não sustenta ofensiva
+        self.assertEqual(profile.last_read_date, timezone.localdate() - timedelta(days=5))
+
+    def test_ofensiva_considera_sessoes_de_todos_os_livros(self):
+        self.create_ok(pages=5, at=days_ago(1))
+        self.create_ok(pages=5)
+        self.assertEqual(self.profile().streak, 2)  # dias -1 e 0 do livro com páginas
+
+        # sessão retroativa em OUTRO livro (dia -2) liga-se à sequência
+        other_book_session = self.create_ok(
+            percent=10, at=days_ago(2), book=self.book_no_pages)["session"]["id"]
+        self.assertEqual(self.profile().streak, 3)
+
+        # editar a sessão do outro livro refaz a ofensiva com os dias dos DOIS livros
+        self.edit(other_book_session, {"minute_count": 15}, self.book_no_pages)
+
+        self.assertEqual(self.profile().streak, 3)
+
+    def test_nao_edita_sessao_de_outro_usuario(self):
+        a, b, c = self.three_sessions()
+        self.client.force_login(self.other)
+
+        response = self.edit(b, {"pages_read": 99})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(ReadingSession.objects.get(pk=b).pages_read, 20)
+        self.assertEqual(self.cumulatives(user=self.user), [10, 30, 35])
+        self.assertEqual(Profile.objects.filter(user=self.other).count(), 0)
+
+    def test_sessao_de_outro_livro_ou_inexistente_da_404(self):
+        a, b, c = self.three_sessions()
+
+        self.assertEqual(self.edit(b, {"pages_read": 5}, self.book_no_pages).status_code, 404)
+        self.assertEqual(self.edit(99999, {"pages_read": 5}).status_code, 404)
+
+    def test_validacoes_na_edicao(self):
+        a, b, c = self.three_sessions()
+        invalid = {
+            "sem campos": {},
+            "acima do total": {"pages_read": 101},
+            "pages_read zero": {"pages_read": 0},
+            "minutos zero": {"minute_count": 0},
+            "mais de 24h": {"minute_count": 1441},
+            "record_type invalido": {"record_type": "x"},
+            "trocar tipo sem valor": {"record_type": "percent"},
+            "created_at futuro": {"created_at": (timezone.localtime() + timedelta(days=3)).isoformat()},
+            "pages e percent": {"pages_read": 5, "stopped_percent": 30},
+        }
+        for name, payload in invalid.items():
+            with self.subTest(name):
+                self.assertEqual(self.edit(b, payload).status_code, 400)
+
+        self.assertEqual(self.cumulatives(), [10, 30, 35])
+        self.assertEqual(ReadingSession.objects.get(pk=b).minute_count, 20)
+
+    def test_anonimo_e_metodo_errado(self):
+        a, b, c = self.three_sessions()
+
+        self.assertEqual(self.client.get(self.edit_url(b)).status_code, 405)
+        self.client.logout()
+        self.assertEqual(self.edit(b, {"pages_read": 5}).status_code, 302)
+        self.assertEqual(ReadingSession.objects.get(pk=b).pages_read, 20)
+
+    def test_falha_no_meio_da_edicao_desfaz_tudo(self):
+        a, b, c = self.three_sessions()
+
+        with mock.patch("books.services._sync_book_status", side_effect=RuntimeError("falha")):
+            with self.assertRaises(RuntimeError):
+                self.edit(b, {"pages_read": 30})
+
+        self.assertEqual(ReadingSession.objects.get(pk=b).pages_read, 20)
+        self.assertEqual(self.cumulatives(), [10, 30, 35])
+
+
+class RegisterReadingSessionSharedHelperTests(SessionApiBase):
+    """O form de reading/register/ usa o mesmo helper do endpoint JSON."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse("books:register_reading_session")
+
+    def post_form(self, **extra):
+        data = {"book": self.book.id, "minute_count": 30, "date": timezone.localdate().isoformat()}
+        data.update(extra)
+        return self.client.post(self.url, data)
+
+    def test_form_preenche_acumulados_bookstatus_e_ofensiva(self):
+        self.assertEqual(self.post_form(current_page=20).status_code, 302)
+        self.assertEqual(self.post_form(current_page=35).status_code, 302)
+
+        self.assertEqual([s.pages_read for s in self.rows()], [20, 15])
+        self.assertEqual(self.cumulatives(), [20, 35])
+        self.assertEqual([s.stopped_page for s in self.rows()], [20, 35])
+        self.assertEqual(self.rows()[-1].cumulative_percent, Decimal("35.00"))
+        self.assertEqual(BookStatus.objects.get(user=self.user, book=self.book).reading_progress, Decimal("0.350"))
+        self.assertEqual(self.profile().streak, 1)
+
+    def test_form_com_percentual_grava_record_type_percent(self):
+        self.assertEqual(self.post_form(current_percentage="40").status_code, 302)
+
+        session = self.rows()[0]
+        self.assertEqual((session.record_type, session.pages_read, session.cumulative_pages), ("percent", 40, 40))
+
+    def test_form_com_data_passada_define_created_at_e_date(self):
+        yesterday = timezone.localdate() - timedelta(days=1)
+
+        self.assertEqual(self.post_form(current_page=10, date=yesterday.isoformat()).status_code, 302)
+
+        session = self.rows()[0]
+        self.assertEqual(session.date, yesterday)
+        self.assertEqual(timezone.localtime(session.created_at).date(), yesterday)
+
+    def test_sessao_do_form_aparece_na_lista_e_pode_ser_editada(self):
+        self.post_form(current_page=20)
+        self.post_form(current_page=50)
+        first, second = self.rows()
+
+        self.assertEqual(self.edit(first.pk, {"pages_read": 25}).status_code, 200)
+
+        self.assertEqual(self.cumulatives(), [25, 55])
+        listed = self.client.get(self.list_url()).json()["sessions"]
+        self.assertEqual([s["cumulative_pages"] for s in listed], [25, 55])
