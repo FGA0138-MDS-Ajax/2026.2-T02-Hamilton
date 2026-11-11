@@ -76,6 +76,7 @@
   var lookupUrl = root.dataset.lookupUrl;
   // URLs com "0" no lugar do id do livro (preenchidas em bookUrl)
   var progressUrl = root.dataset.progressUrl;
+  var sessionUrl = root.dataset.sessionUrl;
   var markReadUrl = root.dataset.markReadUrl;
   var csrf = root.dataset.csrf;
   // Livro escolhido no card do perfil (?book=<id>): abre direto nele, sem seletor
@@ -123,6 +124,22 @@
     postJson(bookUrl(progressUrl, book.id), { percent: percent }).catch(function () {
       notify('error', 'Não foi possível salvar o progresso na sua estante.');
     });
+  }
+
+  // Grava a sessão no banco (model ReadingSession): metas, ofensiva e estatísticas
+  // do perfil leem de lá. O histórico detalhado continua só no localStorage.
+  // Livro sem número de páginas não é gravado (o model exige o total de páginas).
+  function persistSession(book, session) {
+    if (!book.pages) return Promise.resolve(false);
+
+    var pages = session.type === 'pages'
+      ? session.amount
+      : Math.round(session.percent * book.pages / 100);
+
+    return postJson(bookUrl(sessionUrl, book.id), {
+      pages_read: Math.max(1, pages),
+      minute_count: session.minutes
+    }).then(function () { return true; });
   }
 
 function readingIds() {
@@ -274,6 +291,8 @@ function readingIds() {
 
   function validateMinutes() {
     var result = parseDuration(el.minutes.value);
+    // o tempo é obrigatório ao registrar (ReadingSession.minute_count exige >= 1)
+    if (!result.msg && !result.total) result.msg = 'Informe o tempo da leitura (ex.: 1:30).';
     setError(el.minutes, el.minutesError, result.msg);
     return result.msg ? false : result.total;
   }
@@ -740,6 +759,11 @@ function readingIds() {
       notify('error', 'Não foi possível salvar a sessão. Verifique o armazenamento do navegador e tente de novo.');
       return;
     }
+
+    // Persistência no banco (ReadingSession); se falhar, a sessão segue salva só neste navegador
+    persistSession(current, session).catch(function () {
+      notify('error', 'A sessão foi salva só neste navegador. Não foi possível gravá-la no servidor.');
+    });
 
     resetForm();
     renderTypeUI();

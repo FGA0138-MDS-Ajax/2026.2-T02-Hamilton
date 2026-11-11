@@ -15,6 +15,7 @@
     <section class="rs" id="readingSession"
              data-lookup-url="{% url 'books:lookup' %}"
              data-progress-url="{% url 'books:save_reading_progress' 0 %}"
+             data-session-url="{% url 'books:save_reading_session' 0 %}"
              data-mark-read-url="{% url 'books:mark_book_as_read' 0 %}"
              data-csrf="{{ csrf_token }}"
              aria-labelledby="rsHeading">
@@ -139,7 +140,7 @@
 
             <div class="rs-field">
               <div class="rs-label-row">
-                <label for="rsMinutes">Tempo da leitura <span class="rs-optional"></span></label>
+                <label for="rsMinutes">Tempo da leitura</label>
               </div>
               <div class="rs-input-group">
                 <input id="rsMinutes" name="duration" class="rs-input" type="text"
@@ -179,5 +180,5 @@
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
   {# ?v= força o navegador a baixar a versão nova (sem o seletor de livro) #}
-  <script src="{% static 'books/js/reading_session.js' %}?v=3"></script>
+  <script src="{% static 'books/js/reading_session.js' %}?v=4"></script>
 {% endblock %}
