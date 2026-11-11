@@ -744,6 +744,10 @@ class GoalReadingSessionApiTests(TestCase):
             name="Meta", owner_profile=profile, goal_type=goal_type, target=target, **kwargs)
         participation = GoalParticipation.objects.create(
             user=profile.user, goal=goal, joined_at=timezone.now() - timedelta(days=30))
+        # created_at é auto_now_add (hoje) e o progresso individual ignora sessões anteriores à
+        # criação da meta: recua a criação junto com a entrada para aceitar sessões retroativas
+        Goal.objects.filter(pk=goal.pk).update(created_at=timezone.now() - timedelta(days=30))
+        goal.refresh_from_db()
         return goal, participation
 
     def post(self, url, payload):
