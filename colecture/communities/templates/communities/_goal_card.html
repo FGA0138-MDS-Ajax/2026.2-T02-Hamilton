@@ -3,12 +3,12 @@
 
   <header class="goal-card__head">
     <h3 class="goal-card__title">
+      {# clicar na meta abre o fórum dela (metas sem fórum não têm página própria: só mostram o nome) #}
       {% if item.forum %}
         <a class="goal-card__link" href="{% url 'forums:view_forum' item.forum.id %}"
           title="{{ goal.name }}">{{ goal.name }}</a>
       {% else %}
-        <button type="button" class="goal-card__link" title="{{ goal.name }}"
-          data-no-forum>{{ goal.name }}</button>
+        <span class="goal-card__link" title="{{ goal.name }}">{{ goal.name }}</span>
       {% endif %}
     </h3>
 
@@ -20,7 +20,7 @@
   <ul class="goal-card__facts">
     <li>
       <i class="bx bx-book-open" aria-hidden="true"></i>
-      <span>{{ goal.target }} {{ item.unit }}</span>
+      <span>{{ goal.target_display }}</span>
     </li>
     {% if goal.book %}
       <li>
@@ -64,6 +64,14 @@
     </span>
 
     <div class="goal-card__actions">
+      {# o título da meta já abre o fórum, então não há botão "Fórum". #}
+      {# só moderação edita; abre a página de edição da meta (nome, alvo, prazo...) #}
+      {% if permissions.can_edit %}
+        <a class="btn-outline btn--sm" href="{% url 'goals:edit_goal' goal.id %}"
+          title="Editar meta" aria-label="Editar meta {{ goal.name }}">
+          <i class="bx bx-edit-alt" aria-hidden="true"></i> Editar
+        </a>
+      {% endif %}
       {% if permissions.can_edit and not item.closed %}
         <button type="button" class="btn-outline btn--sm" data-conclude
           data-url="{% url 'goals:conclude_goal' goal.id %}" data-name="{{ goal.name }}">

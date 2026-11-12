@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,7 +34,9 @@ INSTALLED_APPS = [
     'books',
     'communities',
     'goals',
-    'forums'
+    'forums',
+    'notifications',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -87,6 +90,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CELERY_BEAT_SCHEDULE = {
+    'notify-users-every-10-minutes':{
+        'task': 'notifications.tasks.notify_without_reading',
+        'schedule': crontab(hour=20, minute=0),
+    },
+}
+
 LOGIN_URL = 'accounts:login'
 
 LANGUAGE_CODE = 'pt-br'
@@ -100,3 +110,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'

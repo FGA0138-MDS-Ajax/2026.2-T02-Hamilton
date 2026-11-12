@@ -80,16 +80,19 @@
     font-size: 1.15rem
 }
 
+/* mesmo estilo do .btn da página da comunidade: roxo sólido, brilho só no hover */
 .com-btn-primary {
-    background: var(--gradient-brand);
+    background: var(--purple-500);
     border-color: transparent;
+    color: #fff;
     font-weight: 600;
-    box-shadow: var(--glow)
+    transition: background .15s, box-shadow .15s
 }
 
 .com-btn-primary:hover {
+    background: var(--purple-600);
     border-color: transparent;
-    filter: brightness(1.1)
+    box-shadow: var(--glow)
 }
 
 /* Mensagens do Django */
@@ -294,12 +297,6 @@
     align-items: center;
 }
 
-.com-tag-mod {
-    color: var(--purple-300);
-    border: 1px solid var(--purple-500);
-    background: rgba(139, 92, 246, 0.12);
-}
-
 .com-tag {
     padding: 3px 10px;
     border-radius: 99px;
@@ -318,6 +315,45 @@
     color: var(--badge);
     border-color: rgba(217, 70, 239, .4);
     background: rgba(217, 70, 239, .08)
+}
+
+.com-tag-mod {
+    color: var(--purple-300);
+    border-color: var(--purple-500);
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.com-tag-archived {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .08);
+}
+
+/* Comunidade arquivada: "fantasminha" branco, como a meta encerrada
+   (esmaecida, sem cor; fica um pouco mais visível no hover) */
+.com-card--archived {
+    cursor: default;
+    opacity: .55;
+    filter: grayscale(1);
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, .25);
+    transition: opacity .15s, border-color .15s;
+}
+
+.com-card--archived:hover {
+    opacity: .8;
+    border-color: rgba(255, 255, 255, .45);
+    box-shadow: none;
+}
+
+/* .com-card.com-card--archived para vencer as capas .com-card:nth-of-type() */
+.com-card.com-card--archived .com-cover {
+    background: rgba(255, 255, 255, .85);
+    color: var(--bg-surface);
+}
+
+.com-unarchive {
+    align-self: flex-start;
 }
 
 /* Estado vazio */

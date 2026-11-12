@@ -327,6 +327,66 @@
   gap: 8px;
 }
 
+/* Fórum + Editar: dois botões emendados */
+.btn-group {
+  display: inline-flex;
+}
+
+.btn-group > .btn-outline:not(:first-child) {
+  margin-left: -2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.btn-group > .btn-outline:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.btn-group > .btn-outline:hover,
+.btn-group > .btn-outline:focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
+/* Campos do pop-up de edição do fórum */
+.confirm .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.confirm .field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.confirm .field input,
+.confirm .field select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.confirm .field input:focus-visible,
+.confirm .field select:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+.confirm .field-hint {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .goals-empty {
   grid-column: 1 / -1;
   display: flex;
@@ -415,8 +475,13 @@
 
   .goal-card__actions .btn-outline,
   .goal-card__actions form,
-  .goal-card__actions form button {
+  .goal-card__actions form button,
+  .goal-card__actions .btn-group {
     width: 100%;
+  }
+
+  .goal-card__actions .btn-group > .btn-outline {
+    flex: 1;
   }
 
   .goals-head .btn-outline {

@@ -3,7 +3,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator, URLVali
 from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from decimal import Decimal
+from django.utils import timezone;
 
 ISBN_MAX_LENGTH = 17
 TITLE_MAX_LENGTH = 200
@@ -140,3 +142,173 @@ class BookReview(models.Model):
     # Define como a avaliação será representada em texto
     def __str__(self):
         return f"{self.user} - {self.book}: {self.rating}"
+
+class BookStatus(models.Model):
+    class Status(models.TextChoices):
+        WANT_TO_READ = "WANT_TO_READ", "Quero ler";
+        READING = "READING", "Lendo";
+        READ = "READ", "Lido";
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="book_statuses",
+        null=False
+    );
+
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="book_statuses",
+        null=False
+    );
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.WANT_TO_READ
+    );
+
+    reading_progress = models.DecimalField(
+        default=0,
+        max_digits=4,
+        decimal_places=3
+    );
+
+    # Data em que o livro foi marcado como lido (preenchida automaticamente).
+    finished_at = models.DateField(
+        null=True,
+        blank=True
+    );
+
+    @property
+    def progress_percent(self):
+        """Progresso de 0 a 100 (reading_progress é guardado como fração 0-1)."""
+        return min(100, max(0, round(float(self.reading_progress or 0) * 100)))
+
+    @property
+    def pages_read(self):
+        """Páginas lidas estimadas a partir do progresso (None se o livro não tem total)."""
+        if not self.book.pages:
+            return None
+        return min(self.book.pages, round(float(self.reading_progress or 0) * self.book.pages))
+
+    def mark_as_read(self, today=None):
+        """Marca como lido: data de conclusão = hoje e progresso = 100%."""
+        self.status = self.Status.READ
+        self.finished_at = today or timezone.localdate()
+        self.reading_progress = Decimal("1.000")
+        self.save(update_fields=["status", "finished_at", "reading_progress"])
+
+
+    @staticmethod
+    def validate_status(status):
+        # só vale o VALOR gravado no banco ("READING"), nunca o rótulo ("Lendo")
+        return isinstance(status, str) and status in BookStatus.Status.values;
+
+class ReadingSession(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions"
+    )
+
+    class RecordType(models.TextChoices):
+        PAGES = "pages", "Páginas"
+        PERCENT = "percent", "Percentual"
+
+    #quantidade de páginas lidas nesta sessão específica
+    #(None em livros sem total de páginas: nesses casos a sessão usa record_type="percent")
+    pages_read = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+        null=True,
+        blank=True
+    )
+
+    minute_count = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+
+    date = models.DateField(default=timezone.localdate)
+
+    #momento (com hora) em que a sessão foi registrada; permite ordenar sessões do mesmo dia
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    #como o progresso foi informado: por página ("pages") ou por percentual ("percent")
+    record_type = models.CharField(
+        max_length=7,
+        choices=RecordType.choices,
+        default=RecordType.PAGES
+    )
+
+    #onde o leitor parou ao fim da sessão (conforme o record_type)
+    stopped_page = models.PositiveIntegerField(null=True, blank=True)
+    stopped_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    #progresso acumulado no livro (por usuário) ao fim desta sessão
+    cumulative_pages = models.PositiveIntegerField(null=True, blank=True)
+    cumulative_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        #impede registros com data no futuro
+        if self.date is not None and self.date > timezone.localdate():
+            errors["date"] = (
+                "A data da leitura não pode estar no futuro."
+            )
+
+        #verifica se a quantidade de páginas é válida
+        if self.book_id and self.pages_read is not None:
+            if self.book.pages is None:
+                errors["book"] = (
+                    "O livro precisa ter a quantidade de páginas informada."
+                )
+            elif self.pages_read > self.book.pages:
+                errors["pages_read"] = (
+                    "A quantidade de páginas lidas não pode ultrapassar "
+                    "o total de páginas do livro."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        #sessões de páginas criadas sem acumulado (ex.: views atuais) recebem o
+        #acumulado calculado a partir das sessões anteriores do mesmo usuário/livro
+        if (
+            self._state.adding
+            and self.record_type == self.RecordType.PAGES
+            and self.pages_read is not None
+            and self.cumulative_pages is None
+        ):
+            previous = ReadingSession.objects.filter(
+                user_id=self.user_id, book_id=self.book_id
+            ).aggregate(total=models.Sum("pages_read"))["total"] or 0
+            self.cumulative_pages = previous + self.pages_read
+            if self.stopped_page is None:
+                self.stopped_page = self.cumulative_pages
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.book} ({self.date})"    

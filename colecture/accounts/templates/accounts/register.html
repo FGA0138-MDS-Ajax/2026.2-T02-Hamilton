@@ -61,7 +61,10 @@
                 <div class="field">
                     <div class="input">
                         <input type="password" placeholder="Senha" name="password1" id="id_password1" required>
-                        <i class='bx bxs-lock-alt'></i>
+                        <button type="button" class="toggle-password" data-target="id_password1"
+                            aria-label="Mostrar senha" aria-pressed="false">
+                            <i class='bx bx-show'></i>
+                        </button>
                     </div>
                     {% for error in form.password1.errors %}
                     <span class="error">{{ error }}</span>
@@ -83,6 +86,7 @@
             </form>
         </div>
     </div>
+    <script src="{% static 'accounts/js/password-toggle.js' %}"></script>
 </body>
 
 </html>

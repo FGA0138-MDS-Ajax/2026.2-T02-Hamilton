@@ -256,33 +256,241 @@
   min-height: 160px;
 }
 
-/* Lista de livros (usada quando a estante tiver itens) */
-.book-list {
+/* ---------- Estante: layout (filtro em coluna ao lado do grid) ---------- */
+.shelf-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  list-style: none;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
 }
 
-.book-item {
+.shelf-filter {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 20px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  gap: 8px;
 }
 
-.book-title {
-  font-size: 17px;
+.shelf-filter__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.shelf-filter__option i {
+  font-size: 20px;
+  color: var(--purple-400);
+}
+
+.shelf-filter__label {
+  flex: 1;
+}
+
+.shelf-filter__count {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  font-size: 13px;
   font-weight: 600;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.shelf-filter__option:hover {
+  background: var(--bg-input);
   color: var(--text-primary);
 }
 
-.book-author {
-  font-size: 15px;
+/* Opção ativa: fundo preenchido */
+.shelf-filter__option.is-active {
+  background: var(--purple-500);
+  border-color: var(--purple-500);
+  color: #fff;
+}
+
+.shelf-filter__option.is-active i {
+  color: #fff;
+}
+
+.shelf-filter__option.is-active .shelf-filter__count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.shelf-filter__option:focus-visible,
+.shelf-book:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+.shelf-content {
+  min-width: 0;
+}
+
+/* ---------- Estante: grid de cards ---------- */
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  list-style: none;
+}
+
+.shelf-grid[hidden],
+.shelf-book[hidden] {
+  display: none;
+}
+
+.shelf-book {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s;
+}
+
+/* Card inteiro clicável */
+.shelf-book {
+  cursor: pointer;
+}
+
+.shelf-book:hover {
+  border-color: var(--purple-500);
+}
+
+.shelf-book__cover {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 108px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 28px;
+}
+
+.shelf-book__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shelf-book__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Tag clicável: abre o pop-up para trocar a estante */
+.shelf-book__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px 2px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-elevated);
   color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.shelf-book__tag i {
+  font-size: 16px;
+}
+
+.shelf-book__tag:hover {
+  border-color: currentColor;
+}
+
+.shelf-book__tag:focus-visible {
+  outline: 2px solid var(--purple-300);
+  outline-offset: 2px;
+}
+
+
+
+.shelf-book__tag--read {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.shelf-book__tag--reading {
+  background: color-mix(in srgb, var(--purple-500) 20%, transparent);
+  color: var(--purple-300);
+}
+
+.shelf-book__tag--want_to_read {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.shelf-book__title {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.shelf-book__author {
+  font-size: 14px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.shelf-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.shelf-progress__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.shelf-progress__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gradient-brand);
+}
+
+.shelf-progress__text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Espaço reservado para a ofensiva compacta (R17) */
+.streak-compact-slot:empty {
+  display: none;
 }
 
 .hint,
@@ -360,6 +568,30 @@
   .stat-value {
     font-size: 56px;
   }
+
+  /* Filtro vira uma linha horizontal rolável acima dos cards */
+  .shelf-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .shelf-filter {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shelf-filter__option {
+    width: auto;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-color: var(--border);
+    border-radius: 999px;
+    font-size: 15px;
+    scroll-snap-align: start;
+  }
 }
 
 /* Celular */
@@ -414,4 +646,418 @@
   .edit-form h1 {
     font-size: 28px;
   }
+
+  .shelf-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Novos Estilos para Ofensiva, Calendário e Meta Individual */
+
+.streak-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 16px;
+  color: var(--text-primary);
+}
+
+.streak-alert-banner i {
+  font-size: 36px;
+  color: var(--streak, #f59e0b);
+  flex-shrink: 0;
+}
+
+.streak-alert-banner strong {
+  font-size: 17px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.streak-alert-banner p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.card-action-link {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.card-action-link .calendar-btn,
+.card-action-link .btn-outline {
+  width: 100%;
+  height: 42px;
+  font-size: 15px;
+  padding: 0 16px;
+}
+
+.goal-card h2 i {
+  color: var(--purple-400);
+}
+
+.goal-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.goal-card__emoji {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-size: 24px;
+}
+
+.goal-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-card__name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.goal-card__schedule {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.goal-badge {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goal-card__progress {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.goal-ring {
+  --p: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: conic-gradient(var(--purple-500) calc(var(--p) * 1%), var(--bg-input) 0);
+}
+
+.goal-ring::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+}
+
+.goal-ring--done {
+  background: conic-gradient(var(--success) 100%, var(--bg-input) 0);
+}
+
+.goal-ring__value {
+  grid-area: 1 / 1;
+  position: relative;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.goal-ring--done .goal-ring__value {
+  font-size: 36px;
+  color: var(--success);
+}
+
+.goal-card__numbers {
+  min-width: 0;
+}
+
+.goal-card__count {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.goal-card__count strong {
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.goal-card__status {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.goal-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.goal-card__info li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.goal-card__info i {
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.goal-card__info a {
+  color: var(--purple-300);
+  text-decoration: none;
+}
+
+.goal-card__info a:hover {
+  text-decoration: underline;
+}
+
+.goal-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.goal-card__actions form {
+  display: contents;
+}
+
+.goal-card .goal-action {
+  flex: 1 1 auto;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.goal-card .goal-action--success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.goal-card .goal-action--success:hover {
+  background: var(--success);
+  color: var(--bg-base);
+}
+
+.goal-card .goal-action--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.goal-card .goal-action--danger:hover {
+  background: var(--danger);
+  color: var(--bg-base);
+}
+
+.goal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.goal-empty__title {
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.goal-empty .hint {
+  font-size: 15px;
+}
+
+.modal-save.modal-danger {
+  background-color: var(--danger);
+  color: var(--bg-base);
+}
+
+.modal-save.modal-danger:hover:enabled {
+  background-color: color-mix(in srgb, var(--danger) 85%, #000);
+}
+
+@media (max-width: 420px) {
+  .goal-card__progress {
+    flex-wrap: wrap;
+  }
+
+  .goal-card .goal-action {
+    width: 100%;
+  }
+}
+/* ---------- Pop-up "Alterar estante" (mesmo visual do pop-up da pesquisa) ---------- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+ 
+.modal-overlay:not([hidden]) {
+  display: flex;
+}
+ 
+.modal-box {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: var(--glow);
+  overflow: hidden;
+}
+ 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 30px 0 30px;
+}
+ 
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+ 
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+ 
+.modal-close:hover {
+  color: var(--text-primary);
+}
+ 
+.modal-body {
+  padding: 20px 30px 30px 30px;
+}
+ 
+.modal-book-name {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+ 
+.modal-question {
+  margin: 0 0 14px 0;
+  font-weight: 600;
+}
+ 
+.modal-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+ 
+.modal-option {
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+}
+ 
+.modal-option:hover {
+  border-color: var(--purple-400);
+}
+ 
+.modal-option.selected {
+  background-color: var(--purple-900);
+  border-color: var(--purple-400);
+  color: var(--purple-100);
+}
+ 
+.modal-remove {
+  margin-top: 16px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--danger);
+  text-decoration: underline;
+  cursor: pointer;
+}
+ 
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 30px;
+  border-top: 1px solid var(--border);
+}
+ 
+.modal-cancel {
+  padding: 12px 22px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+}
+ 
+.modal-save {
+  padding: 12px 30px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  background-color: var(--purple-600);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+ 
+.modal-save:hover:enabled {
+  background-color: var(--purple-500);
+}
+ 
+.modal-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

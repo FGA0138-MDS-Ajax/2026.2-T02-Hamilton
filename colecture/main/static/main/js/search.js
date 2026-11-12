@@ -6,6 +6,8 @@ var bookList = document.getElementById("bookList");
 // Procura pelo atributo (e não pela tag <main>): o sidebar.html já envolve a página em um <main>.
 var searchUrl = document.querySelector("[data-search-url]").dataset.searchUrl;
 var communitiesUrl = document.querySelector("[data-communities-url]").dataset.communitiesUrl;
+// Estante do usuário (tags Lendo/Lido/Quero ler): o banco (BookStatus) é a única fonte de verdade
+var shelfUrl = document.querySelector("[data-shelf-url]").dataset.shelfUrl;
 var tabBooks = document.getElementById("tabBooks");
 var tabCommunities = document.getElementById("tabCommunities");
 var currentTab = "books";
@@ -13,41 +15,94 @@ var emptyImg = document.querySelector("[data-empty-img]").dataset.emptyImg;
 
 
 var statusOptions = [
-  { value: "reading", label: "Lendo" },
-  { value: "read", label: "Lido" },
-  { value: "want-to-read", label: "Quero ler" }
+  { value: "READING", label: "Lendo" },
+  { value: "READ", label: "Lido" },
+  { value: "WANT_TO_READ", label: "Quero ler" }
 ];
-
-
-var shelfStorageKey = "colectureShelf";
+// Cache em memória da estante ({ idDoLivro: "READ" | "READING" | "WANT_TO_READ" }).
+// Só é preenchido com o que o servidor devolveu (busca) ou confirmou (setStatus);
+// nada é gravado no navegador.
+var userShelf = {};
 
 
 function getShelf() {
-  var saved = localStorage.getItem(shelfStorageKey);
-  if (saved) {
-    return JSON.parse(saved);
-  }
-  return {};
+  return userShelf;
 }
 
-
-function saveShelf(shelf) {
-  localStorage.setItem(shelfStorageKey, JSON.stringify(shelf));
-}
-
-
-function setStatus(bookId, status) {
-  var shelf = getShelf();
-
-  if (status === "") {
-    delete shelf[bookId];
+// Avisa o usuário (toast do main/js/toast.js; cai no console se não estiver carregado)
+function notify(type, title, description) {
+  if (typeof window.showToast === "function") {
+    window.showToast(type, title, description || "");
   } else {
-    shelf[bookId] = status;
+    (type === "error" ? console.error : console.log)(title, description || "");
   }
+}
 
-  saveShelf(shelf);
+// Função auxiliar do Django para pegar o CSRF Token dos cookies
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
+// Grava a tag no banco (POST books:manage_bookshelf; status "" remove da estante).
+// Devolve uma Promise: só rejeita se o servidor NÃO gravou, e o cache local
+// (userShelf) só muda depois da confirmação.
+function setStatus(bookId, status) {
+  return fetch(shelfUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken") // Obrigatório no Django para POST
+        },
+        body: JSON.stringify({ book_id: bookId, status: status })
+    })
+    .then(function (response) {
+        if (!response.ok) {
+            throw new Error("O servidor respondeu com status " + response.status);
+        }
 
+        if (status === "") {
+            delete userShelf[bookId];
+        } else {
+            userShelf[bookId] = status;
+        }
+
+        // Igual à estante do perfil: "Lido" também grava data de conclusão e progresso 100%
+        if (status === "READ") {
+            return fetch(shelfUrl + bookId + "/mark-read/", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(function (markResponse) {
+                if (!markResponse.ok) {
+                    console.error("Não foi possível registrar a data de conclusão do livro.");
+                }
+            });
+        }
+    });
+}
+
+// A busca (/books/search/) já devolve o status de cada livro na estante do usuário,
+// lido do BookStatus no banco. Aqui só guardamos esses status para os botões e o pop-up.
+function updateShelfFromResults(books) {
+  for (var i = 0; i < books.length; i++) {
+    if (books[i].status) {
+      userShelf[books[i].id] = books[i].status;
+    } else {
+      delete userShelf[books[i].id];
+    }
+  }
 }
 
 function getStatusLabel(status) {
@@ -176,17 +231,35 @@ function buildModal() {
   }
 
   
+  // Salva/remove no banco e só então atualiza o botão do card e fecha o pop-up
+  function commitStatus(status) {
+    var book = currentBook;
+    var onSave = currentOnSave;
+
+    saveButton.disabled = true;
+    removeButton.disabled = true;
+
+    setStatus(book.id, status)
+      .then(function () {
+        onSave();
+        closeModal();
+      })
+      .catch(function (error) {
+        console.log("Erro ao salvar a estante:", error);
+        notify("error", "Não foi possível atualizar a estante", "Tente novamente em instantes.");
+      })
+      .then(function () {
+        removeButton.disabled = false;
+        refreshModal();
+      });
+  }
+
   saveButton.addEventListener("click", function () {
-    setStatus(currentBook.id, selectedStatus);
-    currentOnSave();
-    closeModal();
+    commitStatus(selectedStatus);
   });
 
-  
   removeButton.addEventListener("click", function () {
-    setStatus(currentBook.id, "");
-    currentOnSave();
-    closeModal();
+    commitStatus("");
   });
 
   overlay.addEventListener("click", function (event) {
@@ -531,6 +604,7 @@ function searchBooks() {
       if (thisRequest !== lastRequest) {
         return;
       }
+      updateShelfFromResults(data.results);
       showBooks(data.results, data.total);
     })
     .catch(function (error) {

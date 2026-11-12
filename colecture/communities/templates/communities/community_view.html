@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{% static 'communities/css/community_goals.css' %}" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'communities/css/fixiconeforum.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -176,7 +177,7 @@
             {% endif %}
           </section>
 
-          {% if community.is_private and is_member %}
+          {% if community.is_private and community.code %}
             <section class="card" aria-labelledby="code-title">
               <h2 id="code-title">Código da comunidade</h2>
               <p class="muted code-hint">Compartilhe para convidar alguém para esta comunidade privada.</p>

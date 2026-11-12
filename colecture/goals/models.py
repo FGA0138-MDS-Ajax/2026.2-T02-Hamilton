@@ -10,19 +10,29 @@ from django.utils import timezone
 from books.models import Book
 
 GOAL_NAME_MAX_LENGTH = 100
+GOAL_DESC_MAX_LENGTH = 500
 
 
 class Goal(models.Model):
     class GoalType(models.TextChoices):
-        PAGE_COUNT = "PAGE_COUNT", "Pages"
-        HOUR_COUNT = "HOUR_COUNT", "Hours"
+        PAGE_COUNT = "PAGE_COUNT", "Páginas"
+        HOUR_COUNT = "HOUR_COUNT", "Horas"
 
     class Status(models.TextChoices):
-        ACTIVE = "ACTIVE", "Active"
-        CONCLUDED = "CONCLUDED", "Concluded"
-        PAUSED = "PAUSED", "Paused"
+        ACTIVE = "ACTIVE", "Ativa"
+        CONCLUDED = "CONCLUDED", "Concluída"
+        PAUSED = "PAUSED", "Pausada"
+
+    class Period(models.TextChoices):
+        DAILY = "DAILY", "Todo dia"
+        WEEKDAYS = "WEEKDAYS", "Dias específicos"
+        WEEKLY = "WEEKLY", "Por semana"
+        MONTHLY = "MONTHLY", "Por mês"
+        TOTAL = "TOTAL", "No total"
 
     name = models.CharField(max_length=GOAL_NAME_MAX_LENGTH, blank=False)
+    # Texto livre opcional explicando o objetivo da meta.
+    description = models.CharField(max_length=GOAL_DESC_MAX_LENGTH, blank=True)
 
     # Dono: comunidade OU perfil, nunca ambos (ver CheckConstraint abaixo).
     owner_community = models.ForeignKey(
@@ -48,7 +58,8 @@ class Goal(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE,
     )
-    # Quantidade do goal_type a ser atingida (ex.: 10000 páginas).
+    # Quantidade do goal_type a ser atingida: páginas (PAGE_COUNT) ou
+    # MINUTOS (HOUR_COUNT; o form recebe HH:MM e converte).
     target = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     # Livro relacionado à meta. Opcional: se o livro for excluído, a meta continua.
     book = models.ForeignKey(
@@ -58,6 +69,13 @@ class Goal(models.Model):
         blank=True,
         related_name="goals",
     )
+    period = models.CharField(
+        max_length=10,
+        choices=Period.choices,
+        default=Period.TOTAL,
+    )
+    weekdays = models.CharField(max_length=13, blank=True)
+    emoji = models.CharField(max_length=8, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -85,16 +103,28 @@ class Goal(models.Model):
     def is_collective(self) -> bool:
         return self.owner_community_id is not None
 
-    @property
-    def forum(self):
-        # Forum.goal é uma FK sem related_name, então o reverso é forum_set.
-        return self.forum_set.first()
+    # O fórum da meta é o reverso do OneToOneField Forum.goal
+    # (related_name="forum"), e não uma propriedade deste model.
+    # Metas individuais não têm fórum: use GoalService.get_forum(goal),
+    # que devolve None em vez de levantar Forum.DoesNotExist.
 
     @property
     def time_remaining(self):
         if self.deadline is None:
             return None
         return max(self.deadline - timezone.now(), timedelta(0))
+
+    @property
+    def target_display(self) -> str:
+        """Alvo legível: '300 páginas' ou '22h10' / '10h'."""
+        if self.goal_type == self.GoalType.HOUR_COUNT:
+            hours, minutes = divmod(self.target, 60)
+            return f"{hours}h{minutes:02d}" if minutes else f"{hours}h"
+        return f"{self.target} páginas"
+
+    @property
+    def weekday_list(self) -> list[int]:
+        return [int(d) for d in self.weekdays.split(",") if d.strip().isdigit()]
 
     def __str__(self):
         return self.name
@@ -135,85 +165,3 @@ class GoalParticipation(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.goal} ({self.state})"
-    
-class ReadingSession(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="reading_sessions"
-    )
-
-    book = models.ForeignKey(
-        Book,
-        on_delete=models.CASCADE,
-        related_name="reading_sessions"
-    )
-
-    page_start = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
-    page_end = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
-    minute_count = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
-    date = models.DateField(default=timezone.localdate)
-
-    def clean(self):
-        super().clean()
-
-        errors = {}
-
-        #verifica se a pagina inicial é menor que a final
-        if (
-            self.page_start is not None
-            and self.page_end is not None
-            and self.page_start > self.page_end
-        ):
-            errors["page_start"] = (
-                "A página inicial não pode ser maior que a página final."
-            )
-
-        #verifica se o intervalo não ultrapassa o total de páginas do livro
-        if self.book_id and self.page_end is not None:
-            if self.book.pages is None:
-                errors["book"] = (
-                    "O livro precisa ter a quantidade de páginas informada."
-                )
-            elif self.page_end > self.book.pages:
-                errors["page_end"] = (
-                    "A página final não pode ultrapassar o total de páginas do livro."
-                )
-
-        #impede sobreposição de páginas para o mesmo usuário e livro
-        if (
-            self.user_id
-            and self.book_id
-            and self.page_start is not None
-            and self.page_end is not None
-            and self.page_start <= self.page_end
-        ):
-            overlapping_sessions = ReadingSession.objects.filter(
-                user_id=self.user_id,
-                book_id=self.book_id,
-                page_start__lte=self.page_end,
-                page_end__gte=self.page_start,
-            )
-
-            #exclui o próprio registro quando estiver sendo editado
-            if self.pk:
-                overlapping_sessions = overlapping_sessions.exclude(
-                    pk=self.pk
-                )
-
-            if overlapping_sessions.exists():
-                errors["page_start"] = (
-                    "Esse intervalo de páginas já possui um registro de leitura."
-                )
-
-        if errors:
-            raise ValidationError(errors)
-
-    def __str__(self):
-        return f"{self.user} - {self.book} ({self.date})"

@@ -68,6 +68,6 @@
 .toast--success { --toast-color: var(--success); }
 .toast--error   { --toast-color: var(--danger); }
 .toast--info    { --toast-color: var(--info); }
-
+.toast--warning { --toast-color: #f59e0b; }
 @keyframes toast-in  { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @keyframes toast-bar { to { width: 0; } }

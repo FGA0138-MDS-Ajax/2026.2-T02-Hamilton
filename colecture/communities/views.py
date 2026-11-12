@@ -1,20 +1,43 @@
 from django.shortcuts import get_object_or_404, render, redirect;
 from django.contrib.auth import get_user_model;
 from django.contrib.auth.mixins import LoginRequiredMixin;
-from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse;
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse, HttpResponse;
 from django.views import View;
 from django.contrib.auth.decorators import login_required
 from .forms import CommunityForm
-from .models import Community, Membership;
+from .models import Community, Membership, Invitation;
 from .services import CommunityService, MembershipService;
 from django.utils import timezone;
 from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from forums.models import Forum
+from goals.services import GoalService
+
+
+def _redirect_back(request, community):
+    """Volta para o `next` enviado pelo form (ex.: página de gerenciar),
+    se for uma URL local segura; senão, para a página da comunidade."""
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("communities:view_community", community_id=community.id)
 
 
 # Create your views here.
+
+def _render_banned(request):
+    """Página estilizada (status 403) para usuário banido da comunidade."""
+    return render(request, "communities/community_blocked.html", {
+        "title": "Você foi banido",
+        "message": "Você foi banido desta comunidade e não pode mais acessá-la.",
+    }, status=403)
 
 """
 JoinCommunityView é uma CBV (class based view) para 
@@ -33,11 +56,16 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
         # mantém a comunidade e usuário para os
         # outros métodos usarem.
+        self.invitation_code = kwargs.get('invitation_code');
         self.community = get_object_or_404(Community, id=community_id);
         self.user = request.user;
         self.membership = Membership.objects.filter(
             community=self.community,
             user=self.user
+        ).first();
+        self.invitation = self.invitation_code and Invitation.objects.filter(
+            community=self.community,
+            invitation_code=self.invitation_code,
         ).first();
     
         return super().dispatch(request, *args, **kwargs)
@@ -52,6 +80,7 @@ class JoinCommunityView(LoginRequiredMixin, View):
             self.user_is_member, # já é membro?
             self.user_is_banned, # está banido?
             self.request_is_pending, # já solicitou entrada?
+            self.invitation_code_wrong,
         ];
         for check in validation:
             response = check();
@@ -61,6 +90,17 @@ class JoinCommunityView(LoginRequiredMixin, View):
         # se nenhum método retornar falha, o usuário
         # entra/solicita entrada na comunidade.
         return self.join_community();
+
+    def invitation_code_wrong(self):
+        # se for pública, ou o usuário não enviou
+        # um código, não precisa verificar nada.
+        if (self.community.access!=Community.Access.PRIVATE) or (
+            not self.invitation_code
+        ):
+            return;
+
+        return HttpResponseForbidden("Invitation code incorrect or expired") if (
+            not self.invitation or self.invitation.is_expired) else None;
 
     def community_not_available(self):
         return (self.community.state!=Community.State.ACTIVE and
@@ -81,7 +121,7 @@ class JoinCommunityView(LoginRequiredMixin, View):
     def user_is_banned(self):
         return (self.membership and
             self.membership.status == Membership.Status.BANNED and
-                HttpResponseForbidden("You've been banned from this community.")) or None;
+                _render_banned(self.request)) or None;
 
     def request_is_pending(self):
         return (self.community.access == Community.Access.PRIVATE and
@@ -97,22 +137,70 @@ class JoinCommunityView(LoginRequiredMixin, View):
 
     def join_community(self):
         community_is_private = self.community.access == Community.Access.PRIVATE;
+        entrance_allowed = not(community_is_private) or ( # a comunidade é pública OU
+            community_is_private and self.invitation # é privada e o usuário enviou um código (validado antes)
+        );
 
         MembershipService.enter_community(
             self.user,
             self.community,
             role = (
-                Membership.Role.NONE if community_is_private else
-                Membership.Role.MEMBER
+                # caso o usuário enviou o código correto (validado antes)
+                # ele pode entrar direto.
+                Membership.Role.MEMBER if entrance_allowed else
+                Membership.Role.NONE
             ),
             status = (
-                Membership.Status.PENDING if community_is_private else 
-                Membership.Status.ACTIVE
+                Membership.Status.ACTIVE if entrance_allowed else 
+                Membership.Status.PENDING
             ),
             joined_at=timezone.now() if not community_is_private else None
         );
 
+        if self.invitation_code:
+            MembershipService.delete_invitation(
+                self.community,
+                self.invitation_code
+            );
+
         return self.redirect_to_community();
+
+class JoinByCodeView(JoinCommunityView):
+    """
+    Pedido de entrada feito pelo modal "Entrar em comunidade privada"
+    da home. O usuário digita só o código; aqui descobrimos de qual
+    comunidade ele é e seguimos o mesmo fluxo da JoinCommunityView
+    (a solicitação fica PENDENTE até o moderador aceitar).
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission();
+
+        code = request.POST.get('codigo', '').strip().upper();
+        community = code and Community.objects.filter(
+            code=code,
+            access=Community.Access.PRIVATE,
+        ).first();
+
+        if not community:
+            messages.error(request, "Código inválido. Confira com o moderador.");
+            return redirect("communities:home_community");
+
+        kwargs['community_id'] = community.id;
+        return super().dispatch(request, *args, **kwargs);
+
+    def join_community(self):
+        # cria a solicitação (PENDENTE), mas mantém o usuário na home
+        super().join_community();
+        messages.success(self.request, "Solicitação enviada! Aguarde o moderador aceitar.");
+        return redirect("communities:home_community");
+
+    def request_is_pending(self):
+        # já tinha pedido antes: só avisa, também sem sair da home
+        if super().request_is_pending():
+            messages.info(self.request, "Você já pediu para entrar. Aguarde o moderador.");
+            return redirect("communities:home_community");
+
 
 class LeaveCommunityView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
@@ -161,6 +249,9 @@ class LeaveCommunityView(LoginRequiredMixin, View):
 
     def ec_is_creator(self):
         if self.is_creator: # o criador saiu.
+            # o criador não tem Membership, então o signal de goals não
+            # dispara: as metas da comunidade são desativadas aqui
+            GoalService.deactivate_for_community_exit(self.user, self.community);
             self.give_ownership_to_oldest_member(except_user=self.user);
             return self.return_to_profile();
 
@@ -226,7 +317,7 @@ def view_community(request, community_id):
 
     if not can_manage:  # não é admin, dono nem moderador
         if is_banned:
-            return HttpResponseForbidden("You've been banned from this community.")
+            return _render_banned(request)
         elif community_is_archived:
             return HttpResponseForbidden("This community is archived.")
 
@@ -240,7 +331,18 @@ def view_community(request, community_id):
         "can_edit": can_manage,
         "can_leave": is_creator or is_active_member,
         "can_archive": can_manage and not community_is_archived,
+        # só quem gerencia cria metas, e apenas em comunidade ativa
+        "can_create_goal": can_manage and not community_is_archived,
     }
+
+    # metas e fórum geral só aparecem para quem participa da comunidade
+    # (o criador não tem Membership, por isso is_creator) ou a gerencia
+    is_member = is_creator or is_active_member
+    can_see_content = is_member or can_manage
+    goal_cards = GoalService.build_community_cards(community) if can_see_content else None
+    general_forum = (
+        Forum.objects.filter(community=community).first() if can_see_content else None
+    )
 
     community_info = {
         'id': community.id,
@@ -249,12 +351,17 @@ def view_community(request, community_id):
         'creator_name': community.creator.username,
         'creator_id': community.creator.id,
         'is_private': community.access == Community.Access.PRIVATE,
+        # só quem participa ou gerencia recebe o código para compartilhar
+        'code': community.code if can_see_content else '',
     }
 
     return render(request, "communities/community_view.html", {
         'community': community_info,
         'book': community.book,
         'permissions': permissions,
+        'is_member': is_member,
+        'goal_cards': goal_cards,
+        'general_forum': general_forum,
     })
 
 
@@ -424,10 +531,7 @@ def edit_member_role(request, community_id, membership_id):
     membership.role = new_role
     membership.save(update_fields=["role"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 @login_required
 def manage_membership_request(request, community_id, membership_id):
@@ -480,10 +584,7 @@ def manage_membership_request(request, community_id, membership_id):
     # Salva a alteração no banco
     membership.save(update_fields=["status", "role", "joined_at"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 @login_required
 def manage_member_ban(request, community_id, membership_id):
@@ -543,10 +644,7 @@ def manage_member_ban(request, community_id, membership_id):
     # Salva somente o status
     membership.save(update_fields=["status"])
 
-    return redirect(
-        "communities:view_community",
-        community_id=community.id,
-    )
+    return _redirect_back(request, community)
 
 
 
@@ -565,6 +663,27 @@ def archive_community(request, community_id):
     community.save()
 
     messages.success(request, f'Comunidade "{community.name}" arquivada.')
+    return redirect("communities:home_community")
+
+
+@login_required
+def unarchive_community(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    if not _can_manage(request.user, community):
+        return HttpResponseForbidden()
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    if community.state != Community.State.ARCHIVED:
+        return HttpResponseForbidden()
+
+    # o save() do model limpa archived_at ao sair do estado arquivado
+    community.state = Community.State.ACTIVE
+    community.save()
+
+    messages.success(request, f'Comunidade "{community.name}" desarquivada.')
     return redirect("communities:home_community")
 
 
@@ -616,10 +735,16 @@ def home_community(request):
         .values_list("community_id", "role")
     )
 
+    # comunidades em que o usuário modera (o criador também é moderador)
+    moderated = Q(creator=user) | Q(
+        id__in=[cid for cid, role in roles.items() if role == Membership.Role.MODERATOR]
+    )
+
+    # arquivadas só aparecem para quem modera; membros comuns não as veem
     communities = (
         Community.objects
         .filter(Q(creator=user) | Q(id__in=roles.keys()))
-        .exclude(state=Community.State.ARCHIVED)
+        .filter(~Q(state=Community.State.ARCHIVED) | moderated)
         .order_by("name")
     )
 
@@ -646,26 +771,47 @@ def home_community(request):
             "membros_count": counts.get(c.id, 0) + 1,  # +1 = criador
             "privada": c.access == Community.Access.PRIVATE,
             "papel": papel,
+            # o criador também é moderador
+            "is_moderator": papel in ("Criador", "Moderador"),
+            "arquivada": c.state == Community.State.ARCHIVED,
         })
 
-    return render(request, "communities/home_community.html", {"comunidades": comunidades})
+    # arquivadas vão para o fim da lista (sort é estável: mantém a ordem por nome)
+    comunidades.sort(key=lambda c: c["arquivada"])
+
+    return render(request, "communities/home_community.html", {
+        "comunidades": comunidades,
+        "ativas_count": sum(1 for c in comunidades if not c["arquivada"]),
+    })
 
 @login_required
 def forum_page(request, community_id):
-    community = get_object_or_404(Community, id=community_id)
+    """Atalho para o fórum geral da comunidade.
 
-    forum = {
-        "id": community.id,
-        "title": "Fórum geral",
-        "description": "Bem-vindos! Aqui falamos sobre " + community.name + ".",
-        "kind": "geral",
-        "meta_name": "",
-        "is_moderator": _can_manage(request.user, community),
-        "locked": False,
-        "pinned_id": None,
-        "current_user": request.user.username,
-        "created_by": community.creator.username,
-        "community_url": reverse("communities:view_community", args=[community.id]),
-        "messages": [],
-    }
-    return render(request, "communities/forum.html", {"forum": forum})
+    A página do fórum é única (forums.views.ViewForum, que renderiza
+    communities/forum.html); aqui só redirecionamos para ela.
+    """
+    forum = get_object_or_404(Forum, community_id=community_id)
+    return redirect("forums:view_forum", forum_id=forum.id)
+
+def generate_invitation(request, community_id):
+    community = get_object_or_404(Community, id=community_id);
+    user = request.user;
+
+    is_eligible = MembershipService.user_can_manage(user, community);
+
+    if not is_eligible:
+        return HttpResponseForbidden("Access Restricted");
+
+    if request.method=="POST":
+        return HttpResponse("Only GET method is allowed.");
+
+    new_invitation = MembershipService.generate_invitation(
+        community
+    );
+
+    return JsonResponse(
+        data={
+            'invitation_code':new_invitation.invitation_code
+        }
+    );

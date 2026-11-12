@@ -4,7 +4,8 @@
 {% block title %}Minhas comunidades - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}" />
+  {# ?v= força o navegador a baixar a versão nova do CSS #}
+  <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}?v=2" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <script src="{% static 'main/js/toast.js' %}" defer></script>
@@ -30,7 +31,7 @@
 
     {% if comunidades %}
       <div class="com-stats">
-        <div class="com-stat"><strong>{{ comunidades|length }}</strong><span>comunidades</span></div>
+        <div class="com-stat"><strong>{{ ativas_count }}</strong><span>comunidades</span></div>
         <div class="com-stat"><strong id="totalMembros">0</strong><span>membros no total</span></div>
       </div>
 
@@ -44,8 +45,14 @@
 
     <section class="com-grid" id="grid">
       {% for c in comunidades %}
+        {# arquivada: card apagado e sem link; só moderadores chegam a vê-la #}
+        {% if c.arquivada %}
+        <div class="com-card com-card--archived" aria-disabled="true"
+             data-nome="{{ c.nome|lower }}" data-membros="0">
+        {% else %}
         <a class="com-card" href="{% url 'communities:view_community' community_id=c.pk %}"
            data-nome="{{ c.nome|lower }}" data-membros="{{ c.membros_count }}">
+        {% endif %}
           <div class="com-card-top">
             <div class="com-cover">{{ c.nome|slice:":1"|upper }}</div>
             <div>
@@ -58,18 +65,31 @@
             <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
 
             <div class="com-tags">
-              {% if c.is_moderator %}
-                <span class="com-tag com-tag-mod">Moderador</span>
-              {% endif %}
-
-              {% if c.privada %}
-                <span class="com-tag com-tag-closed">Privada</span>
+              {% if c.arquivada %}
+                <span class="com-tag com-tag-archived">Arquivada</span>
               {% else %}
-                <span class="com-tag com-tag-open">Aberta</span>
+                {% if c.is_moderator %}
+                  <span class="com-tag com-tag-mod">Moderador</span>
+                {% endif %}
+
+                {% if c.privada %}
+                  <span class="com-tag com-tag-closed">Privada</span>
+                {% else %}
+                  <span class="com-tag com-tag-open">Aberta</span>
+                {% endif %}
               {% endif %}
             </div>
           </div>
-        </a>
+
+          {% if c.arquivada %}
+            <button type="button" class="com-btn com-unarchive"
+                    data-unarchive
+                    data-name="{{ c.nome }}"
+                    data-action="{% url 'communities:unarchive_community' c.pk %}">
+              <i class="bx bx-archive-out"></i> Desarquivar
+            </button>
+          {% endif %}
+        {% if c.arquivada %}</div>{% else %}</a>{% endif %}
       {% endfor %}
     </section>
 
@@ -94,15 +114,28 @@
   </div>
 
   <div class="com-overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
-    <form class="com-modal" method="post" action="">
+    <form class="com-modal" method="post" action="{% url 'communities:join_by_code' %}">
       {% csrf_token %}
       <h2 id="mTitle">Entrar em comunidade privada</h2>
       <p>Digite o código de convite que o moderador compartilhou com você.</p>
       <label for="codigo">Código de convite</label>
-      <input id="codigo" name="codigo" type="text" autocomplete="off" placeholder="Ex.: LEIT-4X9Q" required>
+      <input id="codigo" name="codigo" type="text" autocomplete="off" placeholder="Ex.: K7QM29XA" maxlength="8" required>
       <div class="com-modal-actions">
         <button class="com-btn" type="button" id="cancelar">Cancelar</button>
         <button class="com-btn com-btn-primary" type="submit">Solicitar entrada</button>
+      </div>
+    </form>
+  </div>
+
+  {# confirmação de desarquivar #}
+  <div class="com-overlay" id="overlayUnarchive" role="dialog" aria-modal="true" aria-labelledby="uTitle" hidden>
+    <form class="com-modal" method="post" id="unarchiveForm">
+      {% csrf_token %}
+      <h2 id="uTitle">Desarquivar comunidade?</h2>
+      <p><strong id="unarchiveName"></strong> volta a ficar acessível para os membros.</p>
+      <div class="com-modal-actions">
+        <button class="com-btn" type="button" id="cancelarUnarchive">Cancelar</button>
+        <button class="com-btn com-btn-primary" type="submit">Desarquivar</button>
       </div>
     </form>
   </div>
@@ -130,7 +163,24 @@
     document.querySelectorAll('[data-open-modal]').forEach(function (b) { b.addEventListener('click', abrir); });
     document.getElementById('cancelar').addEventListener('click', fechar);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) fechar(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
+
+    // desarquivar: pergunta antes de enviar
+    var overlayU = document.getElementById('overlayUnarchive');
+    var formU = document.getElementById('unarchiveForm');
+    function fecharU() { overlayU.hidden = true; }
+    document.querySelectorAll('[data-unarchive]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        formU.setAttribute('action', b.dataset.action);
+        document.getElementById('unarchiveName').textContent = b.dataset.name;
+        overlayU.hidden = false;
+      });
+    });
+    document.getElementById('cancelarUnarchive').addEventListener('click', fecharU);
+    overlayU.addEventListener('click', function (e) { if (e.target === overlayU) fecharU(); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { fechar(); fecharU(); }
+    });
 
     var cards = Array.prototype.slice.call(document.querySelectorAll('.com-card'));
     var total = document.getElementById('totalMembros');

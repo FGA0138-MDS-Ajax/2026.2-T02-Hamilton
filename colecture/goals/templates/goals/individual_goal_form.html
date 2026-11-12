@@ -1,0 +1,272 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Editar meta{% else %}Nova meta pessoal{% endif %} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}?v=3" />
+  <link rel="stylesheet" href="{% static 'goals/css/individual_goal_form.css' %}?v=1" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+  <script src="{% static 'main/js/toast.js' %}" defer></script>
+  <script src="{% static 'goals/js/individual_goal_form.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="goal-page individual-goal-page">
+
+    <div class="goal-header-nav">
+      <a class="back-link" href="{% url 'accounts:profile' %}">
+        <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+      </a>
+    </div>
+
+    <section class="goal-form-container" aria-labelledby="goal-title">
+      <header class="goal-header">
+        <h1 id="goal-title">{% if is_edit %}Editar meta{% else %}Nova meta pessoal{% endif %}</h1>
+        <p class="intro">Defina um objetivo de leitura no seu ritmo: por dia, por semana, por mês ou no total.</p>
+        <p class="req-legend">Campos marcados com <span class="required">*</span> são obrigatórios.</p>
+      </header>
+
+      {% if not is_edit %}
+        <div class="presets" aria-labelledby="presets-title">
+          <h2 id="presets-title" class="section-title">
+            <i class="bx bx-bolt-circle" aria-hidden="true"></i> Comece com uma meta pronta
+          </h2>
+          <div class="preset-list">
+            <button type="button" class="preset" data-preset
+                    data-name="10 páginas por dia" data-emoji="📖"
+                    data-type="PAGE_COUNT" data-period="DAILY" data-target="10">
+              <span class="preset__emoji" aria-hidden="true">📖</span> 10 páginas por dia
+            </button>
+            <button type="button" class="preset" data-preset
+                    data-name="20 minutos antes de dormir" data-emoji="🌙"
+                    data-type="HOUR_COUNT" data-period="DAILY" data-time="0:20">
+              <span class="preset__emoji" aria-hidden="true">🌙</span> 20 minutos antes de dormir
+            </button>
+            <button type="button" class="preset" data-preset
+                    data-name="Seg, qua e sex: 30 páginas" data-emoji="🎯"
+                    data-type="PAGE_COUNT" data-period="WEEKDAYS" data-target="30" data-weekdays="0,2,4">
+              <span class="preset__emoji" aria-hidden="true">🎯</span> 30 páginas seg/qua/sex
+            </button>
+            <button type="button" class="preset" data-preset
+                    data-name="2 horas por semana" data-emoji="⏱️"
+                    data-type="HOUR_COUNT" data-period="WEEKLY" data-time="2:00">
+              <span class="preset__emoji" aria-hidden="true">⏱️</span> 2 horas por semana
+            </button>
+            <button type="button" class="preset" data-preset
+                    data-name="300 páginas no mês" data-emoji="📚"
+                    data-type="PAGE_COUNT" data-period="MONTHLY" data-target="300">
+              <span class="preset__emoji" aria-hidden="true">📚</span> 300 páginas no mês
+            </button>
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" id="individual-goal-form" novalidate
+            data-book-pages="{{ form.book_pages_json|default:'{}' }}">
+        {% csrf_token %}
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+        {% if form.non_field_errors %}
+          <div class="form-errors" role="alert">
+            {% for error in form.non_field_errors %}
+              <span class="error">{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="form-grid">
+          <div class="form-col">
+            <div class="field {% if form.name.errors %}field--error{% endif %}" data-field="name">
+              <label for="{{ form.name.id_for_label }}">{{ form.name.label }} <span class="required">*</span></label>
+              <div class="name-row">
+                <span class="name-row__emoji" data-emoji-preview aria-hidden="true"{% if not form.emoji.value %} hidden{% endif %}>{{ form.emoji.value }}</span>
+                {{ form.name }}
+              </div>
+              {% for error in form.name.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+
+            <fieldset class="field type-field">
+              <legend>Emoji da meta</legend>
+              <div class="emoji-options">
+                <label class="emoji-option" title="Sem emoji">
+                  <input type="radio" name="{{ form.emoji.html_name }}" value=""
+                         {% if not form.emoji.value %}checked{% endif %} />
+                  <span><i class="bx bx-block" aria-hidden="true"></i><span class="sr-only">Nenhum</span></span>
+                </label>
+                {% for value, label in form.emoji.field.choices %}
+                  {% if value %}
+                    <label class="emoji-option">
+                      <input type="radio" name="{{ form.emoji.html_name }}" value="{{ value }}"
+                             {% if form.emoji.value == value %}checked{% endif %} />
+                      <span>{{ label }}</span>
+                    </label>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </fieldset>
+
+            <fieldset class="field type-field {% if form.goal_type.errors %}field--error{% endif %}">
+              <legend>O que medir <span class="required">*</span></legend>
+              <div class="type-options">
+                <label class="type-option">
+                  <input type="radio" name="{{ form.goal_type.html_name }}" value="PAGE_COUNT"
+                         {% if form.goal_type.value != 'HOUR_COUNT' %}checked{% endif %} />
+                  <span><i class="bx bx-book-open" aria-hidden="true"></i> Páginas</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="{{ form.goal_type.html_name }}" value="HOUR_COUNT"
+                         {% if form.goal_type.value == 'HOUR_COUNT' %}checked{% endif %} />
+                  <span><i class="bx bx-time-five" aria-hidden="true"></i> Tempo de leitura</span>
+                </label>
+              </div>
+              {% for error in form.goal_type.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </fieldset>
+
+            <fieldset class="field type-field {% if form.period.errors %}field--error{% endif %}">
+              <legend>Com que frequência? <span class="required">*</span></legend>
+              <div class="period-options">
+                <label class="type-option">
+                  <input type="radio" name="{{ form.period.html_name }}" value="DAILY"
+                         {% if form.period.value == 'DAILY' %}checked{% endif %} />
+                  <span><i class="bx bx-sun" aria-hidden="true"></i> Todo dia</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="{{ form.period.html_name }}" value="WEEKDAYS"
+                         {% if form.period.value == 'WEEKDAYS' %}checked{% endif %} />
+                  <span><i class="bx bx-calendar-check" aria-hidden="true"></i> Dias específicos</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="{{ form.period.html_name }}" value="WEEKLY"
+                         {% if form.period.value == 'WEEKLY' %}checked{% endif %} />
+                  <span><i class="bx bx-calendar-week" aria-hidden="true"></i> Por semana</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="{{ form.period.html_name }}" value="MONTHLY"
+                         {% if form.period.value == 'MONTHLY' %}checked{% endif %} />
+                  <span><i class="bx bx-calendar" aria-hidden="true"></i> Por mês</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="{{ form.period.html_name }}" value="TOTAL"
+                         {% if form.period.value == 'TOTAL' %}checked{% endif %} />
+                  <span><i class="bx bx-infinite" aria-hidden="true"></i> No total</span>
+                </label>
+              </div>
+              {% for error in form.period.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </fieldset>
+
+            <fieldset class="field type-field {% if form.weekdays.errors %}field--error{% endif %}"
+                      id="block-weekdays" data-field="weekdays">
+              <legend>Quais dias? <span class="required">*</span></legend>
+              <div class="day-options">
+                {% for day in form.weekdays %}
+                  <label class="day-option">
+                    {{ day.tag }}
+                    <span>{{ day.choice_label }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+              {% for error in form.weekdays.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </fieldset>
+
+            <div class="field {% if form.target.errors %}field--error{% endif %}" id="block-pages" data-field="target">
+              <label for="{{ form.target.id_for_label }}">
+                <span data-target-label>Páginas por dia</span> <span class="required">*</span>
+              </label>
+              <div class="unit-input unit-input--short">
+                {{ form.target }}
+                <span aria-hidden="true">páginas</span>
+              </div>
+              <small class="help">Quantas páginas você quer ler <span data-period-hint>por dia</span>.</small>
+              {% for error in form.target.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+
+            <div class="field {% if form.target_time.errors %}field--error{% endif %}" id="block-time" data-field="target_time">
+              <label for="{{ form.target_time.id_for_label }}">
+                <span data-target-label>Tempo por dia</span> <span class="required">*</span>
+              </label>
+              <div class="unit-input unit-input--short">
+                {{ form.target_time }}
+                <span aria-hidden="true">h:min</span>
+              </div>
+              <small class="help">Horas e minutos, ex.: 0:20 ou 1:30.</small>
+              {% for error in form.target_time.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+          </div>
+
+          <div class="form-col">
+            <div class="field {% if form.book.errors %}field--error{% endif %}">
+              <label for="{{ form.book.id_for_label }}">{{ form.book.label }}</label>
+              {{ form.book }}
+              <small class="help">Deixe em "Meta geral" para contar a leitura de qualquer livro, ou escolha um livro (os da estante "Lendo" aparecem primeiro).</small>
+              {% for error in form.book.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+
+            <fieldset class="field type-field">
+              <legend>Duração</legend>
+              <div class="type-options">
+                <label class="type-option">
+                  <input type="radio" name="duration" value="continuous"
+                         {% if not form.deadline.value and not form.deadline.errors %}checked{% endif %} />
+                  <span><i class="bx bx-infinite" aria-hidden="true"></i> Contínua</span>
+                </label>
+                <label class="type-option">
+                  <input type="radio" name="duration" value="deadline"
+                         {% if form.deadline.value or form.deadline.errors %}checked{% endif %} />
+                  <span><i class="bx bx-flag" aria-hidden="true"></i> Até uma data</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="field {% if form.deadline.errors %}field--error{% endif %}" id="block-deadline" data-field="deadline">
+              <label for="{{ form.deadline.id_for_label }}">Data limite <span class="required">*</span></label>
+              {{ form.deadline }}
+              <small class="help">A meta vale até o fim do dia escolhido.</small>
+              {% for error in form.deadline.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+
+            {% if form.status %}
+              {% include "goals/_goal_field.html" with field=form.status %}
+            {% endif %}
+
+            <div class="field {% if form.description.errors %}field--error{% endif %}">
+              <label for="{{ form.description.id_for_label }}">Observação</label>
+              {{ form.description }}
+              {% for error in form.description.errors %}<span class="error">{{ error }}</span>{% endfor %}
+            </div>
+
+            <div class="goal-preview" aria-live="polite">
+              <span class="goal-preview__label">Prévia no seu perfil</span>
+              <div class="goal-preview__body">
+                <span class="goal-preview__emoji" data-preview-emoji aria-hidden="true"{% if not form.emoji.value %} hidden{% endif %}>{{ form.emoji.value }}</span>
+                <div>
+                  <strong data-preview-name>Sua meta</strong>
+                  <p data-preview-schedule>—</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a class="btn-outline" href="{% url 'accounts:profile' %}">Cancelar</a>
+          <button type="submit" class="btn">{% if is_edit %}Atualizar{% else %}Criar meta{% endif %}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  {% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        showToast(
+          '{% if "error" in message.tags %}error{% elif "success" in message.tags %}success{% else %}info{% endif %}',
+          '{{ message|escapejs }}'
+        );
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
+{% endblock %}

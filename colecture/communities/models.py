@@ -1,14 +1,30 @@
+from datetime import timedelta
+
 from django.conf import settings;
 from django.core.validators import URLValidator;
 from django.db import models;
 from django.utils import timezone;
+from django.utils.crypto import get_random_string;
 
 # CONSTANTES
+INVITATION_EXPIRATION = 15; # em minutos
+INVITATION_CODE_LENGTH = 8;
 COMMUNITY_NAME_LENGTH = 100;
 COMMUNITY_DESC_LENGTH = 5000;
 COMMUNITY_ICON_LENGTH = 500;
 # dias que uma comunidade arquivada fica no banco antes de ser excluída
 ARCHIVE_RETENTION_DAYS = 60;
+COMMUNITY_CODE_LENGTH = 8;
+# sem 0/O e 1/I para o código não ser confundido ao digitar
+COMMUNITY_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+
+def generate_community_code():
+    """Sorteia um código que ainda não é usado por nenhuma comunidade."""
+    while True:
+        code = get_random_string(COMMUNITY_CODE_LENGTH, COMMUNITY_CODE_CHARS);
+        if not Community.objects.filter(code=code).exists():
+            return code;
 
 # Create your models here.
 
@@ -67,8 +83,21 @@ class Community(models.Model):
     )
     # Quando foi arquivada (apoia a regra dos 60 dias). Preenchido pelo save().
     archived_at = models.DateTimeField(null=True, blank=True, editable=False)
+    # Código fixo da comunidade (não expira). Quem tem o código pode pedir
+    # entrada numa comunidade privada; o moderador ainda precisa aceitar.
+    # Preenchido automaticamente pelo save().
+    code = models.CharField(
+        max_length=COMMUNITY_CODE_LENGTH,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+    )
 
     def save(self, *args, **kwargs):
+        # toda comunidade ganha um código fixo na primeira vez que é salva
+        if not self.code:
+            self.code = generate_community_code()
         # mantém archived_at coerente com o estado, qualquer que seja o
         # caminho usado para arquivar (view de arquivar ou formulário de edição)
         if self.state == self.State.ARCHIVED and self.archived_at is None:
@@ -133,3 +162,33 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.community} ({self.role}, {self.status})";
+
+class Invitation(models.Model):
+
+    community = models.ForeignKey(
+        Community,
+        on_delete=models.CASCADE,
+        related_name="community_invitations"
+    );
+
+    invitation_code = models.CharField(
+        max_length=INVITATION_CODE_LENGTH,
+        unique=True,
+        null=False
+    );
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    );
+
+    expires_at = models.DateTimeField(
+        null=True
+    );
+
+    is_used = models.BooleanField(
+        default=False
+    );
+
+    @property
+    def is_expired(self):
+        return self.expires_at and timezone.now() > self.expires_at;

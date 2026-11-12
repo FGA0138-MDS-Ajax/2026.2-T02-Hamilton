@@ -2,7 +2,7 @@
 from django.test import TestCase, Client;
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from .models import Community, Membership
+from .models import Community, Membership, Invitation;
 from .services import CommunityService
 from datetime import datetime, timedelta;
 from django.utils import timezone
@@ -17,6 +17,74 @@ from accounts.services import AccountService;
 class CT03(TestCase):
     def setUp(self):
         self.client = Client();
+
+    def test_join_via_code(self):
+        creator_user = AccountService.create_account(
+            get_user_model().objects.create(username='Creator')
+        );
+        participant_user = AccountService.create_account(
+            get_user_model().objects.create(username='Participant')
+        );
+        community = CommunityService.create_community(
+            Community.objects.create(
+                name='NewCommunity',
+                description='Description',
+                creator=creator_user,
+                access=Community.Access.PRIVATE
+            ),
+            creator_user
+        );
+
+        # creator creates invitation
+        self.client.force_login(creator_user);
+        response0 = self.client.get(
+            reverse(
+                "communities:gen_invitation",
+                kwargs={'community_id':community.id}
+            )
+        );
+        invitation = Invitation.objects.filter(
+            community = community,
+        ).first();
+
+        self.assertEqual(response0.status_code, 200);
+        self.assertIsNotNone(invitation);
+        invitation_code = invitation.invitation_code;
+
+        self.client.force_login(participant_user);
+        response1 = self.client.post(
+            reverse(
+                'communities:join_community_invitation',
+                kwargs={
+                    'community_id':community.id,
+                    'invitation_code':'incorrect_code'
+                }
+            )
+        );
+        self.assertEqual(response1.status_code, 403);
+        self.assertFalse(invitation.is_used);
+
+        self.client.force_login(participant_user);
+        response2 = self.client.post(
+            reverse(
+                'communities:join_community_invitation',
+                kwargs={
+                    'community_id':community.id,
+                    'invitation_code':invitation_code
+                }
+            )
+        );
+        self.assertEqual(response2.status_code, 302);
+        self.assertTrue(MembershipService.user_in_community(
+            participant_user,
+            community
+        ));
+        self.assertFalse(
+            Invitation.objects.filter(
+                invitation_code=invitation_code
+            ).exists()
+        );
+
 
     def test_edit_community_VALID(self):
         # usuários
@@ -767,6 +835,52 @@ class MembershipRequestTest(TestCase):
         self.assertEqual(membership.status, Membership.Status.ACTIVE)
         self.assertEqual(membership.role, Membership.Role.MEMBER)
 
+    # ---------- código fixo da comunidade ----------
+
+    # toda comunidade nasce com um código fixo
+    def test_community_gets_fixed_code(self):
+        self.assertEqual(len(self.community.code), 8)
+        code = self.community.code
+        self.community.save()
+        self.community.refresh_from_db()
+        self.assertEqual(self.community.code, code)
+
+    # código certo pela home: vira solicitação PENDENTE (não entra direto)
+    def test_join_by_code_creates_pending_request(self):
+        self.client.force_login(self.outsider)
+        response = self.client.post(
+            reverse("communities:join_by_code"),
+            {"codigo": self.community.code.lower()},
+        )
+        # continua na home (não vai para a página da comunidade)
+        self.assertRedirects(
+            response, reverse("communities:home_community"), fetch_redirect_response=False
+        )
+        membership = Membership.objects.get(user=self.outsider, community=self.community)
+        self.assertEqual(membership.status, Membership.Status.PENDING)
+        self.assertEqual(membership.role, Membership.Role.NONE)
+
+    # código errado: volta para a home e não cria nada
+    def test_join_by_wrong_code_does_nothing(self):
+        self.client.force_login(self.outsider)
+        response = self.client.post(
+            reverse("communities:join_by_code"), {"codigo": "ERRADO00"}
+        )
+        self.assertRedirects(
+            response, reverse("communities:home_community"), fetch_redirect_response=False
+        )
+        self.assertFalse(
+            Membership.objects.filter(user=self.outsider, community=self.community).exists()
+        )
+
+    # o código aparece para membros e fica escondido de quem é de fora
+    def test_code_shown_to_members_only(self):
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.community_url), self.community.code)
+
+        self.client.force_login(self.outsider)
+        self.assertNotContains(self.client.get(self.community_url), self.community.code)
+
     # ---------- restrição de perfil ----------
 
     # membro comum, forasteiro e o próprio solicitante não decidem solicitações
@@ -1289,19 +1403,52 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertTrue(cards["closed"][0]["closed"])
 
     def test_card_has_completion_count_and_forum(self):
-        goal = self.make_goal("Com fórum")
-        self.GoalParticipation.objects.create(goal=goal, user=self.member)
+        # a meta criada já inscreve todos: o criador da comunidade e o membro
+        self.make_goal("Com fórum")
         self.client.force_login(self.member)
         card = self.client.get(self.url).context["goal_cards"]["active"][0]
-        self.assertEqual(card["completion"], {"done": 0, "total": 1})
+        self.assertEqual(card["completion"], {"done": 0, "total": 2})
         self.assertIsNotNone(card["forum"])
 
-    def test_goal_without_forum_has_no_forum_in_card(self):
-        self.make_goal("Sem fórum", with_forum=False)
+    def test_card_without_forum_shows_name_without_link(self):
+        goal = self.make_goal("Sem link")
+        self.Forum.objects.filter(goal=goal).delete()
         self.client.force_login(self.member)
-        card = self.client.get(self.url).context["goal_cards"]["active"][0]
-        self.assertIsNone(card["forum"])
-        self.assertContains(self.client.get(self.url), 'data-no-forum')
+        response = self.client.get(self.url)
+        self.assertIsNone(response.context["goal_cards"]["active"][0]["forum"])
+        self.assertContains(response, 'Sem link')
+        self.assertEqual(self.client.get(f"/goals/{goal.id}/").status_code, 404)
+
+    def test_card_title_goes_straight_to_forum_even_without_participating(self):
+        goal = self.make_goal("Com fórum")
+        forum = self.Forum.objects.get(goal=goal)
+        self.client.force_login(self.member)  
+        forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
+        response = self.client.get(self.url)
+        self.assertContains(response, f'class="goal-card__link" href="{forum_link}"')
+
+    def test_card_has_no_separate_forum_button(self):
+        goal = self.make_goal("Sem botão")
+        forum = self.Forum.objects.get(goal=goal)
+        forum_link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
+        for user in (self.member, self.creator):
+            self.client.force_login(user)
+            response = self.client.get(self.url)
+            self.assertContains(response, f'href="{forum_link}"', count=1)
+
+    def test_edit_goal_link_is_for_moderators_only(self):
+        goal = self.make_goal("Editável")
+        edit_url = reverse("goals:edit_goal", kwargs={"goal_id": goal.id})
+
+        self.client.force_login(self.creator)
+        response = self.client.get(self.url)
+        self.assertContains(response, f'href="{edit_url}"')
+        self.assertNotContains(response, "data-edit-forum")
+
+        self.client.force_login(self.member)
+        response = self.client.get(self.url)
+        self.assertNotContains(response, edit_url)
+        self.assertNotContains(response, "data-edit-forum")
 
     def test_empty_state_shows_create_button_only_to_moderator(self):
         self.client.force_login(self.member)
@@ -1320,7 +1467,7 @@ class CT_CommunityGoalsPage(TestCase):
         self.assertIsNone(response.context["general_forum"])
 
     def test_general_forum_link_is_shown_to_members_only(self):
-        forum = self.Forum.objects.create(name="Fórum geral", community=self.community)
+        forum = self.Forum.objects.get(community=self.community)
         link = reverse("forums:view_forum", kwargs={"forum_id": forum.id})
 
         self.client.force_login(self.member)

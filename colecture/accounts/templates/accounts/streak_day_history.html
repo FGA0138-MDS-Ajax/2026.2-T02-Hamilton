@@ -1,0 +1,139 @@
+
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Histórico de leitura | CoLecture{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'main/css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/streak.css' %}">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<div class="streak-page">
+
+    <header class="streak-header">
+        <div>
+            <a href="{% url 'accounts:streak_calendar' %}" class="streak-back">
+                <i class="bx bx-arrow-back"></i>
+                Voltar ao calendário
+            </a>
+
+            <h1>Histórico de leitura</h1>
+
+            <p>
+                {{ selected_date|date:"d/m/Y" }}
+            </p>
+        </div>
+
+        <div class="streak-header-icon">
+            <i class="bx bxs-flame"></i>
+        </div>
+    </header>
+
+    <section class="streak-summary">
+
+        <div class="streak-summary-card">
+            <i class="bx bx-book-open"></i>
+            <strong>{{ total_sessions }}</strong>
+            <span>Sessões de leitura</span>
+        </div>
+
+        <div class="streak-summary-card">
+            <i class="bx bx-book"></i>
+            <strong>{{ total_pages }}</strong>
+            <span>Páginas lidas</span>
+        </div>
+
+        <div class="streak-summary-card">
+            <i class="bx bx-time-five"></i>
+            <strong>{{ total_minutes }}</strong>
+            <span>Minutos de leitura</span>
+        </div>
+
+    </section>
+
+    <section class="streak-history-section">
+
+        <div class="streak-section-title">
+            <h2>
+                <i class="bx bx-history"></i>
+                Sessões do dia
+            </h2>
+
+            <span>{{ total_sessions }} registro(s)</span>
+        </div>
+
+        {% if has_sessions %}
+
+            <div class="streak-session-list">
+
+                {% for session in sessions %}
+
+                    <article class="streak-session-card">
+
+                        <div class="session-icon">
+                            <i class="bx bx-book-open"></i>
+                        </div>
+
+                        <div class="session-details">
+
+                            <h3>{{ session.book.title }}</h3>
+
+                            <div class="session-metadata">
+
+                                <span>
+                                    <i class="bx bx-book"></i>
+                                    {% if session.pages_read is not None %}
+                                        {{ session.pages_read }} páginas
+                                    {% elif session.stopped_percent is not None %}
+                                        parou em {{ session.stopped_percent }}%
+                                    {% else %}
+                                        leitura em percentual
+                                    {% endif %}
+                                </span>
+
+                                <span>
+                                    <i class="bx bx-time-five"></i>
+                                    {{ session.minute_count }} minutos
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="streak-empty">
+
+                <i class="bx bx-book-open"></i>
+
+                <h2>Nenhuma leitura registrada</h2>
+
+                <p>
+                    Não encontramos sessões de leitura nesta data.
+                    Que tal começar uma nova leitura?
+                </p>
+
+                <a href="{% url 'accounts:streak_calendar' %}"
+                   class="streak-primary-button">
+                    Voltar ao calendário
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}

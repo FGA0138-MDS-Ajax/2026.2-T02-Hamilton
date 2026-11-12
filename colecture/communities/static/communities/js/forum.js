@@ -1,4 +1,3 @@
-
 var dados = JSON.parse(document.getElementById("dados-forum").textContent);
 
 var storageKey = "colectureForum-" + dados.id;
@@ -58,7 +57,11 @@ function saveState() {
 
 function renderHeader() {
   if (dados.community_url) {
-    document.getElementById("forumBack").href = dados.community_url;
+    var forumBack = document.getElementById("forumBack");
+    forumBack.href = dados.community_url;
+    if (dados.back_label) {
+      forumBack.innerHTML = "&larr; " + dados.back_label;
+    }
     forumBox.dataset.redirectUrl = dados.community_url;
   }
 
@@ -402,33 +405,18 @@ function getTime() {
 }
 
 function sendMessage() {
-  var text = messageInput.value.trim();
-
-  if (text === "" || state.locked) {
+  if (messageInput.value.trim() === "" || state.locked) {
     return;
   }
 
-  // BACKEND: fetch(sendUrl, { method: "POST", body: ... }).then(...) e usar a resposta do servidor
-  state.messages.push({
-    id: Date.now(),
-    author: dados.current_user || "Você",
-    text: text,
-    time: getTime(),
-    mine: true,
-    reply_to: replyingTo
-  });
-
-  cancelReply();
-  saveState();
-  messageInput.value = "";
-  resizeInput();
-  renderMessages();
-  renderDetails();
+  // POST normal para forums:view_forum; o servidor grava e redireciona de volta
+  composer.submit();
 }
 
 composer.addEventListener("submit", function (event) {
-  event.preventDefault();
-  sendMessage();
+  if (messageInput.value.trim() === "" || state.locked) {
+    event.preventDefault();
+  }
 });
 
 messageInput.addEventListener("keydown", function (event) {
@@ -458,6 +446,29 @@ if (dados.is_moderator) {
   forumMenu.classList.remove("hidden");
 }
 
-loadState();
+// Pop-up de edição do fórum da meta (título e status). Os três pontinhos só
+// existem no fórum de meta para moderação.
+var editDots = document.getElementById("forumEditDots");
+var editDialog = document.getElementById("forumEditDialog");
+
+if (editDots && editDialog) {
+  var editForm = editDialog.querySelector("form");
+  var editName = document.getElementById("forumEditName");
+
+  editDots.addEventListener("click", function () {
+    editDialog.showModal();
+    editName.select();
+  });
+
+  document.getElementById("forumEditCancel").addEventListener("click", function () {
+    editDialog.close();
+  });
+
+  // fechar (Cancelar ou Esc) descarta o que foi digitado
+  editDialog.addEventListener("close", function () {
+    editForm.reset();
+  });
+}
+
 renderHeader();
 renderAll();

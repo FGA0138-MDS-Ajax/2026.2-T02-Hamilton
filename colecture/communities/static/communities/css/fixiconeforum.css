@@ -1,0 +1,7 @@
+/* O ícone unpkg do botao de fórum geral está desalinhado, esse arquivo arruma isto */
+
+.bx {
+    line-height: 1;
+    display: inline-flex;
+    padding-left: 10px;
+}

@@ -1,7 +1,7 @@
 {% extends "sidebar.html" %}
 {% load static %}
 
-{% block title %}Cadastrar livro - CoLecture{% endblock %}
+{% block title %}{% if form.instance.pk %}Editar Livro{% else %}Cadastrar livro{% endif %} - CoLecture{% endblock %}
 
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'books/css/book_form.css' %}" />
@@ -22,9 +22,13 @@
 
     {# section (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
     <section class="book-form">
-      <h1>Cadastrar livro</h1>
+      <h1>{% if form.instance.pk %}Editar Livro{% else %}Cadastrar livro{% endif %}</h1>
       <p class="intro">
-        Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
+        {% if form.instance.pk %}
+          Atualize as informações do livro no catálogo. Campos marcados com * são obrigatórios.
+        {% else %}
+          Não encontrou o livro na busca? Cadastre-o no catálogo. Campos marcados com * são obrigatórios.
+        {% endif %}
       </p>
 
       {# Sem "action": o formulário envia para a mesma URL da página. #}
@@ -63,7 +67,7 @@
         {% endfor %}
         </div>
 
-        <button type="submit" class="btn">Cadastrar livro</button>
+        <button type="submit" class="btn">{% if form.instance.pk %}Atualizar{% else %}Cadastrar livro{% endif %}</button>
       </form>
     </section>
   </div>

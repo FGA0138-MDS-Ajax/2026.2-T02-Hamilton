@@ -1,7 +1,11 @@
+from datetime import timedelta;
+
+from django.utils import timezone;
+from django.utils.crypto import get_random_string;
 from django.utils import timezone;
 
-from .models import Membership;
-from forums.models import Forum;
+from .models import Membership, Invitation, INVITATION_EXPIRATION, INVITATION_CODE_LENGTH;
+from forums.models import Forum, FORUM_NAME_MAX_LENGTH;
 
 class MembershipService:
     @staticmethod
@@ -54,6 +58,27 @@ class MembershipService:
 
         return membership;
 
+    @staticmethod
+    def delete_invitation(community, invitation_code):
+        invitation = Invitation.objects.filter(
+            community=community,
+            invitation_code=invitation_code
+        ).first();
+
+        if invitation:
+            invitation.delete();
+    
+    @staticmethod
+    def generate_invitation(community):
+        invitation = Invitation();
+
+        invitation.invitation_code = get_random_string(length=INVITATION_CODE_LENGTH);
+        invitation.community = community;
+        invitation.expires_at = timezone.now() + timedelta(minutes=INVITATION_EXPIRATION);
+        invitation.save();
+
+        return invitation;
+
 class CommunityService:
     @staticmethod
     def create_community(community, creator=None, icon=None):
@@ -61,10 +86,13 @@ class CommunityService:
         community.icon = icon or "";
         community.save();
 
-        # forum principal de comunidade
-        main_forum = Forum.objects.create(
-            name=community.name+" Forum",
+        # forum principal de comunidade. O nome é cortado para caber
+        # no limite do campo (o nome da comunidade já pode ter 100
+        # caracteres) e get_or_create evita um segundo fórum geral
+        # se a função for chamada de novo para a mesma comunidade.
+        Forum.objects.get_or_create(
             community=community,
+            defaults={'name':(community.name+" Forum")[:FORUM_NAME_MAX_LENGTH]},
         );
 
         return community;

@@ -1,38 +1,121 @@
 {% extends "sidebar.html" %}
+{% load static %}
 
 {% block title %}{{ goal.name }} - CoLecture{% endblock %}
 
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'communities/css/meta_form.css' %}" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block content %}
-  <h1>{{ goal.name }}</h1>
+  <div class="goal-page">
 
-  {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+    {# Toasts / Mensagens de feedback #}
+    {% if messages %}
+      <ul class="mensagens">
+        {% for message in messages %}
+          <li class="mensagem {{ message.tags }}" role="alert">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
 
-  <p>Objetivo: {{ goal.target }} ({{ goal.get_goal_type_display }}) · Status: {{ goal.get_status_display }}</p>
-  <p>Progresso: {{ progress.current }}/{{ progress.target }} ({{ progress.percent }}%)</p>
+    <div class="goal-header-nav">
+      {% if goal.owner_community %}
+        <a class="back-link" href="{% url 'communities:view_community' goal.owner_community.id %}">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar à comunidade
+        </a>
+      {% elif goal.community %}
+        <a class="back-link" href="{% url 'communities:view_community' goal.community.id %}">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar à comunidade
+        </a>
+      {% else %}
+        <a class="back-link" href="{% url 'main:index' %}">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar
+        </a>
+      {% endif %}
+    </div>
 
-  {% if goal.book %}
-    <p>Livro: <a href="{% url 'books:book_detail' goal.book.id %}">{{ goal.book.title }}</a></p>
-  {% endif %}
+    <section class="goal-form-container" aria-labelledby="goal-title">
+      <header class="goal-header">
+        <h1 id="goal-title">{{ goal.name }}</h1>
+        {% if goal.owner_community %}
+          <p class="intro">Comunidade: <strong>{{ goal.owner_community.name }}</strong></p>
+        {% elif goal.community %}
+          <p class="intro">Comunidade: <strong>{{ goal.community.name }}</strong></p>
+        {% endif %}
+      </header>
 
-  {% if goal.deadline %}
-    <p>Tempo restante: {{ time_remaining.days }} dia(s)</p>
-  {% endif %}
+      <div class="goal-details-content" style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 32px; color: var(--text-secondary);">
+        {% if goal.description %}
+          <div class="field">
+            <label>Descrição</label>
+            <p style="color: var(--text-primary); margin: 0; line-height: 1.5;">{{ goal.description|linebreaksbr }}</p>
+          </div>
+        {% endif %}
 
-  {% if forum %}
-    <p><a href="{% url 'forums:view_forum' forum.id %}">Ir ao fórum</a></p>
-  {% endif %}
+        <div class="field">
+          <label>Informações da Meta</label>
+          <p style="color: var(--text-primary); margin: 0;">
+            Objetivo: <strong>{{ goal.target }}</strong> ({{ goal.get_goal_type_display }}) · Status: <strong>{{ goal.get_status_display }}</strong>
+          </p>
+        </div>
 
-  {% if can_join %}
-    <form method="POST" action="{% url 'goals:join_goal' goal.id %}">
-      {% csrf_token %}<button type="submit">Participar</button>
-    </form>
-  {% elif participates %}
-    <form method="POST" action="{% url 'goals:leave_goal' goal.id %}">
-      {% csrf_token %}<button type="submit">Sair da meta</button>
-    </form>
-  {% endif %}
+        {% if progress %}
+          <div class="field">
+            <label>Progresso</label>
+            <p style="color: var(--text-primary); margin: 0;">
+              {{ progress.current }} / {{ progress.target }} ({{ progress.percent }}%)
+            </p>
+          </div>
+        {% endif %}
 
-  {% if can_manage %}
-    <a href="{% url 'goals:edit_goal' goal.id %}">Editar</a>
-  {% endif %}
+        {% if goal.book %}
+          <div class="field">
+            <label>Livro</label>
+            <p style="margin: 0;">
+              <a href="{% url 'books:book_detail' goal.book.id %}" style="color: var(--purple-300); text-decoration: none;">{{ goal.book.title }}</a>
+            </p>
+          </div>
+        {% endif %}
+
+        {% if goal.deadline %}
+          <div class="field">
+            <label>Prazo</label>
+            <p style="color: var(--text-primary); margin: 0;">
+              Tempo restante: <strong>{{ time_remaining.days }} dia(s)</strong>
+            </p>
+          </div>
+        {% endif %}
+
+        {% if forum %}
+          <div class="field">
+            <label>Fórum</label>
+            <p style="margin: 0;">
+              <a href="{% url 'forums:view_forum' forum.id %}" style="color: var(--purple-300); text-decoration: none;">Ir ao fórum da meta</a>
+            </p>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-actions" style="display: flex; gap: 16px; align-items: center; justify-content: flex-end;">
+        {% if can_join %}
+          <form method="POST" action="{% url 'goals:join_goal' goal.id %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="btn">Participar</button>
+          </form>
+        {% elif participates %}
+          <form method="POST" action="{% url 'goals:leave_goal' goal.id %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="btn-outline">Sair da meta</button>
+          </form>
+        {% endif %}
+
+        {% if can_manage %}
+          <a href="{% url 'goals:edit_goal' goal.id %}" class="btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Editar</a>
+        {% endif %}
+      </div>
+    </section>
+
+  </div>
 {% endblock %}

@@ -25,4 +25,5 @@ urlpatterns = [
     path('communities/', include('communities.urls', namespace='communities')),
     path('goals/', include('goals.urls', namespace='goals')),
     path('forums/', include('forums.urls', namespace='forums')),
+    path('notifications/', include('notifications.urls', namespace='notifications')),
 ]

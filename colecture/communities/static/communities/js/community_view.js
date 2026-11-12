@@ -99,12 +99,6 @@
     });
   });
 
-  Array.prototype.forEach.call(goals.querySelectorAll('[data-no-forum]'), function (btn) {
-    btn.addEventListener('click', function () {
-      toast('error', 'Fórum indisponível', 'Esta meta ainda não tem um fórum.');
-    });
-  });
-
   var dialog = document.getElementById('confirm-conclude');
   if (dialog) {
     var form = document.getElementById('concludeForm');

@@ -116,8 +116,11 @@
 .forum-back {
   display: inline-block;
   margin-bottom: 10px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .forum-back:hover {
@@ -183,6 +186,48 @@
 
 .forum-description-toggle:hover {
   text-decoration: underline;
+}
+
+/* cabeçalho editar e menu */
+.forum-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.forum-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: transparent;
+}
+
+.forum-edit-btn:hover {
+  background: var(--bg-input);
+}
+
+.forum-edit-btn:focus-visible {
+  outline: 2px solid var(--purple-400);
+  outline-offset: 2px;
+}
+
+/* Erros do envio de mensagem */
+.form-errors {
+  padding: 12px 20px 0;
+  background: var(--bg-base);
+}
+
+.form-error {
+  font-size: 0.9rem;
+  color: var(--danger);
 }
 
 /* ---------- Menu 3 pontinhos ---------- */
@@ -540,6 +585,85 @@
 
 .confirm-delete:hover {
   opacity: 0.85;
+}
+
+/* ---------- Pop-up de edição do fórum da meta ---------- */
+.forum-dialog {
+  /* o sidebar.css zera as margens, o que desfaz o margin: auto que
+     centraliza o <dialog> */
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: var(--glow);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.forum-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.forum-dialog h2 {
+  margin-bottom: 4px;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.forum-dialog .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.forum-dialog .field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.forum-dialog .field input,
+.forum-dialog .field select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+
+.forum-dialog .field input:focus-visible,
+.forum-dialog .field select:focus-visible {
+  outline: 2px solid var(--purple-400);
+  outline-offset: 2px;
+}
+
+.forum-dialog .field-hint {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.confirm-save {
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--purple-500);
+  border: 1px solid var(--purple-500);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.confirm-save:hover {
+  background: var(--purple-600);
 }
 
 /* ---------- Logo no fundo do chat ---------- */
