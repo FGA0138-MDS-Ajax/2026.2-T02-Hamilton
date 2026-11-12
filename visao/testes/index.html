@@ -1,0 +1,2171 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação do CoLecture, plataforma web de leitura social (MDS 2026.2, UnB)">
+      
+      
+        <meta name="author" content="Grupo Hamilton">
+      
+      
+      
+        <link rel="prev" href="../metricas/">
+      
+      
+        <link rel="next" href="../../arquitetura/representacao/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Testes - CoLecture</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#testes-de-software" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="CoLecture" class="md-header__button md-logo" aria-label="CoLecture" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CoLecture
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Testes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    2026.2-T02-Hamilton
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../produto/" class="md-tabs__link">
+          
+  
+  
+  Visão do Produto e do Projeto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/representacao/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../atas-reuniao/" class="md-tabs__link">
+          
+  
+  
+  Atas de Reunião
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../sprints/" class="md-tabs__link">
+          
+  
+  
+  Sprints
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contribuir/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Como contribuir
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CoLecture" class="md-nav__button md-logo" aria-label="CoLecture" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CoLecture
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    2026.2-T02-Hamilton
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão do Produto e do Projeto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Visão do Produto e do Projeto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../produto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Produto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../projeto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projeto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../escopo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Escopo e Backlog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metricas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Métricas (GQM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#niveis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Níveis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tipos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ambientes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ambientes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#formas-de-analise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Formas de análise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#criterio-de-avaliacao-previsto-realizado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Critério de avaliação (previsto × realizado)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roteiro-de-testes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roteiro de testes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Roteiro de testes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ct01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT01
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT02
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT03
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT04
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT05
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT06
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT07
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/representacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Representação Arquitetural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/metas-restricoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metas e Restrições
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visões
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atas de Reunião
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Atas de Reunião
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lista de atas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../atas-reuniao/ata-reuniao-7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ata 7
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sprints
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/sprint7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprint 7
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribuir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Como contribuir
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#niveis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Níveis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tipos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ambientes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ambientes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#formas-de-analise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Formas de análise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#criterio-de-avaliacao-previsto-realizado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Critério de avaliação (previsto × realizado)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roteiro-de-testes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roteiro de testes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Roteiro de testes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ct01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT01
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT02
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT03
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT04
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT05
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT06
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ct07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CT07
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="testes-de-software">Testes de Software<a class="headerlink" href="#testes-de-software" title="Permanent link">&para;</a></h1>
+<p>A garantia da qualidade do CoLecture apoia-se em um processo estruturado de verificação e validação (Pressman e Maxim, 2016), com múltiplos níveis, tipos e ambientes integrados ao fluxo Git da equipe.</p>
+<h2 id="niveis">Níveis<a class="headerlink" href="#niveis" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Unitários:</strong> regras de negócio isoladas em Python/Django, como a média de avaliações dos livros, o algoritmo de contagem de ofensivas e as regras de permissão por perfil (Cliente, Moderador e Administrador).</li>
+<li><strong>Integração:</strong> comunicação entre os módulos, incluindo persistência e consulta no SQLite, integração das views com as rotas (URLconf) e os models, e sincronização entre ações nos fóruns e as metas de leitura ativas.</li>
+<li><strong>Sistema:</strong> comportamento do software como um todo, na perspectiva do usuário final, com jornadas completas (cadastro de novo leitor, entrada em comunidade, registro diário de páginas lidas e alcance de metas colaborativas) pela interface responsiva.</li>
+</ol>
+<h2 id="tipos">Tipos<a class="headerlink" href="#tipos" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Funcionais:</strong> validam as saídas contra os requisitos R01 a R22 (o CT06 cobre o R21). Cobrem autenticação, cadastro e filtragem no catálogo, gerenciamento de membros, moderação de tópicos e concessão de insígnias.</li>
+<li><strong>Não funcionais:</strong> responsividade da interface em diferentes resoluções, integridade das sementes de inicialização do banco (seeds) e envio correto de notificações e logs (R21).</li>
+</ul>
+<h2 id="ambientes">Ambientes<a class="headerlink" href="#ambientes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Ambiente</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Desenvolvimento local</td>
+<td>Desenvolvedores e analistas de qualidade executam testes unitários e de integração antes do commit</td>
+</tr>
+<tr>
+<td>Branch <code>sprintN</code> (<code>sprint1</code> a <code>sprint7</code>)</td>
+<td>Homologação e integração: testes de integração e de sistema validam a fusão dos novos recursos; nada vai à <code>main</code> sem aprovação completa</td>
+</tr>
+<tr>
+<td>Branch <code>main</code></td>
+<td>Entrega ao término de cada sprint: recebe apenas código testado, auditado pela qualidade e aprovado pelo Dono do Produto, sem regressões</td>
+</tr>
+</tbody>
+</table>
+<h2 id="formas-de-analise">Formas de análise<a class="headerlink" href="#formas-de-analise" title="Permanent link">&para;</a></h2>
+<p>A eficácia dos testes é acompanhada pelos indicadores do <a href="../metricas/">plano GQM</a>:</p>
+<ul>
+<li><strong>Taxa de cobertura de requisitos:</strong> requisitos testados ÷ implementados em cada sprint, com meta de 100%.</li>
+<li><strong>Densidade de defeitos:</strong> tolerância máxima de 0,2 defeito por requisito testado.</li>
+</ul>
+<h2 id="criterio-de-avaliacao-previsto-realizado">Critério de avaliação (previsto × realizado)<a class="headerlink" href="#criterio-de-avaliacao-previsto-realizado" title="Permanent link">&para;</a></h2>
+<p>Cada caso de teste define um <strong>resultado previsto</strong>; durante a bateria de testes a equipe registra o <strong>resultado realizado</strong>.</p>
+<ul>
+<li>Previsto = realizado: <strong>teste aprovado</strong> (ausência de defeitos).</li>
+<li>Previsto ≠ realizado: <strong>teste reprovado</strong>; o defeito é registrado no histórico da sprint, corrigido e retestado até que os resultados coincidam, o que autoriza a promoção do código à <code>main</code>.</li>
+</ul>
+<h2 id="roteiro-de-testes">Roteiro de testes<a class="headerlink" href="#roteiro-de-testes" title="Permanent link">&para;</a></h2>
+<p>Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de registro de resultados, reparos e ciclos ficam como "[A preencher]" no documento, pois ele reflete a fase de planejamento; serão alimentados com evidências reais ao longo das sprints.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Caso</th>
+<th>Nome</th>
+<th>Requisitos</th>
+<th>Nível</th>
+<th>Tipo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><a href="#ct01">CT01</a></td>
+<td>Validação de Autenticação, Cadastro e Perfil</td>
+<td>R01, R02, R03, R04 (Sprint 1)</td>
+<td>Sistema</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct02">CT02</a></td>
+<td>Catálogo, Registro, Busca e Avaliação de Livros</td>
+<td>R05, R06, R07, R08 (Sprint 2)</td>
+<td>Integrado / Sistema</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct03">CT03</a></td>
+<td>Manter Comunidade e Interface da Página</td>
+<td>R09, R10 (Sprint 3)</td>
+<td>Sistema</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct04">CT04</a></td>
+<td>Metas de Leitura, Manter e Moderar Fórum</td>
+<td>R11, R12, R13, R14 (Sprint 4)</td>
+<td>Sistema</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct05">CT05</a></td>
+<td>Registro de Progresso, Livro Lido, Página de Leitura e Ofensivas</td>
+<td>R15, R16, R17, R18 (Sprint 5)</td>
+<td>Integrado / Sistema</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct06">CT06</a></td>
+<td>Insígnias, Recomendações por Tema e Notificações</td>
+<td>R19, R20, R21 (parte de notificações) (Sprint 6)</td>
+<td>Sistema</td>
+<td>Funcional e Não Funcional</td>
+</tr>
+<tr>
+<td style="text-align: center;"><a href="#ct07">CT07</a></td>
+<td>Gestão Administrativa e Inicialização via Seed</td>
+<td>R02, R03 (Sprint 1 / Gestão Geral)</td>
+<td>Sistema</td>
+<td>Funcional e Não Funcional</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct01">CT01<a class="headerlink" href="#ct01" title="Permanent link">&para;</a></h3>
+<p><strong>Validação de Autenticação, Cadastro e Perfil</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R01, R02, R03, R04 (Sprint 1)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Garantir que o usuário consiga criar uma conta, realizar login com credenciais válidas, efetuar logout e editar suas informações na página de perfil.</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Aplicação no ar e página de login/cadastro acessível.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>O usuário cria a conta, acessa a plataforma e atualiza dados do perfil com sucesso.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Erro ao autenticar credenciais válidas ou falha ao salvar alterações de perfil.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct02">CT02<a class="headerlink" href="#ct02" title="Permanent link">&para;</a></h3>
+<p><strong>Catálogo, Registro, Busca e Avaliação de Livros</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R05, R06, R07, R08 (Sprint 2)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Validar as páginas de registro e pesquisa, o cadastro de livros inexistentes, os filtros do catálogo e o sistema de avaliação (nota 1-5, resenhas e média do livro).</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Integrado / Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Usuário autenticado e catálogo populado para buscas.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>O livro é registrado na página dedicada, aparece nos filtros de busca e permite receber nota (1-5) e resenha, calculando a média corretamente.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Livro não cadastrado, falha nos filtros da busca ou erro no cálculo da média das avaliações.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct03">CT03<a class="headerlink" href="#ct03" title="Permanent link">&para;</a></h3>
+<p><strong>Manter Comunidade e Interface da Página</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R09, R10 (Sprint 3)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Validar a página de comunidade e todas as ações de "manter": criação, configuração de privacidade (aberta/fechada), aprovação e remoção de membros e exclusão/arquivamento da comunidade.</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Usuário autenticado no sistema com perfil de Leitor/Cliente.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>A página da comunidade exibe todas as informações e o moderador consegue gerenciar membros, aprovar solicitações ou excluir a comunidade.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Falha ao carregar a página da comunidade ou negação de acesso nas funções do moderador.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct04">CT04<a class="headerlink" href="#ct04" title="Permanent link">&para;</a></h3>
+<p><strong>Metas de Leitura, Manter e Moderar Fórum</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R11, R12, R13, R14 (Sprint 4)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Testar a criação de metas por capítulos, a visualização de metas ativas/encerradas, a criação/arquivamento de fóruns por meta e as ferramentas de moderação (fixar, trancar, editar e excluir tópicos).</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Comunidade criada e usuário autenticado como Moderador.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>A meta é criada com datas/capítulos, o progresso é listado na visão de metas ativas/encerradas e o moderador consegue fixar/trancar/editar/excluir tópicos do fórum.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Metas não diferenciam status ativo/encerrado ou falha nas permissões de moderação do fórum.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct05">CT05<a class="headerlink" href="#ct05" title="Permanent link">&para;</a></h3>
+<p><strong>Registro de Progresso, Livro Lido, Página de Leitura e Ofensivas</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R15, R16, R17, R18 (Sprint 5)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Validar a página de leitura com abas distintas (leitura do dia vs. livros já lidos), o registro diário de progresso, a marcação do livro como lido e o cálculo das ofensivas (pessoal e da comunidade).</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Integrado / Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Usuário possui livros vinculados à sua conta ("em andamento" ou "lidos").</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>A página de leitura alterna corretamente entre as abas, o progresso/livro lido é registrado com data/porcentagem e a ofensiva (streak) acumula os dias consecutivos.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Erro de navegação entre abas, falha ao registrar status "lido" ou cálculo incorreto da ofensiva.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct06">CT06<a class="headerlink" href="#ct06" title="Permanent link">&para;</a></h3>
+<p><strong>Insígnias, Recomendações por Tema e Notificações</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R19, R20, R21 (parte de notificações) (Sprint 6)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Avaliar a atribuição de insígnias/conquistas, as sugestões do motor de recomendação por temas/tags e o envio de notificações do sistema (aprovações em comunidades, novos ciclos de metas).</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional e Não Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Histórico de leituras/avaliações no perfil e ações disparadoras de notificação disponíveis.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>O leitor recebe insígnias ao bater conquistas, visualiza recomendações alinhadas ao seu perfil e recebe alertas/notificações de aprovações e novos ciclos.</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Recomendações desconexas com o perfil, não concessão de insígnias devidas ou falha no envio de notificações.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ct07">CT07<a class="headerlink" href="#ct07" title="Permanent link">&para;</a></h3>
+<p><strong>Gestão Administrativa e Inicialização via Seed</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisitos associados</td>
+<td>R02, R03 (Sprint 1 / Gestão Geral)</td>
+</tr>
+<tr>
+<td>Objetivo do teste</td>
+<td>Validar a criação automática do perfil Administrador via seed/migration no banco zerado e testar os privilégios de editar, mesclar duplicados ou bloquear usuários.</td>
+</tr>
+<tr>
+<td>Nível do teste</td>
+<td>Sistema</td>
+</tr>
+<tr>
+<td>Tipo de teste</td>
+<td>Funcional e Não Funcional</td>
+</tr>
+<tr>
+<td>Precondições</td>
+<td>Executando <code>python manage.py migrate</code>.</td>
+</tr>
+<tr>
+<td>Critério de aceito</td>
+<td>O admin realiza login com as credenciais padrão do sistema e consegue executar ações restritas (editar, adicionar e remover usuários).</td>
+</tr>
+<tr>
+<td>Critério de rejeitado</td>
+<td>Falha na geração do admin via seed ou ausência de permissões administrativas na interface.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
