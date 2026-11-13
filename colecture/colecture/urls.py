@@ -26,4 +26,6 @@ urlpatterns = [
     path('goals/', include('goals.urls', namespace='goals')),
     path('forums/', include('forums.urls', namespace='forums')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
+    path('rewards/', include('rewards.urls', namespace='rewards')),
+    path('logs/', include('logs.urls', namespace='logs')),
 ]

@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'goals',
     'forums',
     'notifications',
+    'rewards',
+    'logs',
     'django_celery_beat',
 ]
 
