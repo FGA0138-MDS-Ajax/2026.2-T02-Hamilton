@@ -101,7 +101,24 @@
           <h2 id="badges-title">
             <i class="bx bxs-award badge-icon" aria-hidden="true"></i> Insígnias
           </h2>
-          <p class="empty">Nenhuma insígnia conquistada ainda.</p>
+          {% if awards %}
+    <div class="badges-container">
+        {% for award in awards %}
+            <div class="badge-item">
+                {% if award.insignia.icon %}
+                    <img src="{{ award.insignia.icon.url }}" alt="{{ award.insignia.name }}">
+                {% else %}
+                    <i class="bx bxs-award"></i>
+                {% endif %}
+
+                <h3>{{ award.insignia.name }}</h3>
+                <p>{{ award.insignia.description }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="empty">Nenhuma insígnia conquistada ainda.</p>
+{% endif %}
         </section>
 
         <section class="card goal-card" aria-labelledby="goal-title"

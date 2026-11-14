@@ -17,6 +17,14 @@ from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP;
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from rewards.services import check_first_read
+from rewards.services import check_first_read, check_books_read
+from rewards.services import (
+    check_first_read,
+    check_books_read,
+    check_genres_read
+)
+
 from .forms import BookForm, BookReviewForm, ReadingSessionForm
 from .models import Book, BookReview, BookStatus, ReadingSession
 from .services import (
@@ -315,6 +323,15 @@ def mark_book_as_read(request, book_id):
     if book_status.status != BookStatus.Status.READ:
         book_status.mark_as_read()
 
+    #Verificações que serão utilizadas para adiquirir insígnias
+    check_first_read(request.user)
+    check_books_read(request.user)
+    check_first_read(request.user)
+    check_books_read(request.user)
+    check_genres_read(request.user)
+
+        
+
     return JsonResponse({
         'success': True,
         'book_id': book_status.book_id,
@@ -369,6 +386,7 @@ def save_reading_progress(request, book_id):
         book_status.status = BookStatus.Status.READING
         fields.append('status')
     book_status.save(update_fields=fields)
+    check_first_read(request.user) # Verifica primeira leitura do usuario
 
     return JsonResponse({
         'success': True,

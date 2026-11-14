@@ -27,6 +27,18 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
+from rewards.services import (
+    check_first_read,
+    check_daily_pages,
+    check_total_pages,
+    check_daily_minutes,
+    check_total_minutes,
+    check_streak,
+    check_books_read,
+    check_genres_read,
+    check_community_goals_completed,
+)
+
 from accounts.models import Profile
 from .models import BookStatus, ReadingSession
 
@@ -356,6 +368,9 @@ def _sync_streak(user, session_date, rebuild):
         _rebuild_streak(profile)
     elif profile.register_reading_day(session_date):
         profile.save(update_fields=["streak", "last_read_date"])
+
+    check_streak(user) # confere streak do usuario
+    
     return profile
 
 
@@ -485,7 +500,21 @@ def persist_reading_session(user, book, data, session=None, clamp_to_remaining=F
 
         # edição: o conjunto de dias pode ter mudado (inclusive perdido o único dia)
         profile = _sync_streak(user, target.date, rebuild=old_date is not None)
+        
+        # Verificações para atribuição das insígnias
+        check_first_read(user)
+        check_books_read(user)
+        check_genres_read(user)
 
+        check_daily_pages(user)
+        check_total_pages(user)
+
+        check_daily_minutes(user)
+        check_total_minutes(user)
+
+        check_community_goals_completed(user)
+        
+        
         target = next(s for s in ordered if s.pk == target.pk)
 
     return {

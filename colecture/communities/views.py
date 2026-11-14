@@ -530,6 +530,11 @@ def edit_member_role(request, community_id, membership_id):
     # Atualiza somente o cargo
     membership.role = new_role
     membership.save(update_fields=["role"])
+    
+    #verifica quando alguem vira moderador
+    if new_role == Membership.Role.MODERATOR:
+        from rewards.services import check_community_founder
+        check_community_founder(membership.user)
 
     return _redirect_back(request, community)
 

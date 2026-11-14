@@ -85,6 +85,12 @@ class CommunityService:
         community.creator = creator or community.creator;
         community.icon = icon or "";
         community.save();
+        
+        # Verifica criação de comunidade
+        from rewards.services import check_community_founder
+        check_community_founder(community.creator)
+                
+        
 
         # forum principal de comunidade. O nome é cortado para caber
         # no limite do campo (o nome da comunidade já pode ter 100
