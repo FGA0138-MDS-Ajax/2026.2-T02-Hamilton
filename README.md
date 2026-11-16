@@ -139,6 +139,7 @@ Os comandos abaixo ficam em `management/commands/` e são executados dentro da p
 |---|---|---|
 | `python manage.py seed_books` | `books` | Popula o catálogo com livros reais (o ISBN é a chave). |
 | `python manage.py seed_demo` | `books` | Cria usuários, comunidades, mensagens de fórum, metas e uma ofensiva de demonstração. |
+| `python manage.py seed_insignias` | `rewards` | Cadastra os dados das insignias. |
 | `python manage.py purge_archived_communities` | `communities` | Exclui as comunidades arquivadas há mais de 60 dias. |
 
 #### `seed_books`
