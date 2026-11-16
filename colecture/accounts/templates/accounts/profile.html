@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=2" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
+  <link rel="stylesheet" href="{% static 'rewards/css/insignias.css' %}" />
 {% endblock %}
 
 {% block extra_js %}
@@ -97,28 +98,41 @@
           </div>
         </section>
 
-        <section class="card" aria-labelledby="badges-title">
+        <section class="card badges-card" aria-labelledby="badges-title">
           <h2 id="badges-title">
             <i class="bx bxs-award badge-icon" aria-hidden="true"></i> Insígnias
           </h2>
-          {% if awards %}
-    <div class="badges-container">
-        {% for award in awards %}
-            <div class="badge-item">
-                {% if award.insignia.icon %}
-                    <img src="{{ award.insignia.icon.url }}" alt="{{ award.insignia.name }}">
-                {% else %}
-                    <i class="bx bxs-award"></i>
-                {% endif %}
 
-                <h3>{{ award.insignia.name }}</h3>
-                <p>{{ award.insignia.description }}</p>
+          <div class="badges-summary">
+            <p class="badges-summary__count">
+              <strong>{{ insignias.earned_count }}</strong>
+              de {{ insignias.total_count }} insígnia{{ insignias.total_count|pluralize }}
+            </p>
+            <div class="insignia-progress" role="progressbar"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ insignias.percent }}"
+                 aria-label="{{ insignias.percent }}% das insígnias conquistadas">
+              <span style="width: {{ insignias.percent }}%"></span>
             </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <p class="empty">Nenhuma insígnia conquistada ainda.</p>
-{% endif %}
+          </div>
+
+          {% if insignias.recent %}
+            <ul class="badges-preview" aria-label="Últimas insígnias conquistadas">
+              {% for item in insignias.recent %}
+                <li title="{{ item.name }}: {{ item.description }} (conquistada em {{ item.awarded_at|date:'d/m/Y' }})">
+                  {% include "rewards/_insignia_medal.html" with item=item %}
+                  <span class="sr-only">{{ item.name }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="hint">Nenhuma insígnia conquistada ainda. Registre uma leitura para ganhar a primeira!</p>
+          {% endif %}
+
+          <div class="card-action-link">
+            <a href="{% url 'rewards:insignias' %}" class="btn-outline">
+              <i class="bx bx-medal" aria-hidden="true"></i> Ver todas as insígnias
+            </a>
+          </div>
         </section>
 
         <section class="card goal-card" aria-labelledby="goal-title"

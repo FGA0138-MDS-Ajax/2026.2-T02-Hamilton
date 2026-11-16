@@ -1,0 +1,13 @@
+{# Medalhão da insígnia. Espera `item` vindo de rewards.selectors.get_insignia_overview #}
+<span class="insignia-medal insignia-medal--{{ item.slug }}{% if not item.earned %} is-locked{% endif %}{% if size %} insignia-medal--{{ size }}{% endif %}"
+      aria-hidden="true">
+  {% if item.icon_url %}
+    <img src="{{ item.icon_url }}" alt="" loading="lazy" />
+  {% else %}
+    <i class="bx {{ item.fallback_icon }}"></i>
+  {% endif %}
+
+  {% if not item.earned %}
+    <span class="insignia-medal__lock"><i class="bx bxs-lock-alt"></i></span>
+  {% endif %}
+</span>

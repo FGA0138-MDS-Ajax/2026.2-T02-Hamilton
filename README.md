@@ -100,6 +100,12 @@ python manage.py migrate
 
 O `migrate` também cria o **administrador padrão** (R03), já que o banco começa vazio. Veja a seção [Administrador padrão](#administrador-padrão).
 
+Cadastre as insígnias (sem esse comando, o perfil mostra "0 de 0 insígnias"):
+
+```bash
+python manage.py seed_insignias
+```
+
 Opcionalmente, popule o catálogo e os dados de demonstração (veja [Scripts para popular o banco](#scripts-para-popular-o-banco)):
 
 ```bash
@@ -139,7 +145,7 @@ Os comandos abaixo ficam em `management/commands/` e são executados dentro da p
 |---|---|---|
 | `python manage.py seed_books` | `books` | Popula o catálogo com livros reais (o ISBN é a chave). |
 | `python manage.py seed_demo` | `books` | Cria usuários, comunidades, mensagens de fórum, metas e uma ofensiva de demonstração. |
-| `python manage.py seed_insignias` | `rewards` | Cadastra os dados das insignias. |
+| `python manage.py seed_insignias` | `rewards` | Cadastra as 35 insígnias definidas na Reunião 07 (o nome é a chave). Veja [Insígnias](#insígnias-r19). |
 | `python manage.py purge_archived_communities` | `communities` | Exclui as comunidades arquivadas há mais de 60 dias. |
 
 #### `seed_books`
@@ -183,6 +189,59 @@ O comando cria:
 Se o catálogo não tiver os livros usados nas comunidades, o `seed_demo` executa o `seed_books` antes.
 
 > Os dados de demonstração são apenas para desenvolvimento local e não devem ser usados em ambientes acessíveis pela internet.
+
+### Insígnias (R19)
+
+As insígnias foram definidas na Ata da Reunião 07: são 35, numeradas de 1 a 36 (a 18, *Madrugador das Letras*, não foi aprovada). O usuário vê um resumo no card **Insígnias** do perfil (`/user/profile/`) e a lista completa, separada por categoria, em `/rewards/insignias/`. As conquistadas aparecem coloridas com a data; as bloqueadas aparecem em cinza, com cadeado e o critério para conquistar.
+
+#### Como funciona
+
+1. **Cadastro:** o `seed_insignias` grava cada insígnia (`Insignia`) com nome, descrição, categoria (`criteria_type`) e valor do critério (`criteria_value`). O **nome** é a chave: rodar o comando de novo atualiza as insígnias existentes.
+2. **Conquista:** quando o usuário faz algo (registra leitura, marca livro como lido, conclui meta, cria comunidade...), a view ou o service do app chama a função `check_*` correspondente em `rewards/services.py`. Ela verifica o critério e cria um `Award` (usuário + insígnia + data). Algumas funções buscam a insígnia pelo nome, por exemplo `check_community_founder` busca `'Fundador'`.
+3. **Exibição:** `rewards/selectors.py` (`get_insignia_overview`) monta o contexto usado pelo perfil e pela página: as insígnias ativas agrupadas por categoria, na ordem da ata, com o total conquistado e as últimas conquistas.
+
+#### Onde ajustar
+
+| Quero... | Onde |
+|---|---|
+| Mudar nome, descrição ou critério de uma insígnia | `rewards/management/commands/seed_insignias.py` e depois `python manage.py seed_insignias`. Se mudar o **nome**, atualize também `rewards/services.py` (buscas por nome) e `INSIGNIA_NUMBERS` em `rewards/selectors.py`. |
+| Criar uma insígnia nova | Adicione no `seed_insignias.py`, crie/ajuste a função `check_*` em `rewards/services.py`, dê um número em `INSIGNIA_NUMBERS` e salve o ícone (veja abaixo). |
+| Esconder uma insígnia sem apagar | Desmarque `is_active` no painel administrativo (`/admin/`). |
+| Dar uma insígnia manualmente (para testes) | No `/admin/`, crie um **Award** com o usuário e a insígnia. |
+| Trocar o ícone | Substitua o arquivo em `rewards/static/rewards/img/insignias/`. |
+| Mudar a cor de uma categoria | Variáveis `--cat-*` em `main/static/main/css/variables.css`. |
+| Mudar o ícone reserva ou o agrupamento das categorias | `CATEGORY_STYLES` e `DISPLAY_CATEGORY` em `rewards/selectors.py` (ex.: *Fundador* é do tipo `COMMUNITY`, mas aparece em *Metas de comunidade*, como na ata). |
+| Mudar o visual da página ou do card | `rewards/templates/rewards/insignias.html`, `rewards/templates/rewards/_insignia_medal.html` (medalhão), o card em `accounts/templates/accounts/profile.html` e o estilo em `rewards/static/rewards/css/insignias.css`. |
+
+#### Ícones
+
+Os ícones ficam em `rewards/static/rewards/img/insignias/` e são encontrados **pelo nome do arquivo**, sem precisar de cadastro no banco:
+
+```text
+insignia-<número da ata com 2 dígitos>-<nome em slug>.svg   (ou .png)
+insignia-01-primeira-faisca.svg
+insignia-33-fundador.svg
+insignia-36-fenix.svg
+```
+
+O slug é o nome sem acentos, em minúsculas e com hífens (o mesmo do `slugify` do Django). Cada insígnia tem **um único arquivo** (SVG 64×64 com fundo transparente, só o símbolo): o círculo, a borda e o estado bloqueado (cinza, opaco e com cadeado) são feitos por CSS.
+
+A ordem de busca do ícone é:
+
+1. arquivo em `rewards/static/rewards/img/insignias/`;
+2. arquivo enviado no campo `icon` da insígnia (pasta `media/`);
+3. ícone da categoria (Boxicons), se nenhum dos dois existir.
+
+| Categoria | Insígnias | Tema | Cor |
+|---|---|---|---|
+| Ofensiva pessoal | 1 a 8 | Fogo (a chama cresce com os dias) | `--cat-streak` |
+| Livros lidos | 9 a 14 | Livros e estante | `--cat-books` |
+| Progresso diário | 15 a 17 | Páginas | `--cat-pages` |
+| Horas de leitura | 19 a 24 | Relógio e ampulheta | `--cat-hours` |
+| Metas individuais | 25 a 29 | Alvo e bandeira | `--cat-goal` |
+| Metas de comunidade | 30 a 33 | Ciclo e grupo | `--cat-community-goal` |
+| Social, fórum e avaliações | 34 e 35 | Balão de fala e pena | `--cat-social` |
+| Especiais | 36 | Fênix | `--cat-special` |
 
 
 ### Executando os testes
@@ -282,6 +341,16 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
     │   ├── tests.py
     │   ├── migrations/
     │   └── templates/forums/
+    ├── rewards/                   # Insígnias (R19)
+    │   ├── models.py              # Insignia, Award, CriteriaType
+    │   ├── services.py            # Funções check_* que concedem as insígnias
+    │   ├── selectors.py           # get_insignia_overview (dados do perfil e da página)
+    │   ├── views.py
+    │   ├── urls.py
+    │   ├── management/commands/   # seed_insignias
+    │   ├── migrations/
+    │   ├── templates/rewards/     # insignias.html e _insignia_medal.html
+    │   └── static/rewards/        # css/insignias.css e img/insignias/ (ícones SVG)
     └── notifications/             # Notificações e tarefas agendadas
         ├── models.py              # Notification
         ├── tasks.py               # notify_without_reading (Celery)
@@ -376,6 +445,12 @@ Todas as rotas abaixo são relativas a `http://127.0.0.1:8000`. "Logado" signifi
 | `/forums/<id>` | Ver e enviar mensagens no fórum | Membro da comunidade ou participante da meta |
 | `/forums/<id>/edit` | Editar o fórum | Criador, moderador ou administrador |
 | `/forums/messages/<id>/delete/` | Excluir mensagem | Autor ou gestor da comunidade |
+
+#### Insígnias (`/rewards/`)
+
+| Rota | Descrição | Acesso |
+|---|---|---|
+| `/rewards/insignias/` | Todas as insígnias do usuário, por categoria (conquistadas e bloqueadas) | Logado |
 
 ---
 

@@ -14,7 +14,7 @@ from .models import Profile;
 from goals.services import GoalService;
 from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
-from rewards.models import Award
+from rewards.selectors import get_insignia_overview
 
 from books.models import BookStatus, ReadingSession
 
@@ -105,12 +105,6 @@ def profile_view(request):
         )
     ]
 
-    awards = (
-    Award.objects
-    .filter(user=request.user, insignia__is_active=True)
-    .select_related('insignia')
-    .order_by('-awarded_at')
-    )
     context = {
         'profile': profile,
         'individual_goal': individual_goal,
@@ -118,7 +112,7 @@ def profile_view(request):
         'read_today': read_today,
         'shelf_items': shelf_items,
         'shelf_filters': shelf_filters,
-        'awards': awards,
+        'insignias': get_insignia_overview(request.user),
     }
     return render(request, 'accounts/profile.html', context)
 

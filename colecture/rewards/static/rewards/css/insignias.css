@@ -1,0 +1,360 @@
+/* ==========================================================
+   Insígnias (R19): medalhão, card do perfil e página completa
+   Cores de categoria vêm de main/css/variables.css (--cat-*)
+   ========================================================== */
+
+/* ---------- Medalhão (usado no perfil e na página) ---------- */
+.insignia-medal {
+  --medal: var(--badge);
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.18), transparent 60%),
+    color-mix(in srgb, var(--medal) 22%, var(--bg-elevated));
+  border: 2px solid var(--medal);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--medal) 35%, transparent);
+  color: var(--medal);
+  font-size: 24px;
+}
+
+.insignia-medal img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.insignia-medal--lg {
+  width: 96px;
+  height: 96px;
+  font-size: 46px;
+  border-width: 3px;
+}
+
+/* Estado bloqueado: cinza, opaco e com cadeado */
+.insignia-medal.is-locked {
+  background: var(--bg-input);
+  border-color: var(--border-strong);
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.insignia-medal.is-locked > i,
+.insignia-medal.is-locked > img {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.insignia-medal__lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 40%;
+  height: 40%;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 0.45em;
+}
+
+.insignia-medal--lg .insignia-medal__lock {
+  font-size: 18px;
+}
+
+/* Cor por categoria */
+.insignia-medal--streak,         .insignia-category--streak         { --medal: var(--cat-streak); }
+.insignia-medal--books,          .insignia-category--books          { --medal: var(--cat-books); }
+.insignia-medal--pages,          .insignia-category--pages          { --medal: var(--cat-pages); }
+.insignia-medal--hours,          .insignia-category--hours          { --medal: var(--cat-hours); }
+.insignia-medal--goal,           .insignia-category--goal           { --medal: var(--cat-goal); }
+.insignia-medal--community,      .insignia-category--community      { --medal: var(--cat-community); }
+.insignia-medal--community-goal, .insignia-category--community-goal { --medal: var(--cat-community-goal); }
+.insignia-medal--social,         .insignia-category--social         { --medal: var(--cat-social); }
+.insignia-medal--special,        .insignia-category--special        { --medal: var(--cat-special); }
+
+/* ---------- Barra de progresso ---------- */
+.insignia-progress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+}
+
+.insignia-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--purple-500), var(--badge));
+}
+
+/* ---------- Card "Insígnias" do perfil ---------- */
+.badges-card h2 i {
+  color: var(--badge);
+}
+
+.badges-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.badges-summary__count {
+  font-size: 17px;
+  color: var(--text-secondary);
+}
+
+.badges-summary__count strong {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--badge);
+}
+
+.badges-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.badges-preview li {
+  display: flex;
+}
+
+.badges-preview .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Página de insígnias ---------- */
+.insignias-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 40px 40px 56px;
+  box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.insignias-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.insignias-header h1 {
+  margin-top: 14px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.insignias-header p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.insignias-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--purple-300);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.insignias-back:hover {
+  color: var(--purple-400);
+}
+
+.insignias-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+  padding: 18px 22px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.insignias-header .insignias-summary__count {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.insignias-summary__count strong {
+  font-size: 32px;
+  color: var(--badge);
+}
+
+.insignia-category {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.insignia-category h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.insignia-category h2 i {
+  font-size: 26px;
+  color: var(--medal);
+}
+
+.insignia-category__count {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--medal) 15%, transparent);
+  color: var(--medal);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.insignia-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.insignia-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 16px;
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.insignia-card:not(.is-locked):hover {
+  transform: translateY(-2px);
+  border-color: var(--medal, var(--border-strong));
+}
+
+.insignia-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.insignia-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insignia-card.is-locked h3 {
+  color: var(--text-secondary);
+}
+
+.insignia-card__criteria {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.insignia-card__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.insignia-card__status.is-earned {
+  color: var(--success);
+}
+
+.insignias-empty {
+  font-size: 17px;
+  color: var(--text-muted);
+}
+
+/* Tablet: 3 colunas */
+@media (max-width: 900px) {
+  .insignias-page {
+    padding: 32px 24px 40px;
+  }
+
+  .insignia-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Celular: 2 colunas */
+@media (max-width: 600px) {
+  .insignias-page {
+    gap: 20px;
+    padding: 20px 16px 24px;
+  }
+
+  .insignias-summary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .insignia-category {
+    padding: 20px 16px;
+  }
+
+  .insignia-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .insignia-card {
+    padding: 18px 10px;
+  }
+
+  .insignia-medal--lg {
+    width: 72px;
+    height: 72px;
+    font-size: 34px;
+  }
+}

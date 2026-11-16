@@ -29,6 +29,17 @@
   --streak:         #F59E0B;
   --badge:          #D946EF;
 
+  /* Insígnias: uma cor por categoria (R19) */
+  --cat-streak:          var(--streak);   /* fogo / chama */
+  --cat-books:           var(--info);     /* livros / estante */
+  --cat-pages:           #2DD4BF;         /* páginas */
+  --cat-hours:           var(--warning);  /* relógio / ampulheta */
+  --cat-goal:            var(--danger);   /* alvo / bandeira */
+  --cat-community:       var(--success);  /* grupo */
+  --cat-community-goal:  #4ADE80;         /* ciclo */
+  --cat-social:          var(--purple-400); /* balão de fala / pena */
+  --cat-special:         var(--badge);    /* fênix */
+
   --glow:           0 0 24px rgba(139, 92, 246, 0.35);
   --gradient-brand: linear-gradient(135deg, #6D28D9 0%, #8B5CF6 50%, #C084FC 100%);
   --gradient-bg:    radial-gradient(circle at top, #2A1550 0%, #0B0A0F 60%);

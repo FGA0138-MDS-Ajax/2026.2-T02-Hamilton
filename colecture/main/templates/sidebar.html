@@ -33,9 +33,9 @@
 
     <nav class="rail-nav" aria-label="Menu principal">
 
-      {# "Perfil" fica ativo também na edição de perfil, que é uma subpágina dele #}
+      {# "Perfil" fica ativo também nas subpáginas dele (edição de perfil e insígnias) #}
       <a href="{% url 'accounts:profile' %}"
-        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' %}active{% endif %}"
+        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' or request.resolver_match.url_name == 'insignias' %}active{% endif %}"
         {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}
         data-label="Perfil"
         aria-label="Perfil">

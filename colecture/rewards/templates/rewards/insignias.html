@@ -1,0 +1,74 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Insígnias - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'rewards/css/insignias.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="insignias-page">
+
+    <header class="insignias-header">
+      <div>
+        <a href="{% url 'accounts:profile' %}" class="insignias-back">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+        </a>
+        <h1>Minhas insígnias</h1>
+        <p>Conquiste insígnias lendo, batendo metas e participando das comunidades.</p>
+      </div>
+
+      <div class="insignias-summary" aria-label="Progresso geral">
+        <p class="insignias-summary__count">
+          <strong>{{ overview.earned_count }}</strong> de {{ overview.total_count }}
+          <span>insígnia{{ overview.total_count|pluralize }}</span>
+        </p>
+        <div class="insignia-progress" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ overview.percent }}"
+             aria-label="{{ overview.percent }}% das insígnias conquistadas">
+          <span style="width: {{ overview.percent }}%"></span>
+        </div>
+      </div>
+    </header>
+
+    {% for category in overview.categories %}
+      <section class="insignia-category insignia-category--{{ category.slug }}"
+               aria-labelledby="cat-{{ category.slug }}">
+        <h2 id="cat-{{ category.slug }}">
+          <i class="bx {{ category.icon }}" aria-hidden="true"></i>
+          {{ category.label }}
+          <span class="insignia-category__count">{{ category.earned_count }}/{{ category.total_count }}</span>
+        </h2>
+
+        <ul class="insignia-grid">
+          {% for item in category.items %}
+            <li class="insignia-card{% if not item.earned %} is-locked{% endif %}">
+              {% include "rewards/_insignia_medal.html" with item=item size="lg" %}
+
+              <div class="insignia-card__body">
+                <h3>{{ item.name }}</h3>
+                <p class="insignia-card__criteria">{{ item.description }}</p>
+
+                {% if item.earned %}
+                  <p class="insignia-card__status is-earned">
+                    <i class="bx bx-check-circle" aria-hidden="true"></i>
+                    Conquistada em {{ item.awarded_at|date:"d/m/Y" }}
+                  </p>
+                {% else %}
+                  <p class="insignia-card__status">
+                    <i class="bx bxs-lock-alt" aria-hidden="true"></i> Bloqueada
+                  </p>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% empty %}
+      <p class="insignias-empty">Nenhuma insígnia cadastrada ainda.</p>
+    {% endfor %}
+
+  </div>
+{% endblock %}
