@@ -142,7 +142,8 @@ def check_daily_pages(user):
         return False
 
 # Exige um mínimo de 100 páginas em um único dia para validar
-    if daily_pages['total_pages'] < 100:
+    # Sessões em percentual (livro sem páginas) não somam páginas: o total vem None
+    if (daily_pages['total_pages'] or 0) < 100:
         return False
 
 # Busca a insígnia específica de maratonista de páginas
