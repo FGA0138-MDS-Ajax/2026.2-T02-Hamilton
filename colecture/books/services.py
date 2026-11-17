@@ -40,13 +40,31 @@ from rewards.services import (
 )
 
 from accounts.models import Profile
-from .models import BookStatus, ReadingSession
+from .models import BookStatus, ReadingSession, BookReview
+from .forms import GENRE_CHOICES;
 
 MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
 
 PERCENT_STEP = Decimal("0.01")
 PROGRESS_STEP = Decimal("0.001")
 ZERO_PERCENT = Decimal("0.00")
+
+# avaliação (em estrelas):score
+RATING_SCORE_TABLE = {
+    5:5,
+    4:3,
+    3:0,
+    2:-3,
+    1:-5
+};
+BOOKSTATUS_SCORE_TABLE = {
+    BookStatus.Status.READING:2,
+    BookStatus.Status.WANT_TO_READ:3,
+    BookStatus.Status.READ:1
+};
+# ponto/minuto
+# (atual = 1 ponto por hora lida)
+TIME_SCORE_RATE = 1/60;
 
 class BookService:
     @staticmethod
@@ -70,6 +88,69 @@ class ReadingSessionError(Exception):
         self.message = message
         self.field = field
         self.status = status
+
+class BookRecommendationService:
+    @staticmethod
+    def get_recommended_books(user):#TODO: tirar um m
+        # inicia todos os gêneros com
+        # score zero (para o caso de
+        # um usuário não ter nenhum registro).
+        genre_rating = {
+            genre[0]:0
+            for genre in GENRE_CHOICES
+        };
+        reading_sessions = BookService.get_reading_sessions(user);
+        bstatuses = BookStatus.objects.filter(user=user);
+        reviews = BookReview.objects.filter(
+            user=user,
+        );
+
+        # adiciona pontuação de resenhas
+        BookRecommendationService.add_rating_score(
+            genre_rating,
+            reviews
+        )
+        # adiciona pontuação de status
+        BookRecommendationService.add_status_score(
+            genre_rating,
+            bstatuses
+        );
+        BookRecommendationService.add_time_score(
+            genre_rating,
+            reading_sessions
+        );
+
+        return genre_rating;
+
+    @staticmethod
+    def add_time_score(points_dict, sessions):
+        session:ReadingSession
+        for session in sessions:
+            points_dict[session.book.genre] += TIME_SCORE_RATE*session.minute_count;
+
+    @staticmethod
+    def add_status_score(points_dict, statuses):
+        # adiciona pontuação baseada
+        # no status de leitura de cada livro
+        status:BookStatus
+        for status in statuses:
+            # adiciona score à lista
+            # principal de pontuações
+            points_dict[status.book.genre] += BOOKSTATUS_SCORE_TABLE.get(
+                status.status,
+                0
+            );
+
+    @staticmethod
+    def add_rating_score(points_dict, reviews):
+        # adiciona pontuação para o gênero do livro
+        # de cada resenha baseado na avaliação
+        review:BookReview;
+        for review in reviews:
+            points_dict[review.book.genre] += RATING_SCORE_TABLE.get(
+                review.rating,
+                0
+            );
 
 # ---------------------------------------------------------------------------
 # Conversões puras (sem banco)
