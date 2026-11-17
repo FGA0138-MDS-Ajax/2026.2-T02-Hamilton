@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from forums.models import Forum
 from goals.services import GoalService
+from notifications.services import create_notification
 
 
 def _redirect_back(request, community):
@@ -527,14 +528,29 @@ def edit_member_role(request, community_id, membership_id):
     if new_role not in allowed_roles:
         return HttpResponseForbidden()
 
+    # Guarda o cargo anterior antes de alterá-lo
+    old_role = membership.role
+
     # Atualiza somente o cargo
     membership.role = new_role
     membership.save(update_fields=["role"])
-    
-    #verifica quando alguem vira moderador
-    if new_role == Membership.Role.MODERATOR:
-        from rewards.services import check_community_founder
-        check_community_founder(membership.user)
+
+    # Envia notificação quando o cargo realmente muda
+    if old_role != new_role:
+        if new_role == Membership.Role.MODERATOR:
+            create_notification(
+                target_user=membership.user,
+                content=f'Você foi promovido a moderador da comunidade "{community.name}".'
+            )
+
+            from rewards.services import check_community_founder
+            check_community_founder(membership.user)
+
+        elif new_role == Membership.Role.MEMBER:
+            create_notification(
+                target_user=membership.user,
+                content=f'Seu cargo na comunidade "{community.name}" foi alterado para membro.'
+            )
 
     return _redirect_back(request, community)
 
@@ -588,6 +604,18 @@ def manage_membership_request(request, community_id, membership_id):
 
     # Salva a alteração no banco
     membership.save(update_fields=["status", "role", "joined_at"])
+
+    if decision == "accept":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu pedido para participar da comunidade "{community.name}" foi aceito!'
+        )
+
+    elif decision == "reject":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu pedido para participar da comunidade "{community.name}" foi recusado.'
+        )
 
     return _redirect_back(request, community)
 
@@ -648,6 +676,18 @@ def manage_member_ban(request, community_id, membership_id):
 
     # Salva somente o status
     membership.save(update_fields=["status"])
+
+    if decision == "ban":
+        create_notification(
+            target_user=membership.user,
+            content=f'Você foi banido da comunidade "{community.name}".'
+        )
+
+    elif decision == "unban":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu banimento da comunidade "{community.name}" foi revogado.'
+        )
 
     return _redirect_back(request, community)
 
@@ -820,3 +860,4 @@ def generate_invitation(request, community_id):
             'invitation_code':new_invitation.invitation_code
         }
     );
+
