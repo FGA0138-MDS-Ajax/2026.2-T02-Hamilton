@@ -26,16 +26,26 @@
     {% endif %}
 
     <dl class="logs-details">
-      <dt>Autor</dt>
-      <dd>{{ log.actor.username|default:"Sistema" }}</dd>
-      <dt>Data</dt>
-      <dd>{{ log.created_at|date:"d/m/Y H:i:s" }}</dd>
-      <dt>Classe do alvo</dt>
-      <dd>{{ log.content_type.app_label }}.{{ log.content_type.model }}</dd>
-      <dt>ID do alvo</dt>
-      <dd>{{ log.object_id }}</dd>
-      <dt>Metadata</dt>
-      <dd><pre class="logs-json">{{ log.metadata_pretty }}</pre></dd>
+      <div>
+        <dt>Autor</dt>
+        <dd>{{ log.actor.username|default:"Sistema" }}</dd>
+      </div>
+      <div>
+        <dt>Data</dt>
+        <dd>{{ log.created_at|date:"d/m/Y H:i:s" }}</dd>
+      </div>
+      <div>
+        <dt>Classe do alvo</dt>
+        <dd>{{ log.content_type.app_label }}.{{ log.content_type.model }}</dd>
+      </div>
+      <div>
+        <dt>ID do alvo</dt>
+        <dd>{{ log.object_id }}</dd>
+      </div>
+      <div>
+        <dt>Metadata</dt>
+        <dd><pre class="logs-json">{{ log.metadata_pretty }}</pre></dd>
+      </div>
     </dl>
 
     <div class="logs-actions">
