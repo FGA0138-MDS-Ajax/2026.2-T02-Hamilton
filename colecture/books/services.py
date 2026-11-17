@@ -49,6 +49,19 @@ PERCENT_STEP = Decimal("0.01")
 PROGRESS_STEP = Decimal("0.001")
 ZERO_PERCENT = Decimal("0.00")
 
+class BookService:
+    @staticmethod
+    def get_reading_sessions(user, book=None):
+        # pega as sessões registradas pelo usuário
+        user_sessions = ReadingSession.objects.filter(
+            user=user
+        );
+
+        if book:
+            user_sessions.filter(book=book);
+
+        return user_sessions;
+
 
 class ReadingSessionError(Exception):
     """Erro de validação/negócio mostrado ao usuário (vira HTTP 400 ou 404)."""
@@ -58,7 +71,6 @@ class ReadingSessionError(Exception):
         self.message = message
         self.field = field
         self.status = status
-
 
 # ---------------------------------------------------------------------------
 # Conversões puras (sem banco)
