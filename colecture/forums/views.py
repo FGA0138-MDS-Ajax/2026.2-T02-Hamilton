@@ -8,6 +8,8 @@ from django.utils.http import url_has_allowed_host_and_scheme;
 from .models import Forum, Message;
 from .forms import MessageForm, ForumForm;
 from .services import ForumService;
+from logs.models import AuditLog;
+from logs.services import create_log;
 
 # Create your views here.
 class ViewForum(LoginRequiredMixin, View):
@@ -107,6 +109,19 @@ def delete_message(request, message_id):
         if forum.state!=Forum.State.ACTIVE:
             messages.error(request, "Este fórum está trancado. Não é possível apagar mensagens.");
             return redirect("forums:view_forum", forum_id=forum.id);
+
+        # registra antes de apagar (o log guarda só o ID da mensagem).
+        # O conteúdo da mensagem não vai para o log.
+        create_log(
+            user,
+            AuditLog.Action.MESSAGE_DELETED,
+            message,
+            metadata={
+                "forum_id": forum.id,
+                "community_id": ForumService.get_forum_parent_community(forum).id,
+                "message_author_id": message.author_id,
+            }
+        );
 
         message.delete();
 
