@@ -5,6 +5,6 @@ app_name = 'notifications'
 
 urlpatterns = [
     path('', views.notification_list, name='notification_list'),
+    path('history/', views.notification_history, name='history'),
     path('<int:notification_id>/dismiss/', views.dismiss_notification, name='dismiss_notification'),
-    
 ]

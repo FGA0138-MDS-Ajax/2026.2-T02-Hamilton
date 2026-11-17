@@ -17,6 +17,7 @@ from .forms import LoginForm, RegistrationForm, EditUserForm;
 from rewards.selectors import get_insignia_overview
 
 from books.models import BookStatus, ReadingSession
+from notifications.models import Notification
 
 def register_view(request):
     if request.method == "POST":
@@ -105,6 +106,12 @@ def profile_view(request):
         )
     ]
 
+    notifications = list(
+        Notification.objects
+        .filter(target_user=request.user)
+        .order_by('-created_at', '-id')
+    )
+
     context = {
         'profile': profile,
         'individual_goal': individual_goal,
@@ -113,6 +120,8 @@ def profile_view(request):
         'shelf_items': shelf_items,
         'shelf_filters': shelf_filters,
         'insignias': get_insignia_overview(request.user),
+        'notifications': notifications[:5],
+        'notifications_count': len(notifications),
     }
     return render(request, 'accounts/profile.html', context)
 

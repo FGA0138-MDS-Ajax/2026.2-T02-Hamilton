@@ -5,7 +5,7 @@
 {% block title %}Perfil - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=2" />
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=3" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <link rel="stylesheet" href="{% static 'rewards/css/insignias.css' %}" />
@@ -14,7 +14,7 @@
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
   <script src="{% static 'accounts/js/profile_shelf.js' %}?v=3"></script>
-  <script src="{% static 'accounts/js/profile_goal.js' %}?v=2"></script>
+  <script src="{% static 'accounts/js/profile_goal.js' %}?v=3"></script>
 
   {% if not read_today %}
     <script>
@@ -35,12 +35,28 @@
     <div class="profile">
 
       <section class="user-card" aria-labelledby="user-name">
-        <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-outline">
-            <i class="bx bx-log-out" aria-hidden="true"></i> Sair
+        <div class="user-card__actions">
+          <button type="button"
+                  class="btn-outline notification-bell"
+                  id="notificationBellBtn"
+                  data-notifications-open
+                  aria-label="Notificações"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                  aria-controls="notificationsModal">
+            <i class="bx bx-bell" aria-hidden="true"></i>
+            {% if notifications_count %}
+              <span class="notification-bell__badge" data-notifications-badge>{{ notifications_count }}</span>
+            {% endif %}
           </button>
-        </form>
+
+          <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-outline">
+              <i class="bx bx-log-out" aria-hidden="true"></i> Sair
+            </button>
+          </form>
+        </div>
 
         <div class="avatar" aria-hidden="true">
           {{ user.username|slice:":1"|upper }}
@@ -350,6 +366,48 @@
           </div>
         </div>
       {% endif %}
+
+      <div class="modal-overlay" id="notificationsModal" data-notifications-modal hidden>
+        <div class="modal-box notifications-modal" role="dialog" aria-modal="true" aria-labelledby="notificationsModalTitle">
+          <div class="modal-header">
+            <h2 id="notificationsModalTitle">
+              <i class="bx bx-bell" aria-hidden="true"></i> Notificações
+            </h2>
+            <button type="button" class="modal-close" data-notifications-close aria-label="Fechar">&times;</button>
+          </div>
+
+          <div class="modal-body notifications-modal__body">
+            {% if notifications %}
+              <ul class="notifications-list" data-notifications-list>
+                {% for item in notifications %}
+                  <li class="notification-item" data-notification-item>
+                    <div class="notification-item__icon" aria-hidden="true">
+                      <i class="bx bxs-bell-ring"></i>
+                    </div>
+                    <div class="notification-item__content">
+                      <p class="notification-item__text">{{ item.content }}</p>
+                      <time class="notification-item__time" datetime="{{ item.created_at|date:'c' }}">
+                        {{ item.created_at|date:"d/m/Y H:i" }}
+                      </time>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="notifications-empty" data-notifications-empty>
+                <i class="bx bx-bell-off" aria-hidden="true"></i>
+                <p>Você não tem notificações</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="modal-footer notifications-modal__footer">
+            <a href="{% url 'notifications:history' %}" class="notifications-history-link" data-notifications-history>
+              <i class="bx bx-history" aria-hidden="true"></i> Ver histórico
+            </a>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>

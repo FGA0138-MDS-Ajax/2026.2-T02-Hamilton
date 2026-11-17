@@ -29,3 +29,36 @@
     modal.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
   });
 })();
+
+(function () {
+  'use strict';
+
+  var modal = document.querySelector('[data-notifications-modal]');
+  var openBtn = document.querySelector('[data-notifications-open]');
+  if (!modal || !openBtn) return;
+
+  var closeBtn = modal.querySelector('[data-notifications-close]');
+
+  function open() {
+    modal.hidden = false;
+    openBtn.setAttribute('aria-expanded', 'true');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function close() {
+    modal.hidden = true;
+    openBtn.setAttribute('aria-expanded', 'false');
+    openBtn.focus();
+  }
+
+  openBtn.addEventListener('click', open);
+  modal.querySelectorAll('[data-notifications-close]').forEach(function (b) {
+    b.addEventListener('click', close);
+  });
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
+})();
