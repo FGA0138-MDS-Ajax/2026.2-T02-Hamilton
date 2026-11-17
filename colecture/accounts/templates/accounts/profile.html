@@ -234,7 +234,7 @@
               <form method="post" action="{% url 'goals:conclude_goal' individual_goal.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{% url 'accounts:profile' %}" />
-                <button type="submit" class="btn-outline goal-action goal-action--success">
+                <button type="submit" class="btn-outline goal-action goal-action--success"{% if not goal_progress.done %} disabled{% endif %}>
                   <i class="bx bx-check-circle" aria-hidden="true"></i> Concluir
                 </button>
               </form>
