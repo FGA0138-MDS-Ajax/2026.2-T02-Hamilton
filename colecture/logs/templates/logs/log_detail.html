@@ -1,0 +1,51 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Log #{{ log.id }} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'logs/css/logs.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="logs-page">
+
+    <a class="logs-back" href="{% url 'logs:log_list' %}">&larr; Voltar aos logs</a>
+
+    <header class="logs-head">
+      <h1>Log #{{ log.id }}</h1>
+      <p><span class="logs-tag">{{ log.action }}</span></p>
+    </header>
+
+    {% if messages %}
+      <ul class="logs-messages">
+        {% for message in messages %}
+          <li class="logs-message logs-message--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <dl class="logs-details">
+      <dt>Autor</dt>
+      <dd>{{ log.actor.username|default:"Sistema" }}</dd>
+      <dt>Data</dt>
+      <dd>{{ log.created_at|date:"d/m/Y H:i:s" }}</dd>
+      <dt>Classe do alvo</dt>
+      <dd>{{ log.content_type.app_label }}.{{ log.content_type.model }}</dd>
+      <dt>ID do alvo</dt>
+      <dd>{{ log.object_id }}</dd>
+      <dt>Metadata</dt>
+      <dd><pre class="logs-json">{{ log.metadata_pretty }}</pre></dd>
+    </dl>
+
+    <div class="logs-actions">
+      <a class="logs-btn logs-btn-primary" href="{% url 'logs:edit_log' log.id %}">Editar</a>
+      <form method="post" action="{% url 'logs:delete_log' log.id %}"
+            onsubmit="return confirm('Excluir este log? A exclusão também será registrada.');">
+        {% csrf_token %}
+        <button type="submit" class="logs-btn logs-btn-danger">Excluir</button>
+      </form>
+    </div>
+
+  </div>
+{% endblock %}
