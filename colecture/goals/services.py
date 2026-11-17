@@ -234,8 +234,14 @@ class GoalService:
 
     # ---------- conclusão ----------
     @staticmethod
+    def is_goal_reached(goal) -> bool:
+        if goal.is_collective:
+            return GoalService.get_progress(goal)["done"]
+        return GoalService.get_individual_progress(goal)["done"]
+
+    @staticmethod
     def conclude(goal) -> bool:
-        if goal.status == Goal.Status.CONCLUDED:
+        if goal.status == Goal.Status.CONCLUDED or not GoalService.is_goal_reached(goal):
             return False
         goal.status = Goal.Status.CONCLUDED
         goal.save(update_fields=["status"])
@@ -346,7 +352,12 @@ class GoalService:
             GoalService.get_user_contribution(p) for p in goal.participations.all()
         )
         percent = min(100, round(total / goal.target * 100)) if goal.target else 0
-        return {"current": total, "target": goal.target, "percent": percent}
+        return {
+            "current": total,
+            "target": goal.target,
+            "percent": percent,
+            "done": bool(goal.target and total >= goal.target),
+        }
 
     @staticmethod
     def current_individual_goals(profile):

@@ -1,0 +1,48 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Histórico de notificações - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="notifications-page">
+    <header class="notifications-header">
+      <div>
+        <a href="{% url 'accounts:profile' %}" class="notifications-back">
+          <i class="bx bx-arrow-back" aria-hidden="true"></i> Voltar ao perfil
+        </a>
+        <h1>Histórico de notificações</h1>
+        <p>Veja todas as notificações recebidas da mais recente para a mais antiga.</p>
+      </div>
+    </header>
+
+    <section class="notifications-history-card" aria-label="Lista de notificações">
+      {% if notifications %}
+        <ul class="notifications-history-list" data-notifications-history-list>
+          {% for item in notifications %}
+            <li class="notifications-history-item" data-notification-history-item>
+              <div class="notifications-history-item__icon" aria-hidden="true">
+                <i class="bx bxs-bell-ring"></i>
+              </div>
+              <div class="notifications-history-item__body">
+                <p class="notifications-history-item__text">{{ item.content }}</p>
+                <time class="notifications-history-item__time" datetime="{{ item.created_at|date:'c' }}">
+                  {{ item.created_at|date:"d/m/Y H:i" }}
+                </time>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="notifications-history-empty" data-notifications-history-empty>
+          <i class="bx bx-bell-off" aria-hidden="true"></i>
+          <p>Você não tem notificações</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

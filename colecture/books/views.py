@@ -27,6 +27,7 @@ from rewards.services import (
 
 from .forms import BookForm, BookReviewForm, ReadingSessionForm
 from .models import Book, BookReview, BookStatus, ReadingSession
+from notifications.services import create_notification
 from .services import (
     MAX_SESSION_MINUTES,  # noqa: F401  (reexportado: limite de 24h por sessão)
     ReadingSessionError,
@@ -322,6 +323,19 @@ def mark_book_as_read(request, book_id):
 
     if book_status.status != BookStatus.Status.READ:
         book_status.mark_as_read()
+        if book_status.book.pages:
+            create_notification(
+                target_user=request.user,
+                content=(
+                    f'Você concluiu a leitura de "{book_status.book.title}" '
+                    f'({book_status.book.pages}/{book_status.book.pages} páginas)!'
+                ),
+            )
+        else:
+            create_notification(
+                target_user=request.user,
+                content=f'Você concluiu a leitura de "{book_status.book.title}" (100% lido)!',
+            )
 
     #Verificações que serão utilizadas para adiquirir insígnias
     check_first_read(request.user)
@@ -387,6 +401,20 @@ def save_reading_progress(request, book_id):
         fields.append('status')
     book_status.save(update_fields=fields)
     check_first_read(request.user) # Verifica primeira leitura do usuario
+
+    if book_status.pages_read is not None:
+        create_notification(
+            target_user=request.user,
+            content=(
+                f'Progresso atualizado em "{book_status.book.title}": '
+                f'{book_status.pages_read}/{book_status.book.pages} páginas ({book_status.progress_percent}%).'
+            ),
+        )
+    else:
+        create_notification(
+            target_user=request.user,
+            content=f'Progresso atualizado em "{book_status.book.title}": {book_status.progress_percent}%.',
+        )
 
     return JsonResponse({
         'success': True,
