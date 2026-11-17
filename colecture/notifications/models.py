@@ -1,9 +1,7 @@
-from django.db import models
-from django.utils import timezone
 from django.conf import settings
+from django.db import models
 
 
-# Create your models here.
 class Notification(models.Model):
     target_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -12,5 +10,9 @@ class Notification(models.Model):
     )
 
     content = models.TextField()
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    is_read = models.BooleanField(default=False)
+
+    hidden_from_popup = models.BooleanField(default=False)

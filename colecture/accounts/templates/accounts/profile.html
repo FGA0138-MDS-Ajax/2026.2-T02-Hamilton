@@ -5,7 +5,7 @@
 {% block title %}Perfil - CoLecture{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=3" />
+  <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}?v=4" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <link rel="stylesheet" href="{% static 'rewards/css/insignias.css' %}" />
@@ -14,9 +14,9 @@
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
   <script src="{% static 'accounts/js/profile_shelf.js' %}?v=3"></script>
-  <script src="{% static 'accounts/js/profile_goal.js' %}?v=3"></script>
+  <script src="{% static 'accounts/js/profile_goal.js' %}?v=4"></script>
 
-  {% if not read_today %}
+  {% if show_streak_warning %}
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         showToast(
@@ -367,7 +367,12 @@
         </div>
       {% endif %}
 
-      <div class="modal-overlay" id="notificationsModal" data-notifications-modal hidden>
+      <div class="modal-overlay"
+           id="notificationsModal"
+           data-notifications-modal
+           data-mark-read-url="{% url 'notifications:mark_notifications_read' %}"
+           data-csrf="{{ csrf_token }}"
+           hidden>
         <div class="modal-box notifications-modal" role="dialog" aria-modal="true" aria-labelledby="notificationsModalTitle">
           <div class="modal-header">
             <h2 id="notificationsModalTitle">
@@ -390,15 +395,19 @@
                         {{ item.created_at|date:"d/m/Y H:i" }}
                       </time>
                     </div>
+                    <button type="button"
+                            class="notification-item__dismiss"
+                            data-notification-hide="{% url 'notifications:hide_notification' item.id %}"
+                            aria-label="Apagar notificação"
+                            title="Apagar notificação">&times;</button>
                   </li>
                 {% endfor %}
               </ul>
-            {% else %}
-              <div class="notifications-empty" data-notifications-empty>
-                <i class="bx bx-bell-off" aria-hidden="true"></i>
-                <p>Você não tem notificações</p>
-              </div>
             {% endif %}
+            <div class="notifications-empty" data-notifications-empty{% if notifications %} hidden{% endif %}>
+              <i class="bx bx-bell-off" aria-hidden="true"></i>
+              <p>Você não tem notificações</p>
+            </div>
           </div>
 
           <div class="modal-footer notifications-modal__footer">

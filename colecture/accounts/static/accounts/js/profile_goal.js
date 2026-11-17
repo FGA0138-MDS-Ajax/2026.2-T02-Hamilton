@@ -38,10 +38,35 @@
   if (!modal || !openBtn) return;
 
   var closeBtn = modal.querySelector('[data-notifications-close]');
+  var badge = openBtn.querySelector('[data-notifications-badge]');
+  var list = modal.querySelector('[data-notifications-list]');
+  var emptyState = modal.querySelector('[data-notifications-empty]');
+  var markReadUrl = modal.getAttribute('data-mark-read-url');
+  var csrf = modal.getAttribute('data-csrf');
+  var markedRead = !badge;
+
+  function postAction(url) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      keepalive: true,
+      headers: {
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+  }
 
   function open() {
     modal.hidden = false;
     openBtn.setAttribute('aria-expanded', 'true');
+    if (badge) badge.hidden = true;
+    if (!markedRead && markReadUrl) {
+      markedRead = true;
+      postAction(markReadUrl).catch(function () {
+        markedRead = false;
+      });
+    }
     if (closeBtn) closeBtn.focus();
   }
 
@@ -56,7 +81,31 @@
     b.addEventListener('click', close);
   });
   modal.addEventListener('click', function (e) {
-    if (e.target === modal) close();
+    if (e.target === modal) {
+      close();
+      return;
+    }
+
+    var hideBtn = e.target.closest('[data-notification-hide]');
+    if (!hideBtn || hideBtn.disabled) return;
+
+    var item = hideBtn.closest('[data-notification-item]');
+    var hideUrl = hideBtn.getAttribute('data-notification-hide');
+    if (!item || !hideUrl) return;
+
+    hideBtn.disabled = true;
+    postAction(hideUrl)
+      .then(function (res) {
+        if (!res.ok) throw new Error();
+        item.remove();
+        if (list && list.querySelectorAll('[data-notification-item]').length === 0) {
+          list.hidden = true;
+          if (emptyState) emptyState.hidden = false;
+        }
+      })
+      .catch(function () {
+        hideBtn.disabled = false;
+      });
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !modal.hidden) close();

@@ -40,6 +40,7 @@ from rewards.services import (
 )
 
 from accounts.models import Profile
+from notifications.services import create_notification
 from .models import BookStatus, ReadingSession
 
 MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
@@ -360,6 +361,8 @@ def _rebuild_streak(profile):
 
 def _sync_streak(user, session_date, rebuild):
     profile, _ = Profile.objects.get_or_create(user=user)
+    previous_streak = profile.streak
+    previous_last_read = profile.last_read_date
 
     retroactive = (
         profile.last_read_date is not None and session_date < profile.last_read_date
@@ -368,6 +371,25 @@ def _sync_streak(user, session_date, rebuild):
         _rebuild_streak(profile)
     elif profile.register_reading_day(session_date):
         profile.save(update_fields=["streak", "last_read_date"])
+
+    if profile.streak > 0 and (
+        profile.streak != previous_streak or profile.last_read_date != previous_last_read
+    ):
+        if profile.streak == 1:
+            create_notification(
+                target_user=user,
+                content="Sua ofensiva foi iniciada: 1 dia seguido de leitura!",
+            )
+        else:
+            create_notification(
+                target_user=user,
+                content=f"Sua ofensiva aumentou para {profile.streak} dias seguidos de leitura!",
+            )
+    elif previous_streak > 0 and profile.streak == 0:
+        create_notification(
+            target_user=user,
+            content="Sua ofensiva foi zerada por falta de leitura em dias consecutivos.",
+        )
 
     check_streak(user) # confere streak do usuario
     
@@ -387,6 +409,7 @@ def persist_reading_session(user, book, data, session=None, clamp_to_remaining=F
     Devolve dict com session, sessions (histórico atualizado), book_status, profile.
     """
     with transaction.atomic():
+        is_edit = session is not None
         all_sessions = list(_user_sessions(user, book))
 
         target = None
@@ -516,6 +539,17 @@ def persist_reading_session(user, book, data, session=None, clamp_to_remaining=F
         
         
         target = next(s for s in ordered if s.pk == target.pk)
+
+        if target.pages_read is not None:
+            pages_label = "página lida" if target.pages_read == 1 else "páginas lidas"
+            progress_suffix = f" ({target.cumulative_pages}/{book.pages} páginas)" if book.pages else ""
+            if is_edit:
+                content = f'Leitura atualizada em "{book.title}": {target.pages_read} {pages_label}{progress_suffix}.'
+            else:
+                content = f'Você registrou {target.pages_read} {pages_label} em "{book.title}"{progress_suffix}.'
+        else:
+            content = f'Progresso de leitura atualizado em "{book.title}": {target.cumulative_percent}%.'
+        create_notification(target_user=user, content=content)
 
     return {
         "session": target,

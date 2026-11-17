@@ -185,6 +185,12 @@
   place-items: center;
 }
 
+.notification-bell__badge[hidden],
+.notifications-list[hidden],
+.notifications-empty[hidden] {
+  display: none;
+}
+
 .avatar {
   flex-shrink: 0;
   display: flex;
