@@ -41,7 +41,7 @@
   var badge = openBtn.querySelector('[data-notifications-badge]');
   var list = modal.querySelector('[data-notifications-list]');
   var emptyState = modal.querySelector('[data-notifications-empty]');
-  var markReadUrl = modal.getAttribute('data-mark-read-url');
+  var markReadUrl = modal.getAttribute('data-notifications-read-url');
   var csrf = modal.getAttribute('data-csrf');
   var markedRead = !badge;
 

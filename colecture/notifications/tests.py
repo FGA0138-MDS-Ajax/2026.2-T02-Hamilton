@@ -298,3 +298,74 @@ class NotificationProfileAndHistoryTests(TestCase):
             'Sua ofensiva foi zerada porque você ficou sem registrar leitura.',
         )
 
+    def test_opening_notifications_clears_unread_badge_count(self):
+        self._create_notification(self.user, 'Aviso 1', minutes_ago=10)
+        self._create_notification(self.user, 'Aviso 2', minutes_ago=5)
+        self.client.force_login(self.user)
+
+        before = self.client.get(self.profile_url)
+        self.assertEqual(before.context['notifications_count'], 2)
+        self.assertContains(before, 'data-notifications-badge')
+
+        mark_response = self.client.post(reverse('notifications:mark_notifications_read'))
+        self.assertEqual(mark_response.status_code, 200)
+        self.assertTrue(mark_response.json()['success'])
+
+        after = self.client.get(self.profile_url)
+        self.assertEqual(after.context['notifications_count'], 0)
+        self.assertNotContains(after, 'data-notifications-badge')
+        self.assertContains(after, 'Aviso 1')
+        self.assertContains(after, 'Aviso 2')
+
+        history_response = self.client.get(self.history_url)
+        self.assertContains(history_response, 'Aviso 1')
+        self.assertContains(history_response, 'Aviso 2')
+
+    def test_hiding_notification_from_popup_keeps_it_in_history(self):
+        notif = self._create_notification(self.user, 'Aviso apagável do sininho')
+        self.client.force_login(self.user)
+
+        hide_response = self.client.post(
+            reverse('notifications:hide_notification', args=[notif.id])
+        )
+        self.assertEqual(hide_response.status_code, 200)
+        self.assertTrue(hide_response.json()['success'])
+
+        profile_response = self.client.get(self.profile_url)
+        self.assertNotContains(profile_response, 'Aviso apagável do sininho')
+        self.assertEqual(profile_response.context['notifications_count'], 0)
+
+        history_response = self.client.get(self.history_url)
+        self.assertContains(history_response, 'Aviso apagável do sininho')
+
+    def test_streak_warning_and_notification_only_on_first_profile_visit_of_day(self):
+        today = timezone.localdate()
+        Profile.objects.create(
+            user=self.user,
+            streak=3,
+            last_read_date=today - timedelta(days=1),
+        )
+        self.client.force_login(self.user)
+
+        first_visit = self.client.get(self.profile_url)
+        self.assertTrue(first_visit.context['show_streak_warning'])
+        self.assertContains(first_visit, 'Não perca sua ofensiva!')
+        self.assertEqual(
+            Notification.objects.filter(
+                target_user=self.user,
+                content__startswith='Não perca sua ofensiva',
+            ).count(),
+            1,
+        )
+
+        second_visit = self.client.get(self.profile_url)
+        self.assertFalse(second_visit.context['show_streak_warning'])
+        self.assertNotContains(second_visit, 'Não perca sua ofensiva!')
+        self.assertEqual(
+            Notification.objects.filter(
+                target_user=self.user,
+                content__startswith='Não perca sua ofensiva',
+            ).count(),
+            1,
+        )
+
