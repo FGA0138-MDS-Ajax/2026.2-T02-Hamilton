@@ -82,6 +82,22 @@
         <span class="label">Cadastrar livro</span>
       </a>
 
+      {# Logs de auditoria: só aparecem para administradores #}
+      {% if request.user.is_superuser %}
+      <a href="{% url 'logs:log_list' %}"
+          class="nav-item {% if request.resolver_match.app_name == 'logs' %}active{% endif %}"
+          {% if request.resolver_match.url_name == 'log_list' %}aria-current="page"{% endif %}
+          data-label="Logs"
+          aria-label="Logs">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" />
+        </svg>
+        <span class="label">Logs</span>
+      </a>
+      {% endif %}
+
     </nav>
 
   </aside>
