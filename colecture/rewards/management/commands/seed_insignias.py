@@ -181,7 +181,7 @@ class Command(BaseCommand):
     },
     {
             'name': 'Missão Cumprida',
-            'description': 'Conluir a primeira meta individual',
+            'description': 'Concluir a primeira meta individual',
             'criteria_type': CriteriaType.INDIVIDUAL_GOAL,
             'criteria_value': 1,
             'icon': 'icon/'

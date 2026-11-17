@@ -98,13 +98,7 @@ Crie as tabelas e o administrador padrão:
 python manage.py migrate
 ```
 
-O `migrate` também cria o **administrador padrão** (R03), já que o banco começa vazio. Veja a seção [Administrador padrão](#administrador-padrão).
-
-Cadastre as insígnias (sem esse comando, o perfil mostra "0 de 0 insígnias"):
-
-```bash
-python manage.py seed_insignias
-```
+O `migrate` também cria o **administrador padrão** (R03), já que o banco começa vazio, e cadastra as **35 insígnias** (R19). Veja as seções [Administrador padrão](#administrador-padrão) e [Insígnias](#insígnias-r19).
 
 Opcionalmente, popule o catálogo e os dados de demonstração (veja [Scripts para popular o banco](#scripts-para-popular-o-banco)):
 
@@ -145,7 +139,7 @@ Os comandos abaixo ficam em `management/commands/` e são executados dentro da p
 |---|---|---|
 | `python manage.py seed_books` | `books` | Popula o catálogo com livros reais (o ISBN é a chave). |
 | `python manage.py seed_demo` | `books` | Cria usuários, comunidades, mensagens de fórum, metas e uma ofensiva de demonstração. |
-| `python manage.py seed_insignias` | `rewards` | Cadastra as 35 insígnias definidas na Reunião 07 (o nome é a chave). Veja [Insígnias](#insígnias-r19). |
+| `python manage.py seed_insignias` | `rewards` | Atualiza as insígnias com os dados do `seed_insignias.py` (o nome é a chave). Não é preciso rodar na instalação, porque o `migrate` já as cadastra. Veja [Insígnias](#insígnias-r19). |
 | `python manage.py purge_archived_communities` | `communities` | Exclui as comunidades arquivadas há mais de 60 dias. |
 
 #### `seed_books`
@@ -196,7 +190,7 @@ As insígnias foram definidas na Ata da Reunião 07: são 35, numeradas de 1 a 3
 
 #### Como funciona
 
-1. **Cadastro:** o `seed_insignias` grava cada insígnia (`Insignia`) com nome, descrição, categoria (`criteria_type`) e valor do critério (`criteria_value`). O **nome** é a chave: rodar o comando de novo atualiza as insígnias existentes.
+1. **Cadastro:** a migration `rewards/migrations/0004_seed_insignias.py` cadastra as insígnias (`Insignia`) no `migrate`, com nome, descrição, categoria (`criteria_type`) e valor do critério (`criteria_value`). Ela não mexe nas insígnias que já existem. Para atualizar as insígnias depois, use o `seed_insignias`: o **nome** é a chave, então rodar o comando de novo atualiza as existentes.
 2. **Conquista:** quando o usuário faz algo (registra leitura, marca livro como lido, conclui meta, cria comunidade...), a view ou o service do app chama a função `check_*` correspondente em `rewards/services.py`. Ela verifica o critério e cria um `Award` (usuário + insígnia + data). Algumas funções buscam a insígnia pelo nome, por exemplo `check_community_founder` busca `'Fundador'`.
 3. **Exibição:** `rewards/selectors.py` (`get_insignia_overview`) monta o contexto usado pelo perfil e pela página: as insígnias ativas agrupadas por categoria, na ordem da ata, com o total conquistado e as últimas conquistas.
 
@@ -205,7 +199,7 @@ As insígnias foram definidas na Ata da Reunião 07: são 35, numeradas de 1 a 3
 | Quero... | Onde |
 |---|---|
 | Mudar nome, descrição ou critério de uma insígnia | `rewards/management/commands/seed_insignias.py` e depois `python manage.py seed_insignias`. Se mudar o **nome**, atualize também `rewards/services.py` (buscas por nome) e `INSIGNIA_NUMBERS` em `rewards/selectors.py`. |
-| Criar uma insígnia nova | Adicione no `seed_insignias.py`, crie/ajuste a função `check_*` em `rewards/services.py`, dê um número em `INSIGNIA_NUMBERS` e salve o ícone (veja abaixo). |
+| Criar uma insígnia nova | Adicione no `seed_insignias.py` (e rode o comando, ou crie uma migration nova para ela já vir no `migrate`), crie/ajuste a função `check_*` em `rewards/services.py`, dê um número em `INSIGNIA_NUMBERS` e salve o ícone (veja abaixo). |
 | Esconder uma insígnia sem apagar | Desmarque `is_active` no painel administrativo (`/admin/`). |
 | Dar uma insígnia manualmente (para testes) | No `/admin/`, crie um **Award** com o usuário e a insígnia. |
 | Trocar o ícone | Substitua o arquivo em `rewards/static/rewards/img/insignias/`. |
