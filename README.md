@@ -244,7 +244,7 @@ Dentro da pasta `colecture`:
 
 ```bash
 python manage.py test            # todos os apps
-python manage.py test books      # apenas um app (accounts, books, communities, forums, goals, main, notifications)
+python manage.py test books      # apenas um app (accounts, books, communities, forums, goals, logs, main, notifications, rewards)
 ```
 
 ---
@@ -345,6 +345,16 @@ Cada módulo é um app Django independente, com seus próprios models, views, te
     │   ├── migrations/
     │   ├── templates/rewards/     # insignias.html e _insignia_medal.html
     │   └── static/rewards/        # css/insignias.css e img/insignias/ (ícones SVG)
+    ├── logs/                      # Logs de auditoria (ações dos usuários e administradores)
+    │   ├── models.py              # AuditLog (autor, ação, classe e ID do alvo, data, metadata)
+    │   ├── services.py            # create_log (usado pelos outros apps), log_edit e delete_log
+    │   ├── forms.py               # AuditLogForm (edição) e AuditLogFilterForm (filtros)
+    │   ├── views.py               # Listar, ver, editar e excluir logs (somente administradores)
+    │   ├── urls.py
+    │   ├── tests.py
+    │   ├── migrations/
+    │   ├── templates/logs/        # log_list.html, log_detail.html e log_form.html
+    │   └── static/logs/           # css/logs.css
     └── notifications/             # Notificações e tarefas agendadas
         ├── models.py              # Notification
         ├── tasks.py               # notify_without_reading (Celery)
@@ -445,6 +455,67 @@ Todas as rotas abaixo são relativas a `http://127.0.0.1:8000`. "Logado" signifi
 | Rota | Descrição | Acesso |
 |---|---|---|
 | `/rewards/insignias/` | Todas as insígnias do usuário, por categoria (conquistadas e bloqueadas) | Logado |
+
+#### Logs (`/logs/`)
+
+| Rota | Descrição | Acesso |
+|---|---|---|
+| `/logs/` | Lista de logs, com filtros (`action`, `actor`, `content_type`, `object_id`) e paginação | Administrador |
+| `/logs/<id>/` | Detalhes de um log | Administrador |
+| `/logs/<id>/edit/` | Editar um log | Administrador |
+| `/logs/<id>/delete/` | Excluir um log (somente `POST`) | Administrador |
+
+Usuários que não são administradores recebem `403`, e visitantes são redirecionados para o login.
+
+---
+
+## Logs de auditoria
+
+O app `logs` oferece um serviço para os outros apps registrarem ações importantes. Cada registro é um `AuditLog`:
+
+| Campo | Descrição |
+|---|---|
+| `actor` | Usuário que executou a ação (vazio quando foi o sistema, como no `purge_archived_communities`). |
+| `action` | Tipo da ação (`AuditLog.Action`), por exemplo `MEMBER_ADDED`. |
+| `content_type` | Classe do alvo da ação (`User`, `Community`, `Message`...). |
+| `object_id` | ID do alvo (um inteiro, e não o objeto). O log continua válido se o alvo for apagado. |
+| `created_at` | Data de criação do log. |
+| `metadata` | JSON com informações extras, como o `community_id`. |
+
+#### Como registrar uma ação
+
+```python
+from logs.models import AuditLog
+from logs.services import create_log
+
+create_log(
+    request.user,                     # quem fez
+    AuditLog.Action.MEMBER_BANNED,    # o que foi feito
+    membership.user,                  # em quem/o quê (só a classe e o ID são guardados)
+    metadata={"community_id": community.id},
+)
+```
+
+Para registrar uma **exclusão**, chame o `create_log` **antes** de apagar o objeto. Para uma ação nova, adicione-a em `AuditLog.Action` e gere a migration.
+
+#### Ações registradas
+
+| Ação | Quando | Alvo |
+|---|---|---|
+| `COMMUNITY_CREATED` | Comunidade criada | Community |
+| `COMMUNITY_UPDATED` | Comunidade editada (só se algo mudou) | Community |
+| `COMMUNITY_ARCHIVED` / `COMMUNITY_UNARCHIVED` | Comunidade arquivada ou desarquivada | Community |
+| `COMMUNITY_DELETED` | Comunidade excluída (por um gestor, pela saída do último membro ou pelo `purge_archived_communities`) | Community |
+| `MEMBER_ADDED` | Usuário entrou na comunidade ou teve o pedido aceito | User |
+| `MEMBER_REQUEST_REJECTED` | Pedido de entrada recusado | User |
+| `MEMBER_REMOVED` | Usuário saiu da comunidade | User |
+| `MEMBER_PROMOTED` / `MEMBER_DEMOTED` | Cargo alterado para moderador ou para membro | User |
+| `MEMBER_BANNED` / `MEMBER_UNBANNED` | Membro banido ou banimento revogado | User |
+| `MESSAGE_DELETED` | Mensagem do fórum excluída (o conteúdo não é copiado) | Message |
+| `LOG_EDITED` | Administrador editou um log (`metadata["changes"]` traz o valor antigo e o novo de cada campo) | AuditLog |
+| `LOG_DELETED` | Administrador excluiu um log (`metadata["deleted_log"]` traz uma cópia dele) | AuditLog |
+
+Nas ações sobre membros, o alvo é o usuário afetado e a comunidade vai no `metadata` (`community_id` e `community_name`). Os logs também podem ser consultados (somente leitura) em `/admin/`, mas editar e excluir deve ser feito por `/logs/`, que registra essas ações.
 
 ---
 
