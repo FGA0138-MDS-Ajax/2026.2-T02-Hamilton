@@ -32,7 +32,7 @@
         <select id="genreFilter" aria-label="Filtrar por gênero">
           <option value="">Todos os gêneros</option>
           {% for genre in genres %}
-          <option value="{{ genre }}">{{ genre }}</option>
+          <option value="{{ genre.value }}">{{ genre.label }}</option>
           {% endfor %}
         </select>
 

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
+from books.forms import GENRE_CHOICES
 from books.models import Book, BookStatus
 from books.services import BookRecommendationService
 
@@ -14,7 +15,15 @@ def index(request):
     return render(request, 'main/index.html')
 
 def search(request):
-    genres = Book.objects.genres()
+    # No banco o gênero é um código ("ficcao"); no filtro aparece o nome
+    # com acento do GENRE_CHOICES ("Ficção Científica"). Código sem nome
+    # cadastrado aparece como está.
+    genre_labels = dict(GENRE_CHOICES)
+    genres = [
+        {'value': genre, 'label': genre_labels.get(genre) or genre}
+        for genre in Book.objects.genres()
+    ]
+    genres.sort(key=lambda genre: genre['label'])
     return render(request, 'main/search.html', {'genres': genres})
 
 
