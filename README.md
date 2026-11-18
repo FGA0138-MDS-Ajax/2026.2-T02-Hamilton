@@ -1,17 +1,17 @@
 <div align="center">
 
-[![Visão Geral](https://img.shields.io/badge/Aba-Visão_Geral-1f425f?style=for-the-badge)](README.md)
-[![Documentação Detalhada](https://img.shields.io/badge/Aba-Documentação_Detalhada-lightgrey?style=for-the-badge)](DETALHES.md)
+[![Visão Geral](https://img.shields.io/badge/Aba-Visão_Geral-blue?style=plastic)](README.md)
+[![Documentação Detalhada](https://img.shields.io/badge/Aba-Documentação_Detalhada-6c757d?style=plastic)](DETALHES.md)
 
 </div>
 
 <div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/Django-6.1.2-092E20?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![Celery](https://img.shields.io/badge/Celery-5.7.0-37814A?style=flat&logo=celery&logoColor=white)](https://docs.celeryproject.org/)
-[![Redis](https://img.shields.io/badge/Redis-8.1.0-DC382D?style=flat&logo=redis&logoColor=white)](https://redis.io/)
-[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=plastic&logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-6.1.2-092E20?style=plastic&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Celery](https://img.shields.io/badge/Celery-5.7.0-37814A?style=plastic&logo=celery&logoColor=white)](https://docs.celeryproject.org/)
+[![Redis](https://img.shields.io/badge/Redis-8.1.0-DC382D?style=plastic&logo=redis&logoColor=white)](https://redis.io/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=plastic&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 
 </div>
 

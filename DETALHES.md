@@ -1,17 +1,16 @@
 <div align="center">
 
-[![Visão Geral](https://img.shields.io/badge/Aba-Visão_Geral-lightgrey?style=for-the-badge)](README.md)
-[![Documentação Detalhada](https://img.shields.io/badge/Aba-Documentação_Detalhada-1f425f?style=for-the-badge)](DETALHES.md)
+[![Visão Geral](https://img.shields.io/badge/Aba-Visão_Geral-lightgrey?style=plastic)](README.md)
+[![Documentação Detalhada](https://img.shields.io/badge/Aba-Documentação_Detalhada-blue?style=plastic)](DETALHES.md)
 
 </div>
 
 <div align="center">
 
-[![GitHub Pages](https://img.shields.io/badge/Documentação-GitHub_Pages-blue?style=flat&logo=github)](https://fga0138-mds-ajax.github.io/2026.2-T02-Hamilton/)
-[![Repositório](https://img.shields.io/badge/GitHub-Repositório-181717?style=flat&logo=github)](https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton)
+[![GitHub Pages](https://img.shields.io/badge/Documentação-GitHub_Pages-blue?style=plastic&logo=github)](https://fga0138-mds-ajax.github.io/2026.2-T02-Hamilton/)
+[![Repositório](https://img.shields.io/badge/GitHub-Repositório-181717?style=plastic&logo=github)](https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton)
 
 </div>
-
 ---
 
 # Documentação Técnica e Detalhes do Projeto - CoLecture
