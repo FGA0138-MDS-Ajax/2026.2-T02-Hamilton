@@ -1,9 +1,57 @@
+<div align="center">
+
+[![Visão Geral](https://img.shields.io/badge/Aba-Visão_Geral-1f425f?style=for-the-badge)](README.md)
+[![Documentação](https://img.shields.io/badge/Aba-Documentação-lightgrey?style=for-the-badge)](DETALHES.md)
+
+</div>
+
+<div align="center">
+
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-6.1.2-092E20?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Celery](https://img.shields.io/badge/Celery-5.7.0-37814A?style=flat&logo=celery&logoColor=white)](https://docs.celeryproject.org/)
+[![Redis](https://img.shields.io/badge/Redis-8.1.0-DC382D?style=flat&logo=redis&logoColor=white)](https://redis.io/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+
+</div>
+
+---
+
 # CoLecture - Sistema de leitura em comunidades
 
 > Projeto desenvolvido para a disciplina de **Métodos de Desenvolvimento de Software (MDS)**
 > Universidade de Brasília — FGA | Prof. Ricardo Ajax Dias Kosloski
 
-O **CoLecture** é uma plataforma onde você pode se conectar, formar comunidades ou entrar em comunidades existentes para manter o hábito de leitura em dia. Ela conta com metas de leitura dos grupos, fóruns para conversar e debater sobre o capítulo do livro, um sistema de ofensiva para motivar a leitura diária e insígnias. E, como diz o ditado popular: "Se quer ir rápido, vá sozinho. Se quer ir longe, vá acompanhado".
+O **CoLecture** é uma plataforma colaborativa voltada ao incentivo e acompanhamento do hábito de leitura individual e coletivo. Na plataforma, os usuários podem se conectar, criar ou participar de comunidades temáticas, definir e acompanhar metas de leitura em grupo, debater capítulos em fóruns dedicados, manter sua estante virtual organizada, receber recomendações inteligentes e motivar-se por meio de um sistema de ofensiva diária (*streak*) e conquista de 35 insígnias.
+
+> *"Se quer ir rápido, vá sozinho. Se quer ir longe, vá acompanhado."*
+
+---
+
+## Sumário
+
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+- [Como Executar o Projeto Localmente](#como-executar-o-projeto-localmente)
+  - [Pré-requisitos](#pré-requisitos)
+  - [Passo a passo](#1-clone-o-repositório)
+  - [Administrador padrão](#administrador-padrão)
+  - [Scripts para popular o banco](#scripts-para-popular-o-banco)
+- [Configuração e Execução do Celery e Redis](#configuração-e-execução-do-celery-e-redis)
+  - [Visão geral](#por-que-o-celery-é-utilizado)
+  - [1. Configurando e iniciando o Redis](#1-configuração-e-execução-do-redis-broker)
+  - [2. Executando o Celery Worker](#2-execução-do-celery-worker)
+  - [3. Executando o Celery Beat](#3-execução-do-celery-beat-agendador)
+  - [4. Executando Worker + Beat juntos em desenvolvimento](#4-executando-worker--beat-juntos-em-desenvolvimento)
+  - [5. Como testar tarefas manualmente](#5-como-testar-e-disparar-tarefas-manualmente-django-shell)
+- [Sistema de Notificações](#sistema-de-notificações)
+- [Sistema de Insígnias](#sistema-de-insígnias-r19)
+- [Logs de Auditoria](#logs-de-auditoria)
+- [Rotas da Aplicação](#rotas-da-aplicação)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Executando os Testes](#executando-os-testes)
+- [Padrões de Código](#padrões-de-código)
+- [Política de Branches e Commits](#política-de-branches)
+- [Equipe](#equipe)
 
 ---
 
@@ -11,587 +59,715 @@ O **CoLecture** é uma plataforma onde você pode se conectar, formar comunidade
 
 ### Back-end
 
-| Tecnologia | Uso |
-| ---------- | --- |
-| [Python](https://www.python.org/) 3.12+ | Linguagem principal do back-end. |
-| [Django](https://www.djangoproject.com/) 6.1.2 | Framework web (padrão MTV): rotas, views, formulários, autenticação, permissões, painel administrativo e proteção contra CSRF e XSS. |
-| Django ORM | Acesso aos dados. As views não escrevem SQL diretamente. |
-| [SQLite](https://www.sqlite.org/) | Banco de dados local (`db.sqlite3`), criado pelo `migrate` e não versionado. |
-| Django Forms | Validação das requisições antes do processamento (cadastro, login e edição de perfil). |
-| Django TestCase | Testes automatizados, executados com `python manage.py test`. |
-| [Celery](https://docs.celeryproject.org/) + [django-celery-beat](https://django-celery-beat.readthedocs.io/) | Tarefas agendadas (lembrete diário de leitura às 20h). **Opcional** para rodar o site. |
-| [Redis](https://redis.io/) | Broker do Celery (`redis://localhost:6379/0`). **Opcional**, só necessário para as notificações agendadas. |
+| Tecnologia | Versão | Uso no Projeto |
+| :--- | :--- | :--- |
+| [Python](https://www.python.org/) | 3.12+ | Linguagem principal do ecossistema back-end. |
+| [Django](https://www.djangoproject.com/) | 6.1.2 | Framework web (padrão MTV): rotas, views, formulários, autenticação de sessão, permissões, painel administrativo e segurança (CSRF, XSS, clickjacking). |
+| Django ORM | 6.1.2 | Mapeamento objeto-relacional para todas as entidades e consultas do banco de dados. |
+| [SQLite](https://www.sqlite.org/) | 3.x | Banco de dados relacional local (`colecture/db.sqlite3`), gerenciado estritamente por migrations. |
+| [Celery](https://docs.celeryproject.org/) | 5.7.0 | Fila distribuída de tarefas assíncronas e agendadas em segundo plano. |
+| [django-celery-beat](https://django-celery-beat.readthedocs.io/) | 2.1.0 | Extensão para agendamento periódico de tarefas com integração ao Django. |
+| [Redis](https://redis.io/) | 8.1.0 (client) | Message Broker e Result Backend do Celery (`redis://localhost:6379/0`). |
+| [Pillow](https://python-pillow.org/) | 13.0.0 | Manipulação e validação de imagens (capas de livros e avatares) enviadas via `media/`. |
+| Django Forms | 6.1.2 | Validação e sanitização de dados de entrada antes do processamento nas views. |
+| Django TestCase | 6.1.2 | Suite de testes unitários e de integração automatizados. |
 
 ### Front-end
 
-| Tecnologia | Uso |
-| ---------- | --- |
-| Templates do Django | Renderização das páginas no servidor (HTML). |
-| HTML e CSS | Estrutura e estilo das páginas, com layout responsivo (`@media`) e cores centralizadas em `variables.css`. |
-| JavaScript | Comportamento da interface (fórum, comunidades, estante, sessões de leitura, metas e busca), organizado por app em `static/<app>/js/`. |
-| [Boxicons](https://boxicons.com/) | Ícones, carregados por CDN. |
-| [Google Fonts](https://fonts.google.com/) (Poppins) | Fonte do site, carregada por CDN. |
+| Tecnologia | Uso no Projeto |
+| :--- | :--- |
+| Templates do Django | Renderização de páginas HTML dinâmicas no servidor. |
+| HTML5 & CSS3 | Estrutura semântica e estilos modernos, com layout responsivo via flexbox/grid e cores padronizadas em `main/static/main/css/variables.css`. |
+| JavaScript (ES6+) | Comportamento dinâmico da interface (estante, cronômetro de leitura, busca, moderação, modais e notificações), modularizado por app em `static/<app>/js/`. |
+| [Boxicons](https://boxicons.com/) | Conjunto de ícones vetoriais da interface, importados via CDN. |
+| [Google Fonts](https://fonts.google.com/) (Poppins) | Tipografia principal da plataforma, importada via CDN. |
 
-> Os ícones e a fonte são carregados da internet. Sem conexão, o site funciona, mas com a aparência padrão do navegador.
+> **Nota de conectividade:** Os ícones e a tipografia utilizam CDN. Em caso de execução totalmente offline, o sistema funciona perfeitamente com fontes nativas do sistema operacional.
 
 ---
 
 ## Como executar o projeto localmente
 
-O CoLecture roda apenas em ambiente local, sem hospedagem em provedor externo.
+O CoLecture foi desenvolvido para execução local. Siga o passo a passo abaixo para configurar o ambiente do zero.
 
 ### Pré-requisitos
 
 - [Git](https://git-scm.com/)
 - [Python 3.12+](https://www.python.org/downloads/)
-- [VS Code](https://code.visualstudio.com/) (opcional, mas recomendado)
-- [Redis](https://redis.io/) (opcional): só é necessário para as notificações agendadas via Celery. O restante do sistema funciona sem ele.
+- [Docker](https://www.docker.com/) ou [Redis](https://redis.io/) instalado (necessário para a fila de tarefas do Celery; o restante da navegação básica pode rodar sem ele).
+- [VS Code](https://code.visualstudio.com/) (recomendado)
 
-<!-- # TO-DO: Confirmar a versão mínima do Python e do Django usadas no projeto -->
+---
 
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton
+git clone https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton.git
 cd 2026.2-T02-Hamilton
 ```
 
-Se preferir, abra a pasta `2026.2-T02-Hamilton` no VS Code e use o terminal integrado para os próximos passos.
+---
 
 ### 2. Crie e ative o ambiente virtual
 
-Crie o ambiente virtual:
+Crie o ambiente virtual `.venv`:
 
 ```bash
 python -m venv .venv
 ```
 
-Ative-o de acordo com o seu sistema operacional:
+Ative o ambiente virtual conforme o seu sistema operacional e terminal:
 
-| Sistema | Comando |
-|---|---|
-| Linux / macOS (bash/zsh) | `source .venv/bin/activate` |
-| Linux (fish) | `source .venv/bin/activate.fish` |
-| Linux (csh) | `source .venv/bin/activate.csh` |
-| Windows (CMD) | `.venv\Scripts\activate` |
-| Windows (PowerShell) | `.venv\Scripts\Activate.ps1` |
+| Sistema Operacional | Terminal / Shell | Comando |
+| :--- | :--- | :--- |
+| **Linux / macOS** | Bash / Zsh | `source .venv/bin/activate` |
+| **Linux** | Fish | `source .venv/bin/activate.fish` |
+| **Windows** | PowerShell | `.venv\Scripts\Activate.ps1` |
+| **Windows** | Prompt de Comando (CMD) | `.venv\Scripts\activate.bat` |
 
-Quando o ambiente estiver ativo, o terminal mostrará `(.venv)` no início da linha.
+> Quando o ambiente virtual estiver ativo, o prefixo `(.venv)` será exibido no início da linha do terminal.
+
+---
 
 ### 3. Instale as dependências
+
+Certifique-se de que o `.venv` está ativo e instale todos os pacotes:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+---
+
 ### 4. Configure o banco de dados
 
-Entre na pasta do projeto Django:
+Navegue até a pasta da aplicação Django (`colecture/`):
 
 ```bash
 cd colecture
 ```
 
-Crie as tabelas e o administrador padrão:
+Execute as migrations para gerar o esquema de dados:
 
 ```bash
 python manage.py migrate
 ```
 
-O `migrate` também cria o **administrador padrão** (R03), já que o banco começa vazio, e cadastra as **35 insígnias** (R19). Veja as seções [Administrador padrão](#administrador-padrão) e [Insígnias](#insígnias-r19).
+O comando `migrate` realiza automaticamente:
+1. A criação de todas as tabelas do sistema.
+2. A criação do **administrador padrão** inicial (`accounts/migrations/0002_createDefaultAdmin.py`).
+3. O cadastro das **35 insígnias** do sistema (`rewards/migrations/0004_seed_insignias.py`).
 
-Opcionalmente, popule o catálogo e os dados de demonstração (veja [Scripts para popular o banco](#scripts-para-popular-o-banco)):
+---
+
+### 5. (Opcional) Popule o banco com dados de demonstração
+
+Para explorar a plataforma já com livros reais, usuários, ofensivas, comunidades ativas e mensagens de fórum, execute:
 
 ```bash
 python manage.py seed_books
 python manage.py seed_demo
 ```
 
-### 5. Inicie o servidor
+---
+
+### 6. Inicie o servidor Django
 
 ```bash
 python manage.py runserver
 ```
 
-Acesse o site em [http://127.0.0.1:8000](http://127.0.0.1:8000) e o painel administrativo em [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin).
+Abra o seu navegador e acesse:
+- **Aplicação:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Painel Administrativo:** [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
+
+---
 
 ### Administrador padrão
 
-A migration `accounts/migrations/0002_createDefaultAdmin.py` cria um administrador quando o banco é criado. Os valores padrão são:
+Ao rodar a primeira migração em um banco vazio, o administrador padrão é criado automaticamente com as seguintes credenciais:
 
-| Campo | Valor padrão | Variável de ambiente para alterar |
-|---|---|---|
-| Usuário | `admin` | `COLECTURE_ADMIN_USERNAME` |
-| E-mail | `admin@colecture.com` | `COLECTURE_ADMIN_EMAIL` |
-| Senha | `Admin#Colecture2026` | `COLECTURE_ADMIN_PASSWORD` |
+| Campo | Valor padrão | Variável de ambiente para sobrescrever |
+| :--- | :--- | :--- |
+| **Usuário** | `admin` | `COLECTURE_ADMIN_USERNAME` |
+| **E-mail** | `admin@colecture.com` | `COLECTURE_ADMIN_EMAIL` |
+| **Senha** | `Admin#Colecture2026` | `COLECTURE_ADMIN_PASSWORD` |
 
-Para usar outros valores, defina as variáveis **antes** do primeiro `migrate`. Se o administrador já existir, a migration não o altera.
+> Caso deseje utilizar outras credenciais, configure as variáveis de ambiente indicadas **antes** do primeiro `python manage.py migrate`. Se o usuário já existir no banco, a migração não o substituirá. Você também pode criar superusuários adicionais a qualquer momento via `python manage.py createsuperuser`.
 
-> Essas credenciais são apenas para desenvolvimento local. Não use esses valores em qualquer ambiente acessível pela internet.
-
-Se preferir outro superusuário, também é possível criá-lo com `python manage.py createsuperuser`. O perfil (`Profile`) é criado automaticamente para todo novo usuário.
+---
 
 ### Scripts para popular o banco
 
-Os comandos abaixo ficam em `management/commands/` e são executados dentro da pasta `colecture`, depois do `migrate`. Todos podem ser rodados mais de uma vez sem duplicar dados.
+Os comandos de carga e manutenção ficam localizados nos diretórios `management/commands/` de seus respectivos apps e devem ser executados a partir da pasta `colecture/`. Todos são idempotentes (podem ser executados repetidamente sem gerar duplicatas):
 
-| Comando | App | O que faz |
-|---|---|---|
-| `python manage.py seed_books` | `books` | Popula o catálogo com livros reais (o ISBN é a chave). |
-| `python manage.py seed_demo` | `books` | Cria usuários, comunidades, mensagens de fórum, metas e uma ofensiva de demonstração. |
-| `python manage.py seed_insignias` | `rewards` | Atualiza as insígnias com os dados do `seed_insignias.py` (o nome é a chave). Não é preciso rodar na instalação, porque o `migrate` já as cadastra. Veja [Insígnias](#insígnias-r19). |
-| `python manage.py purge_archived_communities` | `communities` | Exclui as comunidades arquivadas há mais de 60 dias. |
+| Comando | App | Finalidade |
+| :--- | :--- | :--- |
+| `python manage.py seed_books` | `books` | Popula o catálogo com livros reais (o ISBN é utilizado como chave única). |
+| `python manage.py seed_demo` | `books` | Cria 5 usuários de demonstração, 2 comunidades (uma pública e uma privada), mensagens de fórum, metas individuais e coletivas e ofensivas ativas. |
+| `python manage.py seed_insignias` | `rewards` | Atualiza ou recarrega as 35 insígnias oficiais com base nas definições de requisitos. |
+| `python manage.py purge_archived_communities` | `communities` | Exclui permanentemente comunidades que estejam arquivadas há mais de 60 dias. |
 
-#### `seed_books`
+#### Opções do `seed_books`
 
 ```bash
-python manage.py seed_books              # insere os livros que ainda não existem
-python manage.py seed_books --no-covers  # insere sem URL de capa
-python manage.py seed_books --update     # também atualiza livros já existentes (mesmo ISBN)
+python manage.py seed_books              # Insere os livros que ainda não constam no banco
+python manage.py seed_books --no-covers  # Insere os livros sem associar URLs de capas
+python manage.py seed_books --update     # Atualiza os dados de livros já existentes com mesmo ISBN
 ```
 
-#### `seed_demo`
-
-Para testar o sistema com dados prontos, rode:
+#### Opções do `seed_demo`
 
 ```bash
 python manage.py seed_demo
-python manage.py seed_demo --password outra_senha   # usa outra senha para os usuários
+python manage.py seed_demo --password MinhaSenhaCustomizada#123
 ```
 
-O comando cria:
+**Dados criados pelo `seed_demo`:**
+- **5 Usuários de Teste** (todos com a senha padrão `Senha#123`):
+  - `ana`: Criadora da comunidade pública; ofensiva ativa de 5 dias lendo *Duna*.
+  - `bruno`: Criador da comunidade privada; moderador da comunidade pública.
+  - `carla`: Moderadora da comunidade privada; membro da comunidade pública.
+  - `diego`: Membro de ambas as comunidades.
+  - `elisa`: Membro da comunidade pública com solicitação pendente na privada.
+- **2 Comunidades**:
+  - *Clube da Ficção Científica* (Pública | Livro: *Duna* | Meta: 500 páginas em grupo).
+  - *Círculo dos Clássicos de Fantasia* (Privada | Livro: *O Hobbit* | Meta: 10 horas de leitura em grupo).
+- **Fóruns e Metas**: Fóruns com mensagens reais de debate e metas sincronizadas.
 
-- **5 usuários**, todos com `Profile` e a senha `Senha#123` (ou a informada em `--password`);
-- **2 comunidades**: uma pública e uma privada, esta com um pedido de entrada pendente;
-- **mensagens** no fórum geral de cada comunidade;
-- **1 meta coletiva** por comunidade (com fórum automático) e **1 meta individual** por usuário;
-- **ofensiva de 5 dias** para `ana`, registrada pelo mesmo serviço da tela de registrar leitura.
+---
 
-| Usuário | Papel nos dados de demonstração |
-|---|---|
-| `ana` | Criadora da comunidade pública; ofensiva de 5 dias lendo *Duna* |
-| `bruno` | Criador da comunidade privada; moderador da pública |
-| `carla` | Moderadora da privada; membro da pública |
-| `diego` | Membro das duas comunidades |
-| `elisa` | Membro da pública; pedido pendente na privada |
+## Configuração e Execução do Celery e Redis
 
-| Comunidade | Acesso | Livro | Meta coletiva |
-|---|---|---|---|
-| Clube da Ficção Científica | Pública | *Duna* | Ler 500 páginas juntos |
-| Círculo dos Clássicos de Fantasia | Privada | *O Hobbit* | 10 horas de leitura em grupo |
+### Por que o Celery é utilizado?
 
-Se o catálogo não tiver os livros usados nas comunidades, o `seed_demo` executa o `seed_books` antes.
+No CoLecture, o **Celery** é o mecanismo responsável pelo processamento assíncrono e agendamento de tarefas em segundo plano. Ele opera em conjunto com o **Redis** (Message Broker) e o **django-celery-beat** (Agendador Periódico).
 
-> Os dados de demonstração são apenas para desenvolvimento local e não devem ser usados em ambientes acessíveis pela internet.
+A principal rotina agendada do sistema é:
+- **`notifications.tasks.notify_without_reading`**: Tarefa executada diariamente às **20h00** (horário de Brasília). Ela analisa todos os usuários do banco que ainda não registraram sessões de leitura (`ReadingSession`) no dia atual e envia uma notificação no sino do usuário: *"Você já leu hoje? Não se esqueça de registrar sua leitura diária!"*, ajudando a preservar a sequência de dias consecutivos (*streak*).
 
-### Insígnias (R19)
-
-As insígnias foram definidas na Ata da Reunião 07: são 35, numeradas de 1 a 36 (a 18, *Madrugador das Letras*, não foi aprovada). O usuário vê um resumo no card **Insígnias** do perfil (`/user/profile/`) e a lista completa, separada por categoria, em `/rewards/insignias/`. As conquistadas aparecem coloridas com a data; as bloqueadas aparecem em cinza, com cadeado e o critério para conquistar.
-
-#### Como funciona
-
-1. **Cadastro:** a migration `rewards/migrations/0004_seed_insignias.py` cadastra as insígnias (`Insignia`) no `migrate`, com nome, descrição, categoria (`criteria_type`) e valor do critério (`criteria_value`). Ela não mexe nas insígnias que já existem. Para atualizar as insígnias depois, use o `seed_insignias`: o **nome** é a chave, então rodar o comando de novo atualiza as existentes.
-2. **Conquista:** quando o usuário faz algo (registra leitura, marca livro como lido, conclui meta, cria comunidade...), a view ou o service do app chama a função `check_*` correspondente em `rewards/services.py`. Ela verifica o critério e cria um `Award` (usuário + insígnia + data). Algumas funções buscam a insígnia pelo nome, por exemplo `check_community_founder` busca `'Fundador'`.
-3. **Exibição:** `rewards/selectors.py` (`get_insignia_overview`) monta o contexto usado pelo perfil e pela página: as insígnias ativas agrupadas por categoria, na ordem da ata, com o total conquistado e as últimas conquistas.
-
-#### Onde ajustar
-
-| Quero... | Onde |
-|---|---|
-| Mudar nome, descrição ou critério de uma insígnia | `rewards/management/commands/seed_insignias.py` e depois `python manage.py seed_insignias`. Se mudar o **nome**, atualize também `rewards/services.py` (buscas por nome) e `INSIGNIA_NUMBERS` em `rewards/selectors.py`. |
-| Criar uma insígnia nova | Adicione no `seed_insignias.py` (e rode o comando, ou crie uma migration nova para ela já vir no `migrate`), crie/ajuste a função `check_*` em `rewards/services.py`, dê um número em `INSIGNIA_NUMBERS` e salve o ícone (veja abaixo). |
-| Esconder uma insígnia sem apagar | Desmarque `is_active` no painel administrativo (`/admin/`). |
-| Dar uma insígnia manualmente (para testes) | No `/admin/`, crie um **Award** com o usuário e a insígnia. |
-| Trocar o ícone | Substitua o arquivo em `rewards/static/rewards/img/insignias/`. |
-| Mudar a cor de uma categoria | Variáveis `--cat-*` em `main/static/main/css/variables.css`. |
-| Mudar o ícone reserva ou o agrupamento das categorias | `CATEGORY_STYLES` e `DISPLAY_CATEGORY` em `rewards/selectors.py` (ex.: *Fundador* é do tipo `COMMUNITY`, mas aparece em *Metas de comunidade*, como na ata). |
-| Mudar o visual da página ou do card | `rewards/templates/rewards/insignias.html`, `rewards/templates/rewards/_insignia_medal.html` (medalhão), o card em `accounts/templates/accounts/profile.html` e o estilo em `rewards/static/rewards/css/insignias.css`. |
-
-#### Ícones
-
-Os ícones ficam em `rewards/static/rewards/img/insignias/` e são encontrados **pelo nome do arquivo**, sem precisar de cadastro no banco:
-
-```text
-insignia-<número da ata com 2 dígitos>-<nome em slug>.svg   (ou .png)
-insignia-01-primeira-faisca.svg
-insignia-33-fundador.svg
-insignia-36-fenix.svg
 ```
-
-O slug é o nome sem acentos, em minúsculas e com hífens (o mesmo do `slugify` do Django). Cada insígnia tem **um único arquivo** (SVG 64×64 com fundo transparente, só o símbolo): o círculo, a borda e o estado bloqueado (cinza, opaco e com cadeado) são feitos por CSS.
-
-A ordem de busca do ícone é:
-
-1. arquivo em `rewards/static/rewards/img/insignias/`;
-2. arquivo enviado no campo `icon` da insígnia (pasta `media/`);
-3. ícone da categoria (Boxicons), se nenhum dos dois existir.
-
-| Categoria | Insígnias | Tema | Cor |
-|---|---|---|---|
-| Ofensiva pessoal | 1 a 8 | Fogo (a chama cresce com os dias) | `--cat-streak` |
-| Livros lidos | 9 a 14 | Livros e estante | `--cat-books` |
-| Progresso diário | 15 a 17 | Páginas | `--cat-pages` |
-| Horas de leitura | 19 a 24 | Relógio e ampulheta | `--cat-hours` |
-| Metas individuais | 25 a 29 | Alvo e bandeira | `--cat-goal` |
-| Metas de comunidade | 30 a 33 | Ciclo e grupo | `--cat-community-goal` |
-| Social, fórum e avaliações | 34 e 35 | Balão de fala e pena | `--cat-social` |
-| Especiais | 36 | Fênix | `--cat-special` |
-
-
-### Executando os testes
-
-Dentro da pasta `colecture`:
-
-```bash
-python manage.py test            # todos os apps
-python manage.py test books      # apenas um app (accounts, books, communities, forums, goals, logs, main, notifications, rewards)
+                      +-------------------+
+                      |    Celery Beat    | (Agendador diário às 20h00)
+                      +---------+---------+
+                                | Envia tarefa programada
+                                v
++-------------+       +-------------------+       +--------------------+
+|   Django    | ----> |   Redis Broker    | ----> |   Celery Worker    |
+| Application |       | (localhost:6379)  |       | (Processa tarefas) |
++-------------+       +-------------------+       +---------+----------+
+                                                            |
+                                                            v
+                                                  +--------------------+
+                                                  | Notificações / BD  |
+                                                  +--------------------+
 ```
 
 ---
 
-### Atualizando o banco após um `git pull`
+### 1. Configuração e execução do Redis (Broker)
 
-Quando alguém da equipe alterar os models, aplique as novas migrations:
+O Celery requer um broker Redis ativo escutando na porta padrão `6379`. Escolha a forma de execução mais conveniente para o seu ambiente:
+
+#### Opção A: Via Docker (Recomendada para qualquer sistema)
+
+Se tiver o Docker instalado, basta rodar:
 
 ```bash
-python manage.py migrate
+docker run -d --name colecture-redis -p 6379:6379 redis:alpine
 ```
 
-Se você alterar um model, gere a migration com `python manage.py makemigrations` e versione o arquivo gerado. Alterações de esquema são feitas somente por migrations.
+Comandos úteis para gerenciar o container:
+- Iniciar container existente: `docker start colecture-redis`
+- Parar container: `docker stop colecture-redis`
+- Ver status: `docker ps`
+
+#### Opção B: No Windows via WSL2 (Ubuntu / Debian)
+
+No terminal WSL:
+
+```bash
+sudo apt update && sudo apt install redis-server -y
+sudo service redis-server start
+```
+
+#### Opção C: No Linux nativo (Ubuntu / Debian)
+
+```bash
+sudo apt update && sudo apt install redis-server -y
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+```
+
+#### Opção D: No macOS via Homebrew
+
+```bash
+brew install redis
+brew services start redis
+```
+
+#### Testando a conexão com o Redis
+
+Para garantir que o Redis está rodando e aceitando conexões locais:
+
+```bash
+redis-cli ping
+```
+
+> **Retorno esperado:** `PONG`
+
+---
+
+### 2. Execução do Celery Worker
+
+Abra um novo terminal, ative o ambiente virtual `.venv` e entre na pasta `colecture/`:
+
+```bash
+cd colecture
+```
+
+Execute o comando conforme o seu sistema operacional:
+
+#### No Linux ou macOS:
+
+```bash
+celery -A colecture worker --loglevel=info
+```
+
+#### No Windows:
+
+> [!IMPORTANT]
+> No Windows, o Celery possui incompatibilidade com o pool multiprocesso padrão (`prefork`) devido à ausência nativa da chamada de sistema `fork()`. Portanto, **no Windows é obrigatório utilizar o pool `solo`** adicionando a flag `-P solo`:
+
+```bash
+celery -A colecture worker -l info -P solo
+```
+
+Você verá nos logs o Celery conectando-se ao broker `redis://localhost:6379/0` e descobrindo a tarefa `notifications.tasks.notify_without_reading`.
+
+---
+
+### 3. Execução do Celery Beat (Agendador)
+
+O **Celery Beat** monitora os agendamentos definidos em `CELERY_BEAT_SCHEDULE` e despacha as tarefas para a fila no horário correto.
+
+Abra outro terminal, ative o `.venv`, entre em `colecture/` e execute:
+
+```bash
+cd colecture
+celery -A colecture beat --loglevel=info
+```
+
+---
+
+### 4. Executando Worker + Beat juntos em desenvolvimento
+
+Para facilitar o desenvolvimento local sem precisar abrir vários terminais dedicados, você pode executar o Worker e o Beat combinados em um único processo:
+
+- **Linux / macOS:**
+  ```bash
+  cd colecture
+  celery -A colecture worker --beat --loglevel=info
+  ```
+
+- **Windows:**
+  ```bash
+  cd colecture
+  celery -A colecture worker --beat -l info -P solo
+  ```
+
+---
+
+### 5. Como testar e disparar tarefas manualmente (Django Shell)
+
+Você não precisa esperar o relógio bater 20h00 para verificar se as tarefas e notificações estão funcionando. É possível disparar a rotina manualmente pelo Django Shell.
+
+Com o terminal aberto em `colecture/`:
+
+```bash
+python manage.py shell
+```
+
+No terminal interativo do Python:
+
+```python
+# Importa a tarefa do app notifications
+from notifications.tasks import notify_without_reading
+
+# Opção 1: Execução SÍNCRONA imediata (direto no processo do shell, sem precisar do Redis/Worker)
+notify_without_reading()
+
+# Opção 2: Execução ASSÍNCRONA via Celery (requer Redis e Celery Worker ativos)
+resultado = notify_without_reading.delay()
+print("ID da tarefa:", resultado.id)
+print("Status:", resultado.status)
+```
+
+**O que verificar após executar:**
+1. A tarefa verifica se o usuário logado leu hoje. Se não houver sessão de leitura registrada na data de hoje e ele ainda não tiver recebido o aviso hoje, um registro `Notification` é gravado no banco de dados.
+2. Acesse a aplicação no navegador em [http://127.0.0.1:8000](http://127.0.0.1:8000):
+   - O ícone do sino na barra lateral exibirá o indicador visual de mensagem pendente.
+   - O histórico pode ser consultado em `/notifications/history/`.
+
+---
+
+## Sistema de Notificações
+
+O app `notifications` gerencia alertas visuais, avisos de moderação e lembretes aos usuários.
+
+### Como funciona na interface
+
+- **Sino na barra lateral / cabeçalho:** Exibe um contador de mensagens não lidas (`unread_notifications_count`). Ao clicar, um dropdown exibe os alertas mais recentes.
+- **Histórico Completo (`/notifications/history/`):** Permite revisar todas as notificações recebidas, com filtros de lidas/não lidas e botão para dispensar.
+- **Marcação Automática:** Ao abrir a página de histórico ou clicar no menu, as notificações são marcadas como lidas (`is_read=True`) via AJAX.
+- **Ocultação e Exclusão:** É possível ocultar um card do dropdown rápido ou excluí-lo permanentemente do histórico.
+
+### Tipos de notificações disparadas
+
+1. **Lembrete de Leitura / Ofensiva:** Disparado pelo Celery Beat às 20h00 ou na primeira visita do dia ao perfil caso a ofensiva do usuário esteja em risco.
+2. **Registro de Leitura:** Emite notificação de confirmação e resumo de páginas/tempo computados na estante.
+3. **Comunidades e Moderação:** Notifica o usuário imediatamente quando:
+   - Sua solicitação de entrada em comunidade privada é aprovada.
+   - Seu cargo é alterado (promovido a moderador ou rebaixado a membro comum).
+   - O usuário sofre banimento de uma comunidade.
+
+---
+
+## Sistema de Insígnias (R19)
+
+O CoLecture conta com **35 insígnias** ativas (numeradas de 1 a 36, tendo sido a 18 descontinuada pela equipe).
+
+- **Onde visualizar:** No card do perfil (`/user/profile/`) e na galeria completa dividida por categorias em `/rewards/insignias/`.
+- **Conquista em tempo real:** Triggers e services do sistema verificam as condições após ações do usuário (registrar leitura, atingir dias de ofensiva, concluir meta, cadastrar resenhas, fundar comunidades) e concedem a insígnia instantaneamente através da tabela `Award`.
+
+### Categorias de Insígnias
+
+| Categoria | Insígnias | Tema / Representação | Variável CSS |
+| :--- | :--- | :--- | :--- |
+| **Ofensiva pessoal** | 1 a 8 | Sequência diária ininterrupta de leitura (chama) | `--cat-streak` |
+| **Livros lidos** | 9 a 14 | Total de volumes marcados como concluídos | `--cat-books` |
+| **Progresso diário** | 15 a 17 | Volume de páginas lidas em um único dia | `--cat-pages` |
+| **Horas de leitura** | 19 a 24 | Horas totais acumuladas em sessões | `--cat-hours` |
+| **Metas individuais** | 25 a 29 | Metas pessoais atingidas | `--cat-goal` |
+| **Metas de comunidade**| 30 a 33 | Metas coletivas cumpridas e liderança | `--cat-community-goal` |
+| **Social e Avaliações**| 34 e 35 | Mensagens em fóruns e resenhas avaliativas | `--cat-social` |
+| **Especiais** | 36 | Insígnia Fênix (recuperação de hábito) | `--cat-special` |
+
+Os ícones vetoriais estão localizados em `rewards/static/rewards/img/insignias/` no formato `insignia-<id>-<slug>.svg`.
+
+---
+
+## Logs de Auditoria
+
+O app `logs` fornece rastreabilidade completa das ações de usuários e da administração no sistema, gravando registros imutáveis de auditoria (`AuditLog`).
+
+- **Acesso restrito:** Exclusivo para usuários com permissão de superusuário (`is_superuser=True`). O link fica visível diretamente na barra lateral de navegação do administrador.
+- **Segurança de dados:** A exclusão ou edição de logs é auditada, gravando snapshots do estado anterior em `metadata["changes"]` ou `metadata["deleted_log"]`.
+
+### Principais eventos auditados
+
+- Criação, edição, arquivamento, desarquivamento e exclusão de comunidades.
+- Entrada de membros, pedidos de ingresso aprovados/rejeitados, alteração de cargos (promover/rebaixar) e banimentos.
+- Exclusão de mensagens em fóruns de discussão.
+- Exclusão e manutenção manual de registros de logs de auditoria.
+
+---
+
+## Rotas da Aplicação
+
+Todas as rotas são relativas a `http://127.0.0.1:8000`. Endpoints protegidos exigem autenticação ativa.
+
+### Páginas gerais (`main`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/` | Página inicial (redireciona para o perfil se o usuário estiver logado) | Público |
+| `/search` | Página de busca global de livros e comunidades | Público |
+| `/admin/` | Painel administrativo nativo do Django | Administrador |
+
+### Contas e Perfil (`/user/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/user/register/` | Cadastro de novos usuários | Público |
+| `/user/login/` | Autenticação no sistema | Público |
+| `/user/logout/` | Encerramento de sessão (POST) | Autenticado |
+| `/user/profile/` | Página de perfil do leitor, ofensiva e estante | Autenticado |
+| `/user/profile/editProfile/` | Edição de informações cadastrais e bio | Autenticado |
+| `/user/streak/` | Calendário mensal de histórico da ofensiva | Autenticado |
+| `/user/streak/<day>/` | Detalhamento das leituras de um dia específico | Autenticado |
+
+### Notificações (`/notifications/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/notifications/` | Retorna lista de notificações do usuário logado (JSON para o sino) | Autenticado |
+| `/notifications/history/` | Página com o histórico completo de notificações recebidas | Autenticado |
+| `/notifications/mark-read/` | Marca todas as notificações pendentes como lidas (POST) | Autenticado |
+| `/notifications/<id>/hide/` | Oculta uma notificação do pop-up rápido do sino (POST) | Autenticado |
+| `/notifications/<id>/dismiss/` | Exclui definitivamente uma notificação do histórico (POST) | Autenticado |
+
+### Livros e Leitura (`/books/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/books/search/` | Busca filtrada no catálogo de livros | Público |
+| `/books/<id>/` | Ficha técnica do livro, resenhas e avaliações | Público |
+| `/books/register/` | Cadastro de novo livro no catálogo | Autenticado |
+| `/books/<id>/edit/` | Edição dos dados de um livro | Criador do livro ou Admin |
+| `/books/<id>/delete/` | Exclusão de um livro do catálogo | Criador do livro ou Admin |
+| `/books/shelf/` | Gerenciamento da estante do leitor (Lendo, Lidos, Quero Ler, etc.) | Autenticado |
+| `/books/shelf/<id>/mark-read/` | Marcar livro da estante como concluído (POST) | Autenticado |
+| `/books/shelf/<id>/progress/` | Salvar progresso de páginas/porcentagem (POST) | Autenticado |
+| `/books/shelf/<id>/session/` | Registrar sessão de leitura avulsa (POST) | Autenticado |
+| `/books/shelf/<id>/sessions/` | Listar sessões de leitura vinculadas a um livro | Autenticado |
+| `/books/shelf/<id>/sessions/<session_id>/` | Editar dados de uma sessão de leitura (POST/PATCH) | Autenticado |
+| `/books/lookup/` | Consulta rápida de livros em JSON (autocomplete) | Autenticado |
+| `/books/reading/` | Interface com cronômetro para sessão de leitura ativa | Autenticado |
+| `/books/reading/register/` | Formulário para registrar leitura finalizada | Autenticado |
+
+### Comunidades (`/communities/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/communities/` | Painel de comunidades do usuário e feed de exploração | Autenticado |
+| `/communities/search/` | Busca de comunidades por nome ou tema | Público |
+| `/communities/create/` | Criação de uma nova comunidade | Autenticado |
+| `/communities/join-by-code/` | Entrada em comunidade privada via código de convite | Autenticado |
+| `/communities/<id>` | Página principal da comunidade e detalhes | Autenticado |
+| `/communities/<id>/forum/` | Redirecionamento para o fórum geral da comunidade | Membro |
+| `/communities/<id>/join` | Solicitar entrada ou entrar diretamente | Autenticado |
+| `/communities/<id>/join/<invitation_code>` | Aceite de convite com link codificado | Autenticado |
+| `/communities/<id>/leave` | Sair da comunidade | Membro |
+| `/communities/<id>/generate_invitation_code` | Gerar novo código de convite compartilhável (JSON) | Criador, Moderador ou Admin |
+| `/communities/<id>/manage/` | Painel de gestão e moderação de membros | Criador, Moderador ou Admin |
+| `/communities/<id>/edit/` | Edição dos dados e regras da comunidade | Criador, Moderador ou Admin |
+| `/communities/<id>/archive/` | Arquivar comunidade | Criador, Moderador ou Admin |
+| `/communities/<id>/unarchive/` | Desarquivar comunidade | Criador, Moderador ou Admin |
+| `/communities/<id>/delete/` | Exclusão definitiva da comunidade (POST) | Criador ou Admin |
+| `/communities/<id>/members/<id>/role/` | Promover a moderador ou rebaixar a membro | Criador ou Admin |
+| `/communities/<id>/members/<id>/request/` | Aprovar ou recusar solicitação de ingresso | Criador, Moderador ou Admin |
+| `/communities/<id>/members/<id>/ban/` | Banir ou desbanir membro | Criador, Moderador ou Admin |
+
+### Metas (`/goals/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/goals/create/` | Criar meta individual de leitura | Autenticado |
+| `/goals/create/community/<community_id>/` | Criar meta coletiva para uma comunidade | Moderador ou Admin |
+| `/goals/<id>/forum/` | Fórum de debate específico daquela meta | Participante |
+| `/goals/<id>/edit/` | Edição de prazos e objetivos da meta | Criador da meta |
+| `/goals/<id>/delete/` | Exclusão de meta individual (POST) | Dono da meta |
+| `/goals/<id>/join/` | Participar de uma meta coletiva (POST) | Membro da comunidade |
+| `/goals/<id>/leave/` | Sair de uma meta coletiva (POST) | Participante |
+| `/goals/<id>/conclude/` | Concluir meta atingida (POST) | Criador da meta |
+
+### Fóruns (`/forums/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/forums/<id>` | Visualização de tópicos e envio de mensagens | Membro autorizado |
+| `/forums/<id>/edit` | Editar título ou configurações do fórum | Moderador ou Admin |
+| `/forums/messages/<id>/delete/` | Excluir mensagem do fórum | Autor ou Moderador |
+
+### Insígnias (`/rewards/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/rewards/insignias/` | Galeria completa de insígnias conquistadas e bloqueadas | Autenticado |
+
+### Auditoria e Logs (`/logs/`)
+
+| Rota | Descrição | Acesso |
+| :--- | :--- | :--- |
+| `/logs/` | Listagem com filtros avançados e paginação de auditoria | Administrador |
+| `/logs/<id>/` | Detalhes completos e metadados de uma ação auditada | Administrador |
+| `/logs/<id>/edit/` | Ajustar notas de um registro de auditoria | Administrador |
+| `/logs/<id>/delete/` | Exclusão de registro de auditoria com rastreio reverso (POST) | Administrador |
 
 ---
 
 ## Estrutura do Projeto
 
-Cada módulo é um app Django independente, com seus próprios models, views, templates e testes (Documento de Arquitetura, Seção 2.5.3).
+A aplicação adota a arquitetura modular nativa do Django, separando responsabilidades em apps especializados:
 
 ```text
 2026.2-T02-Hamilton/
-├── README.md
-├── requirements.txt               # Dependências (Django, Celery, Redis etc.)
+├── README.md                          # Visão geral, guia de execução e arquitetura
+├── DETALHES.md                        # Portal de documentação detalhada
+├── requirements.txt                   # Dependências do Python (Django, Celery, Redis, etc.)
 ├── .gitignore
-└── colecture/                     # Projeto Django
-    ├── manage.py
-    ├── colecture/                 # Configuração do projeto
-    │   ├── settings.py            # Apps instalados, SQLite, pt-br, Celery e agenda (beat)
-    │   ├── urls.py                # Rotas principais (URLconf)
-    │   ├── celery.py              # Aplicação Celery
+└── colecture/                         # Diretório raiz da aplicação Django
+    ├── manage.py                      # Utilitário CLI do Django
+    ├── colecture/                     # Configurações globais do projeto
+    │   ├── __init__.py                # Inicialização do Celery app
+    │   ├── settings.py                # Configurações, apps, banco, Celery Beat e rotas
+    │   ├── urls.py                    # Roteamento global (URLconf)
+    │   ├── celery.py                  # Instância da aplicação Celery
     │   ├── asgi.py
     │   └── wsgi.py
-    ├── main/                      # Página inicial, busca e estilos compartilhados
+    ├── media/                         # Armazenamento local de uploads de capas e fotos
+    ├── main/                          # Páginas públicas (home, busca) e layout compartilhado
     │   ├── views.py
     │   ├── urls.py
-    │   ├── templates/             # sidebar.html e main/ (index, search)
-    │   └── static/main/           # css/ (index, search, sidebar, toast, variables), js/ e img/
-    ├── accounts/                  # Contas, perfis e ofensiva
-    │   ├── models.py              # Profile (ofensiva e última leitura)
-    │   ├── services.py            # AccountService (criação do perfil)
-    │   ├── forms.py               # LoginForm, RegistrationForm, EditUserForm
-    │   ├── views.py               # Cadastro, login, logout, perfil, edição e calendário da ofensiva
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── migrations/            # 0001_initial e 0002_createDefaultAdmin (admin padrão)
-    │   ├── templates/accounts/
-    │   └── static/accounts/       # css/ e js/
-    ├── books/                     # Catálogo, estante e sessões de leitura
-    │   ├── models.py              # Book, BookReview, BookStatus, ReadingSession
-    │   ├── services.py            # Regras das sessões de leitura (persist_reading_session)
-    │   ├── forms.py
-    │   ├── views.py
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── management/commands/   # seed_books e seed_demo
-    │   ├── migrations/
-    │   ├── templates/books/
-    │   └── static/books/          # css/, js/ e img/
-    ├── communities/               # Comunidades, membros e convites
-    │   ├── models.py              # Community, Membership, Invitation
-    │   ├── services.py            # MembershipService e CommunityService
-    │   ├── forms.py
-    │   ├── views.py
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── management/commands/   # purge_archived_communities
-    │   ├── migrations/
-    │   ├── templates/communities/
-    │   └── static/communities/    # css/, js/ e img/
-    ├── goals/                     # Metas individuais e coletivas
-    │   ├── models.py              # Goal, GoalParticipation
-    │   ├── services.py            # GoalService (participação e progresso)
-    │   ├── signals.py             # Sincroniza participações com a Membership
-    │   ├── forms.py
-    │   ├── views.py
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── migrations/
-    │   ├── templates/goals/
-    │   └── static/goals/          # css/ e js/
-    ├── forums/                    # Fóruns (geral da comunidade e de cada meta)
-    │   ├── models.py              # Forum, Message
-    │   ├── services.py            # ForumService (permissões e dados da página)
-    │   ├── forms.py
-    │   ├── views.py
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── migrations/
+    │   ├── templates/main/            # sidebar.html, index.html, search.html
+    │   └── static/main/               # css/, js/ e assets de branding
+    ├── accounts/                      # Gerenciamento de usuários, perfil e ofensiva
+    │   ├── models.py                  # Profile (streak, última leitura, avatar)
+    │   ├── services.py                # AccountService
+    │   ├── forms.py                   # LoginForm, RegistrationForm, EditUserForm
+    │   ├── views.py                   # Telas de login, registro, perfil e calendário
+    │   └── templates/accounts/
+    ├── books/                         # Catálogo de livros, estante e sessões
+    │   ├── models.py                  # Book, BookReview, BookStatus, ReadingSession
+    │   ├── services.py                # Recomendações (scores), sessões e cálculo de progresso
+    │   ├── forms.py                   # BookForm, ReadingSessionForm
+    │   ├── views.py                   # Estante, cronômetro, cadastro e listagem
+    │   ├── management/commands/       # seed_books, seed_demo
+    │   └── templates/books/
+    ├── communities/                   # Comunidades de leitura e moderação
+    │   ├── models.py                  # Community, Membership, Invitation
+    │   ├── services.py                # MembershipService, CommunityService
+    │   ├── views.py                   # Gestão de membros, banimentos e convites
+    │   ├── management/commands/       # purge_archived_communities
+    │   └── templates/communities/
+    ├── goals/                         # Metas individuais e coletivas
+    │   ├── models.py                  # Goal, GoalParticipation
+    │   ├── services.py                # GoalService
+    │   ├── signals.py                 # Sincronização automática de participações
+    │   └── templates/goals/
+    ├── forums/                        # Fóruns de comunidades e metas
+    │   ├── models.py                  # Forum, Message
+    │   ├── services.py                # ForumService
     │   └── templates/forums/
-    ├── rewards/                   # Insígnias (R19)
-    │   ├── models.py              # Insignia, Award, CriteriaType
-    │   ├── services.py            # Funções check_* que concedem as insígnias
-    │   ├── selectors.py           # get_insignia_overview (dados do perfil e da página)
-    │   ├── views.py
-    │   ├── urls.py
-    │   ├── management/commands/   # seed_insignias
-    │   ├── migrations/
-    │   ├── templates/rewards/     # insignias.html e _insignia_medal.html
-    │   └── static/rewards/        # css/insignias.css e img/insignias/ (ícones SVG)
-    ├── logs/                      # Logs de auditoria (ações dos usuários e administradores)
-    │   ├── models.py              # AuditLog (autor, ação, classe e ID do alvo, data, metadata)
-    │   ├── services.py            # create_log (usado pelos outros apps), log_edit e delete_log
-    │   ├── forms.py               # AuditLogForm (edição) e AuditLogFilterForm (filtros)
-    │   ├── views.py               # Listar, ver, editar e excluir logs (somente administradores)
-    │   ├── urls.py
-    │   ├── tests.py
-    │   ├── migrations/
-    │   ├── templates/logs/        # log_list.html, log_detail.html e log_form.html
-    │   └── static/logs/           # css/logs.css
-    └── notifications/             # Notificações e tarefas agendadas
-        ├── models.py              # Notification
-        ├── tasks.py               # notify_without_reading (Celery)
-        ├── views.py
-        ├── urls.py
-        ├── tests.py
-        └── migrations/
+    ├── notifications/                 # Sistema de notificações e tarefas periódicas
+    │   ├── models.py                  # Notification
+    │   ├── services.py                # create_notification helper
+    │   ├── tasks.py                   # notify_without_reading (Celery Task)
+    │   ├── views.py                   # Listagem JSON, histórico, dismiss e marcação de leitura
+    │   └── templates/notifications/   # history.html
+    ├── rewards/                       # Sistema de gamificação e 35 insígnias
+    │   ├── models.py                  # Insignia, Award, CriteriaType
+    │   ├── services.py                # Triggers de concessão automática (check_*)
+    │   ├── selectors.py               # Agrupamento e status de desbloqueio
+    │   ├── management/commands/       # seed_insignias
+    │   ├── static/rewards/img/insignias/ # Ícones vetoriais em SVG
+    │   └── templates/rewards/
+    └── logs/                          # Trilha de auditoria e segurança
+        ├── models.py                  # AuditLog
+        ├── services.py                # create_log, log_edit, delete_log
+        ├── forms.py                   # AuditLogFilterForm, AuditLogForm
+        ├── views.py                   # Visualização tabular, detalhe e edição de logs
+        └── templates/logs/
 ```
-
-### Rotas
-
-Todas as rotas abaixo são relativas a `http://127.0.0.1:8000`. "Logado" significa que a rota exige login (usuários não autenticados são redirecionados para `/user/login/`).
-
-#### Páginas gerais (`main`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/` | Página inicial (redireciona ao perfil se o usuário estiver logado) | Público |
-| `/search` | Página de pesquisa | Público |
-| `/admin/` | Painel administrativo do Django | Administrador |
-
-#### Contas (`/user/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/user/register/` | Cadastro | Público |
-| `/user/login/` | Login | Público |
-| `/user/logout/` | Logout (somente `POST`) | Logado |
-| `/user/profile/` | Perfil do usuário | Logado |
-| `/user/profile/editProfile/` | Edição do perfil | Logado |
-| `/user/streak/` | Calendário da ofensiva | Logado |
-| `/user/streak/<day>/` | Histórico de leitura de um dia | Logado |
-
-#### Livros (`/books/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/books/search/` | Busca de livros (GET) | Público |
-| `/books/<id>/` | Página do livro e avaliações | Público |
-| `/books/register/` | Cadastro de livro | Logado |
-| `/books/<id>/edit/` | Edição do livro | Administrador ou usuário criador |
-| `/books/<id>/delete/` | Exclusão do livro | Administrador ou usuário criador |
-| `/books/lookup/` | Consulta de livros (JSON, GET) | Logado |
-| `/books/shelf/` | Gerenciar a estante (GET/POST) | Logado |
-| `/books/shelf/<id>/mark-read/` | Marcar livro como lido (POST) | Logado |
-| `/books/shelf/<id>/progress/` | Salvar progresso de leitura (POST) | Logado |
-| `/books/shelf/<id>/session/` | Registrar sessão de leitura (POST) | Logado |
-| `/books/shelf/<id>/sessions/` | Listar sessões de leitura (GET) | Logado |
-| `/books/shelf/<id>/sessions/<session_id>/` | Editar sessão de leitura (POST/PATCH) | Logado |
-| `/books/reading/` | Página de leitura | Logado |
-| `/books/reading/register/` | Registrar leitura | Logado |
-
-#### Comunidades (`/communities/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/communities/` | Início das comunidades (as minhas e busca) | Logado |
-| `/communities/search/` | Busca de comunidades | Público |
-| `/communities/create/` | Criar comunidade | Logado |
-| `/communities/join-by-code/` | Pedir entrada com o código da comunidade | Logado |
-| `/communities/<id>` | Página da comunidade | Logado |
-| `/communities/<id>/forum/` | Redireciona para o fórum geral | Logado |
-| `/communities/<id>/join` | Entrar ou pedir entrada | Logado |
-| `/communities/<id>/join/<invitation_code>` | Entrar com convite | Logado |
-| `/communities/<id>/leave` | Sair da comunidade | Logado |
-| `/communities/<id>/generate_invitation_code` | Gerar convite (JSON) | Criador, moderador ou administrador |
-| `/communities/<id>/manage/` | Painel de moderação | Criador, moderador ou administrador |
-| `/communities/<id>/edit/` | Editar comunidade | Criador, moderador ou administrador |
-| `/communities/<id>/archive/` e `/unarchive/` | Arquivar e desarquivar | Criador, moderador ou administrador |
-| `/communities/<id>/delete/` | Excluir comunidade (POST) | Criador, moderador ou administrador |
-| `/communities/<id>/members/<membership_id>/role/` | Alterar o cargo de um membro | Criador, moderador ou administrador |
-| `/communities/<id>/members/<membership_id>/request/` | Aprovar ou recusar pedido de entrada | Criador, moderador ou administrador |
-| `/communities/<id>/members/<membership_id>/ban/` | Banir ou desbanir membro | Criador, moderador ou administrador |
-
-#### Metas (`/goals/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/goals/create/` | Criar meta individual | Logado |
-| `/goals/create/community/<community_id>/` | Criar meta da comunidade | Criador, moderador ou administrador |
-| `/goals/<id>/forum/` | Fórum da meta | Participante da meta |
-| `/goals/<id>/edit/` | Editar meta | Dono da meta ou gestor da comunidade |
-| `/goals/<id>/delete/` | Excluir meta individual (POST); metas coletivas não podem ser excluídas | Dono da meta |
-| `/goals/<id>/conclude/` | Concluir meta (POST) | Dono da meta ou gestor da comunidade |
-| `/goals/<id>/join/` | Entrar na meta (POST) | Membro da comunidade |
-| `/goals/<id>/leave/` | Sair da meta (POST) | Participante da meta |
-
-#### Fóruns (`/forums/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/forums/<id>` | Ver e enviar mensagens no fórum | Membro da comunidade ou participante da meta |
-| `/forums/<id>/edit` | Editar o fórum | Criador, moderador ou administrador |
-| `/forums/messages/<id>/delete/` | Excluir mensagem | Autor ou gestor da comunidade |
-
-#### Insígnias (`/rewards/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/rewards/insignias/` | Todas as insígnias do usuário, por categoria (conquistadas e bloqueadas) | Logado |
-
-#### Logs (`/logs/`)
-
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/logs/` | Lista de logs, com filtros (`action`, `actor`, `content_type`, `object_id`) e paginação | Administrador |
-| `/logs/<id>/` | Detalhes de um log | Administrador |
-| `/logs/<id>/edit/` | Editar um log | Administrador |
-| `/logs/<id>/delete/` | Excluir um log (somente `POST`) | Administrador |
-
-Usuários que não são administradores recebem `403`, e visitantes são redirecionados para o login.
 
 ---
 
-## Logs de auditoria
+## Executando os Testes
 
-O app `logs` oferece um serviço para os outros apps registrarem ações importantes. Cada registro é um `AuditLog`:
+A suíte de testes unitários e de integração utiliza o framework de testes integrado do Django.
 
-| Campo | Descrição |
-|---|---|
-| `actor` | Usuário que executou a ação (vazio quando foi o sistema, como no `purge_archived_communities`). |
-| `action` | Tipo da ação (`AuditLog.Action`), por exemplo `MEMBER_ADDED`. |
-| `content_type` | Classe do alvo da ação (`User`, `Community`, `Message`...). |
-| `object_id` | ID do alvo (um inteiro, e não o objeto). O log continua válido se o alvo for apagado. |
-| `created_at` | Data de criação do log. |
-| `metadata` | JSON com informações extras, como o `community_id`. |
+Para rodar todos os testes do projeto:
 
-#### Como registrar uma ação
-
-```python
-from logs.models import AuditLog
-from logs.services import create_log
-
-create_log(
-    request.user,                     # quem fez
-    AuditLog.Action.MEMBER_BANNED,    # o que foi feito
-    membership.user,                  # em quem/o quê (só a classe e o ID são guardados)
-    metadata={"community_id": community.id},
-)
+```bash
+cd colecture
+python manage.py test
 ```
 
-Para registrar uma **exclusão**, chame o `create_log` **antes** de apagar o objeto. Para uma ação nova, adicione-a em `AuditLog.Action` e gere a migration.
+Para rodar testes de um app específico:
 
-#### Ações registradas
-
-| Ação | Quando | Alvo |
-|---|---|---|
-| `COMMUNITY_CREATED` | Comunidade criada | Community |
-| `COMMUNITY_UPDATED` | Comunidade editada (só se algo mudou) | Community |
-| `COMMUNITY_ARCHIVED` / `COMMUNITY_UNARCHIVED` | Comunidade arquivada ou desarquivada | Community |
-| `COMMUNITY_DELETED` | Comunidade excluída (por um gestor, pela saída do último membro ou pelo `purge_archived_communities`) | Community |
-| `MEMBER_ADDED` | Usuário entrou na comunidade ou teve o pedido aceito | User |
-| `MEMBER_REQUEST_REJECTED` | Pedido de entrada recusado | User |
-| `MEMBER_REMOVED` | Usuário saiu da comunidade | User |
-| `MEMBER_PROMOTED` / `MEMBER_DEMOTED` | Cargo alterado para moderador ou para membro | User |
-| `MEMBER_BANNED` / `MEMBER_UNBANNED` | Membro banido ou banimento revogado | User |
-| `MESSAGE_DELETED` | Mensagem do fórum excluída (o conteúdo não é copiado) | Message |
-| `LOG_EDITED` | Administrador editou um log (`metadata["changes"]` traz o valor antigo e o novo de cada campo) | AuditLog |
-| `LOG_DELETED` | Administrador excluiu um log (`metadata["deleted_log"]` traz uma cópia dele) | AuditLog |
-
-Nas ações sobre membros, o alvo é o usuário afetado e a comunidade vai no `metadata` (`community_id` e `community_name`). Os logs também podem ser consultados (somente leitura) em `/admin/`, mas editar e excluir deve ser feito por `/logs/`, que registra essas ações.
+```bash
+python manage.py test accounts       # Testes de autenticação e ofensiva
+python manage.py test books          # Testes de livros, estante e sessões
+python manage.py test communities    # Testes de comunidades e moderação
+python manage.py test goals          # Testes de metas coletivas e individuais
+python manage.py test forums         # Testes de mensagens e fóruns
+python manage.py test notifications  # Testes de alertas e tasks do Celery
+python manage.py test rewards        # Testes de concessão de insígnias
+python manage.py test logs           # Testes da trilha de auditoria
+```
 
 ---
 
-## Padrões de código
+## Padrões de Código
 
-Definidos nas restrições arquiteturais (Documento de Arquitetura, Seção 2.4.2):
+Conforme estabelecido nas restrições de arquitetura do projeto:
 
-- Back-end em Python com Django, e front-end com templates do Django (HTML, CSS e JavaScript).
-- Requisições validadas antes do processamento, com Django Forms.
-- Regras de negócio em métodos dos models, e não nas views, para poderem ser testadas sem uma requisição HTTP.
-- Identificadores (variáveis, funções, classes e tabelas) em **inglês**; comentários e documentação em **português**.
-- Banco SQLite e alterações de esquema somente por migrations.
+- **Arquitetura MTV:** O modelo (M) concentra dados e lógica; os templates (T) renderizam interfaces sem lógica pesada; as views (V) coordenam as requisições.
+- **Regras nos Models e Services:** Regras de negócio essenciais são implementadas em classes de serviço (`services.py`) ou métodos de model, permitindo testes rápidos e isolados.
+- **Formulários Padronizados:** Validação obrigatória de dados de entrada via Django Forms.
+- **Convenção de Idioma:** Código fonte (nomes de variáveis, funções, classes, campos de banco e rotas) padronizado em **inglês**; comentários, documentação e interface de usuário em **português (pt-br)**.
+- **Migrações Controladas:** O banco de dados nunca é alterado manualmente; toda mudança de schema é realizada exclusivamente por migrações versionadas do Django.
 
 ---
 
 ## Política de Branches
 
-O fluxo de trabalho segue a Seção 3 do documento de Visão. O repositório utiliza as seguintes branches:
+O fluxo de trabalho adota o modelo de branches por sprint:
 
 | Branch | Finalidade |
-|---|---|
-| `main` | Branch final, onde o produto é entregue. Recebe somente código testado. |
-| `sprintN` | Uma branch para cada sprint, de `sprint1` a `sprint7` (sem hífen), onde o desenvolvimento da sprint é feito e integrado. |
-| `docs` | Armazena os arquivos de documentação do trabalho. |
-| `gh-pages` | Usada pelo GitHub Pages para publicar o site do projeto. |
+| :--- | :--- |
+| `main` | Branch principal de entrega em produção. Recebe somente código testado e revisado. |
+| `sprintN` | Branches de integração das sprints (`sprint1`, `sprint2`, ..., `sprint7`), onde as features da sprint são unificadas. |
+| `docs` | Branch dedicada à documentação técnica e site MkDocs. |
+| `gh-pages` | Branch gerenciada pelo GitHub Pages para publicação da documentação online. |
 
-### Fluxo de trabalho
+### Fluxo de Trabalho
 
-1. O desenvolvimento de cada sprint acontece na sua respectiva branch `sprintN`, para que erros e conflitos entre o código de diferentes membros sejam resolvidos sem afetar a entrega.
-2. Tudo é testado na `sprintN`. Após a confirmação dos testes e a aprovação do Dono do Produto, a `sprintN` é integrada à `main` ao final da sprint.
-3. Os arquivos de documentação são mantidos na branch `docs`, separados do código da aplicação.
-4. A `gh-pages` é usada apenas para a publicação do GitHub Pages e não deve receber código de desenvolvimento.
+1. O desenvolvimento das tarefas da sprint ocorre na respectiva branch `sprintN` ou em branch de feature derivada dela (ex: `feat/nome-da-feature`).
+2. Pull requests são submetidos para revisão dos pares e do Dono do Produto.
+3. Ao término de cada sprint e após a validação completa da suíte de testes, a branch `sprintN` é mergeada na `main`.
 
 ---
 
-## Política Padrão de Commits (Conventional Commits)
+## Política Padrão de Commits
 
-Formato: `tipo(escopo opcional): descrição`
+O projeto adota o padrão **Conventional Commits**:
 
-Exemplo: `feat(accounts): adiciona edição de perfil`
-
-```bash
-feat      → nova funcionalidade
-fix       → correção de bug
-docs      → mudança em documentação
-style     → formatação sem mudança de lógica
-refactor  → refatoração sem nova feature e sem bug fix
-test      → adição ou correção de testes
-chore     → configuração e manutenção
-perf      → melhoria de performance
-ci        → mudanças no pipeline CI/CD
-build     → mudanças que afetam o build
+```text
+tipo(escopo-opcional): descrição no imperativo
 ```
 
-### Regras de Commit
+**Exemplo:** `feat(notifications): implementa alerta diário de ofensiva via Celery`
 
-- Mensagem no **imperativo** — "adiciona", "corrige", "atualiza"
-- Sempre em **português** no corpo da mensagem
-- Prefixo sempre em **inglês**
-- Um espaço após os dois-pontos (`feat: texto`, e não `feat:texto`)
+| Prefixo | Significado |
+| :--- | :--- |
+| `feat` | Nova funcionalidade implementada |
+| `fix` | Correção de bug ou falha de comportamento |
+| `docs` | Alterações em arquivos de documentação |
+| `style` | Ajustes visuais ou formatação de código sem impacto na lógica |
+| `refactor` | Refatoração de código sem alteração funcional |
+| `test` | Inclusão ou ajuste de testes automatizados |
+| `chore` | Tarefas de manutenção, configurações ou build |
+| `perf` | Melhorias focadas em desempenho |
+| `ci` | Ajustes em arquivos de integração contínua (GitHub Actions) |
+
+**Regras:**
+- Mensagem no **imperativo** em português: *"adiciona"*, *"corrige"*, *"atualiza"*.
+- Prefixo (`feat`, `fix`, etc.) em inglês.
+- Espaço obrigatório após os dois-pontos: `feat(books): adiciona busca`.
 
 ---
 
 ## Equipe
 
-**Equipe Hamilton - MDS 2026.2 - UnB FCTE/FGA**
+**Equipe Hamilton — MDS 2026.2 — UnB FGA**
 
-Papéis conforme o Quadro 5 do documento de Visão. Em **negrito**, o papel em que o integrante é o responsável. Todos os integrantes também atuam como desenvolvedores.
+Papéis definidos no Documento de Visão do Produto. Em **negrito**, a responsabilidade primária de cada membro. Todos os integrantes atuam ativamente como desenvolvedores do sistema.
 
-| Membro | Papéis |
-|---|---|
+| Integrante | Papéis no Projeto |
+| :--- | :--- |
 | Ana Clara Teixeira Guimarães | **Desenvolvedora**, Engenheira de Dados |
-| Arthur Miguel Silva Rocha | **Arquiteto de Software**, Desenvolvedor, Dono do Produto, Analista de Requisitos e Documentação |
+| Arthur Miguel Silva Rocha | **Arquiteto de Software**, Desenvolvedor, Dono do Produto, Analista de Requisitos |
 | Gabriel Sayd de Santana Lombas Macedo | **Desenvolvedor**, Analista de Qualidade, Engenheiro de Dados |
 | Guilherme Ribeiro Almeida | **Engenheiro de Dados**, Desenvolvedor |
 | Henrique Catharino Nunes de Mendonça | **Desenvolvedor**, Arquiteto de Software |
 | Jônatas Maciel da Silva Alves | **Analista de Requisitos e Documentação**, Desenvolvedor |
 | Letícia da Silva Pereira | **Analista de Qualidade**, Desenvolvedora, Dono do Produto |
 | Ricieri Artur Vasconcellos Vieira | **Dono do Produto**, Desenvolvedor, Analista de Qualidade, Engenheiro de Dados |
+
+---
+
+<div align="center">
+  <sub>CoLecture • Métodos de Desenvolvimento de Software • 2026.2 • Universidade de Brasília</sub>
+</div>
