@@ -19,8 +19,12 @@ Modelo de dados usado no recálculo
   Ela precisa ficar estritamente entre a sessão anterior e a seguinte.
 """
 import sys
+from random import shuffle, sample
 from datetime import datetime, time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from itertools import zip_longest
+from .forms import GENRE_CHOICES;
+
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -40,9 +44,11 @@ from rewards.services import (
 )
 
 from accounts.models import Profile
-from .models import BookStatus, ReadingSession, BookReview
+from .models import Book, BookStatus, ReadingSession, BookReview
 from .forms import GENRE_CHOICES;
 from notifications.services import create_notification
+
+SEARCH_LIMIT = 50;
 
 MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
 
@@ -50,7 +56,13 @@ PERCENT_STEP = Decimal("0.01")
 PROGRESS_STEP = Decimal("0.001")
 ZERO_PERCENT = Decimal("0.00")
 
-# avaliação (em estrelas):score
+# ======================= RECOMENDAÇÃO ======================
+MAX_RECOMMENDED_BOOKS = 11;
+# após juntar os recomendados, embaralhar?
+SORT_RECOMMENDED_BOOKS = True;
+# porcentagem máxima de livros por gênero
+MAX_RECOMMENDED_GENRE_RATE = .4;
+# avaliação (em estrelas da resenha:score)
 RATING_SCORE_TABLE = {
     5:5,
     4:3,
@@ -58,6 +70,7 @@ RATING_SCORE_TABLE = {
     2:-3,
     1:-5
 };
+# status (em status:score)
 BOOKSTATUS_SCORE_TABLE = {
     BookStatus.Status.READING:2,
     BookStatus.Status.WANT_TO_READ:3,
@@ -66,6 +79,7 @@ BOOKSTATUS_SCORE_TABLE = {
 # ponto/minuto
 # (atual = 1 ponto por hora lida)
 TIME_SCORE_RATE = 1/60;
+# ===============================================
 
 class BookService:
     @staticmethod
@@ -76,7 +90,7 @@ class BookService:
         );
 
         if book:
-            user_sessions.filter(book=book);
+            user_sessions = user_sessions.filter(book=book);
 
         return user_sessions;
 
@@ -92,11 +106,111 @@ class ReadingSessionError(Exception):
 
 class BookRecommendationService:
     @staticmethod
-    def get_recommended_books(user):#TODO: tirar um m
+    def get_recommended_books(user, limit=MAX_RECOMMENDED_BOOKS):
+        genre_scores = BookRecommendationService.get_genre_scores(user);
+        genre_allocations = BookRecommendationService.allocate_genre_slots(
+            genre_scores,
+            limit
+        );
+
+        recommendation = BookRecommendationService.get_books_by_genre(
+            genre_allocations,
+            limit
+        );
+
+        if SORT_RECOMMENDED_BOOKS:
+            shuffle(recommendation);
+        
+        result = recommendation;
+
+        return result;
+
+    def get_books_by_genre(genre_quantities, limit):
+        selected_books = [];
+        remaining = limit;
+
+        for genre, quantity in genre_quantities.items():
+            # pega no máximo 'quantity' de livros
+            capped_quantity = min(quantity, remaining);
+            books = Book.objects.filter(
+                genre=genre
+            )[:capped_quantity];
+
+            # adiciona os livros selecionados desse gênero à lista
+            selected_books.extend(books);
+            # subtrai a quantidade selecionada da quantidade restante permitida
+            remaining -= len(books);
+
+        if remaining>0:
+            # caso os gêneros recomendados não tinham
+            # livros o suficiente para lotar a página,
+            # pegar outros livros aleatórios da base
+            selected_books.extend(
+                BookRecommendationService.get_random_books(
+                    remaining,
+                    [book.id for book in selected_books]
+                )
+            );
+
+        return selected_books;
+
+    def get_random_books(count, exclude_book_ids):
+        # pega apenas os IDs dos livros (mais leve)
+        pks = list(Book.objects.exclude(id__in=exclude_book_ids).values_list('id', flat=True));
+
+        # pega (count) ids aleatórios
+        sample_size = min(len(pks), count);
+        random_pks = sample(pks, sample_size);
+
+        # pega os objetos a partir dos IDs
+        random_objects = Book.objects.filter(pk__in=random_pks);
+
+        return random_objects;
+
+    @staticmethod
+    def allocate_genre_slots(genre_scores, limit):
+        # limit é o limite de livros recomendados
+        # (SEARCH_LIMIT)
+
+        # pega apenas os gêneros
+        # com score positivo
+        positive_scores = {
+            genre: score
+            for genre, score in genre_scores.items()
+            if score > 0
+        };
+
+        if not positive_scores:
+            return positive_scores;
+
+        # máximo de recomendação por gênero
+        max_per_genre = max(1, int(limit * MAX_RECOMMENDED_GENRE_RATE));
+        total_score = sum(positive_scores.values());
+
+        # calcula a quantidade recomendada de livros
+        # por gênero, ordenadamente (descrescente)
+        allocations = dict(
+            sorted(
+                {
+                    genre: min(
+                        max_per_genre,
+                        int(limit * score / total_score)
+                    )
+                    for genre, score in positive_scores.items()
+                }.items(),
+                key=lambda item: item[1],
+                reverse=True
+            )
+        );
+        
+        return allocations;
+
+    @staticmethod
+    def get_genre_scores(user):
         # inicia todos os gêneros com
         # score zero (para o caso de
         # um usuário não ter nenhum registro).
-        genre_rating = {
+        genre_scores = {
             genre[0]:0
             for genre in GENRE_CHOICES
         };
@@ -108,20 +222,21 @@ class BookRecommendationService:
 
         # adiciona pontuação de resenhas
         BookRecommendationService.add_rating_score(
-            genre_rating,
+            genre_scores,
             reviews
         )
         # adiciona pontuação de status
         BookRecommendationService.add_status_score(
-            genre_rating,
+            genre_scores,
             bstatuses
         );
         BookRecommendationService.add_time_score(
-            genre_rating,
+            genre_scores,
             reading_sessions
         );
 
-        return genre_rating;
+        return genre_scores;
+        
 
     @staticmethod
     def add_time_score(points_dict, sessions):

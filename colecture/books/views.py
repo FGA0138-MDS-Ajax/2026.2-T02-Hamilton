@@ -30,7 +30,9 @@ from .models import Book, BookReview, BookStatus, ReadingSession
 from notifications.services import create_notification
 from .services import (
     MAX_SESSION_MINUTES,  # noqa: F401  (reexportado: limite de 24h por sessão)
+    SEARCH_LIMIT,
     ReadingSessionError,
+    BookRecommendationService,
     build_session_response,
     created_at_from_date,
     parse_session_payload,
@@ -39,7 +41,6 @@ from .services import (
     serialize_session,
 )
 
-SEARCH_LIMIT = 50
 MAX_DB_ID = 2_147_483_647  # maior id de livro aceito nos parâmetros (inteiro de 32 bits)
 
 
