@@ -134,7 +134,6 @@ def get_insignia_overview(user, recent_limit=4):
 
     # Primeira data em que cada insígnia foi conquistada
     awarded_at = {}
-    award_ids = {}
     awards = (
         Award.objects
         .filter(user=user, insignia__is_active=True)
@@ -142,7 +141,6 @@ def get_insignia_overview(user, recent_limit=4):
     )
     for award in awards:
         awarded_at.setdefault(award.insignia_id, award.awarded_at)
-        award_ids.setdefault(award.insignia_id, award.id)
 
     by_type = {}
     earned_items = []
@@ -164,7 +162,6 @@ def get_insignia_overview(user, recent_limit=4):
             'icon_url': _icon_url(insignia, number),
             'earned': earned_date is not None,
             'awarded_at': earned_date,
-            'award_id': award_ids.get(insignia.pk),
         }
 
         by_type.setdefault(category, []).append(item)

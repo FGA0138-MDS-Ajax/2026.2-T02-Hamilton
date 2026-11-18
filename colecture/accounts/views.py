@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, get_user_model;
 from django.contrib.auth.decorators import login_required;
 from django.contrib import messages
@@ -6,7 +6,6 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404
-from django.views.decorators.http import require_POST
 
 from datetime import date, datetime, timedelta
 import calendar
@@ -321,16 +320,3 @@ def streak_day_history_view(request, day):
         'accounts/streak_day_history.html',
         context
     )
-
-@login_required
-@require_POST
-def delete_award(request, award_id):
-    award = get_object_or_404(
-     Award,
-     id=award_id,
-     user=request.user
-    )
-    
-    award.delete()
-    #   rewards:insignias
-    return redirect('accounts:profile')
