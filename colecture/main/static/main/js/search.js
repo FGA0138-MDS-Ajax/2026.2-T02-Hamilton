@@ -356,15 +356,60 @@ function showBooks(books, total) {
   if (total > books.length) {
     resultsInfo.textContent = "Mostrando " + books.length + " de " + total + " livros";
   } else {
-    resultsInfo.textContent = total + " livro(s) encontrado(s)";
+    resultsInfo.textContent = total === 1 ? "1 livro encontrado" : total + " livros encontrados";
   }
 
   for (var i = 0; i < books.length; i++) {
-    var book = books[i];
+    bookList.appendChild(createBookCard(books[i]));
+  }
+}
 
+// "4,7 (12)" / "4,7 (12k)"; livro sem avaliação mostra "Sem avaliações"
+function formatCount(count) {
+  if (count >= 1000) {
+    return (Math.round(count / 100) / 10).toString().replace(".", ",") + "k";
+  }
+  return String(count);
+}
+
+function createRating(book) {
+  var rating = document.createElement("p");
+  rating.className = "book-rating";
+
+  if (book.rating === null || book.rating === undefined) {
+    rating.classList.add("book-rating-empty");
+    rating.textContent = "Sem avaliações";
+    return rating;
+  }
+
+  var star = document.createElement("i");
+  star.className = "bx bxs-star";
+  star.setAttribute("aria-hidden", "true");
+
+  var value = document.createElement("span");
+  value.textContent = book.rating.toFixed(1).replace(".", ",") + " (" + formatCount(book.rating_count) + ")";
+
+  rating.appendChild(star);
+  rating.appendChild(value);
+  rating.title = book.rating_count + " avaliação(ões)";
+  return rating;
+}
+
+// Card de livro (usado na lista da busca e em "Recomendados para você").
+// variant "compact": versão do carrossel, sem o botão da estante.
+// Clicar em qualquer parte do card abre a página do livro, menos no botão da estante.
+function createBookCard(book, variant) {
+    var compact = variant === "compact";
     var card = document.createElement("div");
-    card.className = "book-card";
+    card.className = "book-card book-card-clickable" + (compact ? " book-card-compact" : "");
     var bookUrl = "/books/" + book.id + "/";
+
+    card.addEventListener("click", function (event) {
+      if (event.target.closest("a, button")) {
+        return;
+      }
+      window.location.href = bookUrl;
+    });
 
   if (book.icon) {
       var coverLink = document.createElement("a");
@@ -393,36 +438,107 @@ function showBooks(books, total) {
 
     var author = document.createElement("p");
     author.className = "book-author";
-    author.textContent = book.year ? book.author + " (" + book.year + ")" : book.author;
-
-    var details = [];
-    if (book.publisher) {
-      details.push(book.publisher);
-    }
-    if (book.pages) {
-      details.push(book.pages + " páginas");
-    }
-    details.push("ISBN " + book.isbn);
-
-    var synopsis = document.createElement("p");
-    synopsis.className = "book-synopsis";
-    synopsis.textContent = details.join(" · ");
+    author.textContent = book.author;
 
     info.appendChild(title);
     info.appendChild(author);
-    info.appendChild(synopsis);
-
-    if (book.genre) {
-      var genre = document.createElement("span");
-      genre.className = "book-genre";
-      genre.textContent = book.genre;
-      info.appendChild(genre);
+    // Só mostra a nota se o back mandar esse campo (hoje a busca não manda)
+    if (book.rating !== undefined) {
+      info.appendChild(createRating(book));
     }
 
-    info.appendChild(createActions(book));
+    if (!compact) {
+      info.appendChild(createActions(book));
+    }
 
     card.appendChild(info);
-    bookList.appendChild(card);
+    return card;
+}
+
+// ---------------------------------------------------------------------------
+// "Recomendados para você": aparece ao entrar na pesquisa (aba Livros, sem
+// termo nem gênero). A lista já vem ordenada do back; aqui só exibimos.
+// ---------------------------------------------------------------------------
+var recommendationsUrl = document.querySelector("[data-recommendations-url]").dataset.recommendationsUrl;
+var recommendationsSection = document.getElementById("recommendations");
+var recommendationsList = document.getElementById("recommendationsList");
+var recommendationsLoaded = false;
+
+function showRecommendations(books) {
+  recommendationsList.innerHTML = "";
+  recommendationsList.classList.toggle("is-empty", books.length === 0);
+
+  if (books.length === 0) {
+    var empty = document.createElement("p");
+    empty.className = "recommendations-empty";
+    empty.textContent = "Marque livros como lidos para receber recomendações.";
+    recommendationsList.appendChild(empty);
+    return;
+  }
+
+  for (var i = 0; i < books.length; i++) {
+    recommendationsList.appendChild(createBookCard(books[i], "compact"));
+  }
+}
+
+// Setas do carrossel: rolam quase uma "tela" da faixa por clique.
+// Ficam desabilitadas no começo/fim e somem se tudo couber sem rolar.
+var recommendationsPrev = document.getElementById("recommendationsPrev");
+var recommendationsNext = document.getElementById("recommendationsNext");
+
+function scrollRecommendations(direction) {
+  recommendationsList.scrollBy({
+    left: direction * recommendationsList.clientWidth * 0.8,
+    behavior: "smooth"
+  });
+}
+
+function updateCarouselArrows() {
+  var maxScroll = recommendationsList.scrollWidth - recommendationsList.clientWidth;
+  var scrollable = maxScroll > 1;
+
+  recommendationsPrev.classList.toggle("invisible", !scrollable);
+  recommendationsNext.classList.toggle("invisible", !scrollable);
+  recommendationsPrev.disabled = recommendationsList.scrollLeft <= 1;
+  recommendationsNext.disabled = recommendationsList.scrollLeft >= maxScroll - 1;
+}
+
+recommendationsPrev.addEventListener("click", function () { scrollRecommendations(-1); });
+recommendationsNext.addEventListener("click", function () { scrollRecommendations(1); });
+recommendationsList.addEventListener("scroll", updateCarouselArrows);
+window.addEventListener("resize", updateCarouselArrows);
+
+function loadRecommendations() {
+  fetch(recommendationsUrl, { credentials: "same-origin" })
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error("O servidor respondeu com status " + response.status);
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      recommendationsLoaded = true;
+      updateShelfFromResults(data.results);
+      showRecommendations(data.results);
+      updateRecommendationsVisibility();
+    })
+    .catch(function (error) {
+      // Sem recomendações a busca continua funcionando: só some a seção
+      console.log("Erro ao carregar recomendações:", error);
+      recommendationsSection.classList.add("hidden");
+    });
+}
+
+function updateRecommendationsVisibility() {
+  var isInitialView = currentTab === "books"
+    && searchInput.value.trim() === ""
+    && genreFilter.value === "";
+
+  if (recommendationsLoaded && isInitialView) {
+    recommendationsSection.classList.remove("hidden");
+    updateCarouselArrows();
+  } else {
+    recommendationsSection.classList.add("hidden");
   }
 }
 
@@ -552,7 +668,35 @@ function searchCommunities() {
     });
 }
 
+// Título acima da lista: muda conforme o que está sendo mostrado
+// (sem busca = catálogo; com termo = resultados; só gênero = livros do gênero)
+var resultsTitle = document.getElementById("resultsTitle");
+var resultsIcon = document.getElementById("resultsIcon");
+
+function updateResultsTitle() {
+  var term = searchInput.value.trim();
+  var genre = genreFilter.value;
+  var isBooks = currentTab === "books";
+  var text;
+
+  if (term) {
+    text = "Resultados para “" + term + "”";
+  } else if (!isBooks) {
+    text = "Comunidades públicas";
+  } else if (genre) {
+    text = "Livros de " + genreFilter.options[genreFilter.selectedIndex].text;
+  } else {
+    text = "Explore o catálogo";
+  }
+
+  resultsTitle.textContent = text;
+  resultsIcon.className = "bx " + (term ? "bx-search" : (isBooks ? "bx-book-open" : "bx-group"));
+}
+
 function runSearch() {
+  updateRecommendationsVisibility();
+  updateResultsTitle();
+
   if (currentTab === "communities") {
     searchCommunities();
   } else {
@@ -633,4 +777,5 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
+loadRecommendations();
 runSearch();

@@ -15,25 +15,28 @@
     {# div (e não main): o sidebar.html já tem um <main> em volta do conteúdo #}
     <div class="page-content" 
         data-search-url="{% url 'books:search' %}"
+        data-recommendations-url="{% url 'main:recommendations' %}"
         data-shelf-url="{% url 'books:manage_bookshelf' %}"
         data-communities-url="/communities/search/"
-        data-shelf-url="{% url 'books:manage_bookshelf' %}"
         data-empty-img="{% static 'books/img/mascote.png' %}">
         
       
-      <h1 class="page-title">Busque por titulo ou autor...</h1>
+      <h1 class="page-title">Busque por <span class="highlight">título</span> ou <span class="highlight">autor</span>...</h1>
 
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Busca" />
+        <div class="search-input-wrapper">
+          <i class="bx bx-search" aria-hidden="true"></i>
+          <input type="text" id="searchInput" placeholder="Ex.: Dom Casmurro, Jane Austen..." aria-label="Buscar" />
+        </div>
 
-        <select id="genreFilter">
+        <select id="genreFilter" aria-label="Filtrar por gênero">
           <option value="">Todos os gêneros</option>
           {% for genre in genres %}
           <option value="{{ genre }}">{{ genre }}</option>
           {% endfor %}
         </select>
 
-        <button id="searchButton">Buscar</button>
+        <button id="searchButton"><i class="bx bx-search" aria-hidden="true"></i> Buscar</button>
       </div>
 
       <div class="search-tabs">
@@ -41,7 +44,31 @@
         <button type="button" class="tab-button" id="tabCommunities">Comunidades públicas</button>
       </div>
 
-      <p id="resultsInfo"></p>
+      {# Aparece só na aba Livros sem termo/gênero; o search.js controla a visibilidade #}
+      <section class="recommendations hidden" id="recommendations" aria-labelledby="recommendationsTitle">
+        <div class="recommendations-header">
+          <i class="bx bxs-star" aria-hidden="true"></i>
+          <div>
+            <h2 class="recommendations-title" id="recommendationsTitle">Recomendados para você</h2>
+            <p class="recommendations-subtitle">Seleções especiais com base no que você gosta de ler!</p>
+          </div>
+        </div>
+
+        <div class="carousel">
+          <button type="button" class="carousel-arrow" id="recommendationsPrev" aria-label="Recomendações anteriores">
+            <i class="bx bx-chevron-left" aria-hidden="true"></i>
+          </button>
+          <div id="recommendationsList" class="recommendations-list"></div>
+          <button type="button" class="carousel-arrow" id="recommendationsNext" aria-label="Próximas recomendações">
+            <i class="bx bx-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <div class="results-header">
+        <h2 class="results-title"><i class="bx bx-book-open" id="resultsIcon" aria-hidden="true"></i> <span id="resultsTitle">Explore o catálogo</span></h2>
+        <p id="resultsInfo" class="results-count"></p>
+      </div>
 
       <div id="bookList"></div>
     </div>
@@ -49,5 +76,5 @@
   </div>
 
   <script src="{% static 'main/js/toast.js' %}"></script>
-  <script src="{% static 'main/js/search.js' %}?v=4"></script>
+  <script src="{% static 'main/js/search.js' %}?v=7"></script>
 {% endblock %}
