@@ -56,6 +56,15 @@
                     <i class="bx bx-check-circle" aria-hidden="true"></i>
                     Conquistada em {{ item.awarded_at|date:"d/m/Y" }}
                   </p>
+                  <form method="POST"
+                        action="{% url 'accounts:delete_award' item.award_id %}"
+                        onsubmit="return confirm('Tem certeza de que deseja excluir essa conquista?');">
+                        {% csrf_token %}
+                        <button type="submit">
+                            <i class="bx bx-trash" aria-hidden="true"></i>
+                            Excluir Conquista
+                        </button>
+                  </form>
                 {% else %}
                   <p class="insignia-card__status">
                     <i class="bx bxs-lock-alt" aria-hidden="true"></i> Bloqueada

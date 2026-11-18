@@ -6,11 +6,13 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404
+from django.views.decorators.http import require_POST
 
 from datetime import date, datetime, timedelta
 import calendar
 
 from .models import Profile;
+from rewards.models import  Award;
 from goals.services import GoalService;
 from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
@@ -141,6 +143,14 @@ def profile_view(request):
         is_read=False,
     ).count()
 
+    awards = (
+        Award.objects
+        .filter(
+            user=request.user,
+            insignia__is_active=True)
+        .select_related('insignia')
+        .order_by('-awarded_at')
+    )
     context = {
         'profile': profile,
         'individual_goal': individual_goal,
@@ -152,6 +162,7 @@ def profile_view(request):
         'insignias': get_insignia_overview(request.user),
         'notifications': popup_notifications[:5],
         'notifications_count': unread_notifications_count,
+        'awards': awards,
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -310,3 +321,16 @@ def streak_day_history_view(request, day):
         'accounts/streak_day_history.html',
         context
     )
+
+@login_required
+@require_POST
+def delete_award(request, award_id):
+    award = get_object_or_404(
+     Award,
+     id=award_id,
+     user=request.user
+    )
+    
+    award.delete()
+    #   rewards:insignias
+    return redirect('accounts:profile')

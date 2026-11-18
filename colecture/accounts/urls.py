@@ -11,4 +11,5 @@ urlpatterns = [
     path('profile/editProfile/', views.edit_profile_view, name='editProfile'),
     path('streak/', views.streak_calendar_view, name='streak_calendar'),
     path('streak/<str:day>/', views.streak_day_history_view, name='streak_day_history'),
+    path('awards/<int:award_id>/delete/', views.delete_award, name='delete_award'),
 ]
