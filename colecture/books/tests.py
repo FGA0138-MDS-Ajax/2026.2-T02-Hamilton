@@ -2,20 +2,27 @@ import json;
 import importlib
 from pathlib import Path
 from unittest import mock
+from io import StringIO;
 
 from datetime import timedelta, date
 from django.test import TestCase, Client;
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 from django.core.exceptions import ValidationError
+from django.core.management import call_command;
 from django.utils import timezone
 
 from accounts.services import AccountService;
 from accounts.models import Profile;
 from .models import Book, BookReview, BookStatus, ReadingSession, SYNOPSIS_MAX_LENGTH;
-from .forms import BookForm, GENRE_CHOICES;
+from .forms import BookForm, GENRE_CHOICES, ReadingSessionForm;
 from .views import SEARCH_LIMIT;
-from .forms import ReadingSessionForm
+from .services import (
+    BookRecommendationService, 
+    RATING_SCORE_TABLE,
+    BOOKSTATUS_SCORE_TABLE,
+    TIME_SCORE_RATE
+);
 from decimal import Decimal
 from django.apps import apps as django_apps
 from goals.models import Goal, GoalParticipation;
@@ -2296,3 +2303,106 @@ class ReadingSessionScriptTests(TestCase):
         self.assertContains(
             response, 'data-mark-read-url="%s"' % reverse("books:mark_book_as_read", args=[0]))
         self.assertContains(response, "reading_session.js?v=5")
+
+class CT06_BookRecommendation(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # popula a base com livros
+        call_command("seed_books", stdout=StringIO());
+        cls.client = Client();
+        cls.user = AccountService.create_account(
+            get_user_model().objects.create(
+                username='Client1'
+            )
+        );
+        cls.genre1 = GENRE_CHOICES[1][0];
+        cls.book_genre1 = Book.objects.filter(genre=cls.genre1).first();
+
+    def test_rating_calculation(self):
+        # neste caso, o único registro é uma resenha
+        # com 4 estrelas
+        rating = 4;
+        review = BookReview.objects.create(
+            book=self.book_genre1,
+            rating=float(rating),
+            user=self.user    
+        );
+        result = BookRecommendationService.get_genre_scores(
+            self.user
+        );
+        self.assertEqual(
+            result[self.genre1],
+            RATING_SCORE_TABLE[rating]
+        );
+
+    def test_status_calculation(self):
+        # neste caso, o único registro é
+        # uma marcaçao como "lendo"
+        status_given = BookStatus.Status.READING;
+        status = BookStatus.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            status=status_given
+        )
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            BOOKSTATUS_SCORE_TABLE[status_given]
+        );
+
+    def test_time_calculation(self):
+        # neste caso, o único registro é um registro
+        # de leitura com tempo = 35 min
+        minute_count = 35;
+        register = ReadingSession.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            minute_count=minute_count
+        )
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            TIME_SCORE_RATE*minute_count
+        );
+
+    def test_mixed_calculation(self):
+        # neste caso, o usuário utilizou
+        # todos os registros influentes
+
+        # resenha
+        rating = 2;
+        review = BookReview.objects.create(
+            book=self.book_genre1,
+            rating=float(rating),
+            user=self.user    
+        );
+
+        # status
+        status_given = BookStatus.Status.READ;
+        status = BookStatus.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            status=status_given
+        );
+
+        # registro de leitura
+        minute_count = 90;
+        register = ReadingSession.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            minute_count=minute_count
+        );
+
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            BOOKSTATUS_SCORE_TABLE[status_given] + 
+            RATING_SCORE_TABLE[rating] + 
+            TIME_SCORE_RATE*minute_count
+        );
