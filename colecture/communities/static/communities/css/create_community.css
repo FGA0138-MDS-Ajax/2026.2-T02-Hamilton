@@ -100,6 +100,19 @@
 
 /* Cabeçalho */
 .community-page h1 { margin-bottom: 8px; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
+/* "Editar <nome>": nome longo quebra (mesmo sem espaços) e para em 2 linhas com "..." */
+/* min-width: 0 impede a caixa (flex) de esticar junto com uma palavra enorme */
+.community-page,
+.community-page > section { min-width: 0; }
+.community-page h1 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .community-page .form-intro { margin-bottom: 32px; font-size: 17px; color: var(--text-muted); }
 
 /* Alertas padronizados */

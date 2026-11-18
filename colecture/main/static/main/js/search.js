@@ -433,12 +433,15 @@ function createBookCard(book, variant) {
     titleLink.href = bookUrl;
     titleLink.className = "book-link";
     titleLink.textContent = book.title;
-  
+    // texto completo ao passar o mouse (o CSS corta com "...")
+    title.title = book.title;
+
     title.appendChild(titleLink);
 
     var author = document.createElement("p");
     author.className = "book-author";
     author.textContent = book.author;
+    author.title = book.author;
 
     info.appendChild(title);
     info.appendChild(author);
@@ -607,10 +610,13 @@ function showCommunities(communities, total) {
     var title = document.createElement("h3");
     title.className = "book-title";
     title.textContent = community.name;
+    // texto completo ao passar o mouse (o CSS corta com "...")
+    title.title = community.name;
 
     var description = document.createElement("p");
     description.className = "book-synopsis";
     description.textContent = community.description || "Sem descrição.";
+    description.title = description.textContent;
 
     var members = document.createElement("span");
     members.className = "book-genre";

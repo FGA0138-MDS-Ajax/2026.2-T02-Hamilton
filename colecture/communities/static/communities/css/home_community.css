@@ -209,7 +209,9 @@
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    transition: border-color .15s, box-shadow .15s
+    transition: border-color .15s, box-shadow .15s;
+    /* sem isso o card cresce junto com um nome enorme e sai da coluna */
+    min-width: 0
 }
 
 .com-card:hover {
@@ -248,10 +250,24 @@
     background: linear-gradient(135deg, #2A1550, #A78BFA)
 }
 
+/* deixa o bloco do nome encolher ao lado da capa */
+.com-card-info {
+    flex: 1;
+    min-width: 0
+}
+
+/* nome longo: no máximo 2 linhas e "..." no fim; "anywhere" quebra
+   palavras sem espaço (ex.: "comunidadeeeee...") */
 .com-card h2 {
     font-size: 1.05rem;
     font-weight: 600;
-    line-height: 1.3
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden
 }
 
 .com-role {
@@ -262,6 +278,7 @@
 .com-desc {
     color: var(--text-secondary);
     font-size: .88rem;
+    overflow-wrap: anywhere;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;

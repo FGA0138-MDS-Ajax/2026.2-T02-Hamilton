@@ -115,9 +115,18 @@ a {
   box-shadow: var(--glow);
 }
 
+/* deixa a coluna dos dados encolher ao lado da capa (sem isso ela
+   estica junto com um autor enorme e sai do cartão) */
+.livro-dados {
+  flex: 1;
+  min-width: 0;
+}
+
 .livro-dados p {
   margin: 6px 0;
   color: var(--text-secondary);
+  /* autor/gênero longos, mesmo sem espaços, quebram a linha */
+  overflow-wrap: anywhere;
 }
 
 .livro-dados span {
@@ -139,6 +148,8 @@ a {
 #sinopse {
   color: var(--text-secondary);
   line-height: 1.6;
+  /* sinopse aparece inteira; só quebra palavras longas sem espaço */
+  overflow-wrap: anywhere;
 }
 
 /* Sinopse dentro do cartao do livro */

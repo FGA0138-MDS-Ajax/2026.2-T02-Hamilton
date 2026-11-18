@@ -401,13 +401,24 @@ body {
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-primary);
-  overflow-wrap: break-word;
+  /* título longo: no máximo 2 linhas e "..." no fim. "anywhere" quebra
+     palavras sem espaço (ex.: "aaaaaaaa...") para não vazar do card */
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .book-author {
   margin: 0 0 8px 0;
   font-size: 16px;
   color: var(--text-secondary);
+  /* autor longo: uma linha só, cortada com "..." */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .book-rating {
@@ -456,6 +467,13 @@ body {
   margin: 0;
   font-size: 15px;
   color: var(--text-secondary);
+  /* descrição longa da comunidade: no máximo 3 linhas e "..." */
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .book-genre {

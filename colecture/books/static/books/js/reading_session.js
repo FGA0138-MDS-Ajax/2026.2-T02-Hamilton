@@ -406,6 +406,9 @@
 
     el.title.textContent = current.title;
     el.author.textContent = current.author || '';
+    // texto completo ao passar o mouse (o CSS corta com "...")
+    el.title.title = current.title;
+    el.author.title = current.author || '';
     el.genre.textContent = current.genre || '';
     el.genre.hidden = !current.genre;
     el.pagesTotal.textContent = current.pages ? '• ' + current.pages + ' páginas no total' : '';

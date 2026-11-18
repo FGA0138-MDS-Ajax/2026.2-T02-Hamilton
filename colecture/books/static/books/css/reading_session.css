@@ -125,6 +125,13 @@ body {
   font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
+  /* título longo: no máximo 3 linhas e "..." no fim */
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .rs-badge {
@@ -142,6 +149,13 @@ body {
   margin: 0;
   color: var(--text-secondary);
   font-size: .95rem;
+  /* autor longo (mesmo sem espaços): no máximo 2 linhas e "..." */
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .rs-book-meta {
