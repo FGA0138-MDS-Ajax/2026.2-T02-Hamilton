@@ -227,9 +227,15 @@ def book_detail(request, book_id):
         urlencode({"next": request.path}),
     )
 
+    # Mesma regra de edit_book: só quem cadastrou o livro (ou superusuário) edita
+    can_edit = request.user.is_authenticated and (
+        request.user.is_superuser or request.user == book.created_by
+    )
+
     return render(request, "books/book_detail.html", {
         "id": book_id,
         "livro": livro,
+        "can_edit": can_edit,
         "form": form,
         "login_url": login_url,
     })

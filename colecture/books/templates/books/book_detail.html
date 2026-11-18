@@ -24,8 +24,8 @@
       <!-- Parte 1: informacoes do livro -->
       <section id="livro" class="escondido">
         <div class="livro-topo">
-          {% if livro %}
-          <!-- Menu kebab (3 pontinhos): por enquanto só tem "Editar" -->
+          {% if livro and can_edit %}
+          <!-- Menu kebab (3 pontinhos): por enquanto só tem "Editar", visível só para quem cadastrou o livro -->
           <div class="menu-kebab-container">
             <button type="button" class="kebab-btn" id="kebabBtn" aria-label="Opções do livro"
               aria-haspopup="true" aria-expanded="false">
