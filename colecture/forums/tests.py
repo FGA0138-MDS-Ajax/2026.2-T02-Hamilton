@@ -2,6 +2,7 @@ from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model;
 from .models import Forum, Message, FORUM_NAME_MAX_LENGTH
+from .services import ForumService;
 
 from communities.models import Community, Membership;
 from communities.services import CommunityService, MembershipService;
@@ -267,6 +268,100 @@ class ForumMessages(TestCase):
             ).exists()
         );
 
+
+    # ===== RESPONDENDO MENSAGENS (F44 / F45) =====
+    def test_reply_to_message_success(self):
+        self.client.force_login(self.participant);
+        reply_content = "Resposta ligada à mensagem original";
+
+        response = self.client.post(
+            reverse("forums:view_forum", kwargs={'forum_id': self.community_forum.id}),
+            data={
+                'content': reply_content,
+                'reply_to': self.part_message.id,
+            }
+        );
+
+        self.assertEqual(response.status_code, 302);
+        reply_msg = Message.objects.filter(
+            author=self.participant,
+            forum=self.community_forum,
+            content=reply_content
+        ).first();
+        self.assertIsNotNone(reply_msg);
+        self.assertEqual(reply_msg.reply_to, self.part_message);
+
+    def test_reply_to_message_different_forum_fails(self):
+        self.client.force_login(self.goal_participant);
+        # mensagem pertence ao community_forum, tenta responder dentro do goal_forum
+        response = self.client.post(
+            reverse("forums:view_forum", kwargs={'forum_id': self.goal_forum.id}),
+            data={
+                'content': "Tentativa de responder em outro fórum",
+                'reply_to': self.part_message.id,
+            }
+        );
+
+        self.assertEqual(response.status_code, 400);
+        self.assertFalse(
+            Message.objects.filter(
+                content="Tentativa de responder em outro fórum"
+            ).exists()
+        );
+
+    def test_reply_to_nonexistent_message_fails(self):
+        self.client.force_login(self.participant);
+        response = self.client.post(
+            reverse("forums:view_forum", kwargs={'forum_id': self.community_forum.id}),
+            data={
+                'content': "Tentativa de responder mensagem inexistente",
+                'reply_to': 999999,
+            }
+        );
+
+        self.assertEqual(response.status_code, 400);
+        self.assertFalse(
+            Message.objects.filter(
+                content="Tentativa de responder mensagem inexistente"
+            ).exists()
+        );
+
+    def test_build_page_data_includes_reply_to(self):
+        reply_msg = Message.objects.create(
+            forum=self.community_forum,
+            author=self.participant,
+            content="Mensagem com resposta",
+            reply_to=self.part_message
+        );
+
+        messages_qs = self.community_forum.messages.select_related('author', 'reply_to', 'reply_to__author').order_by('created_at', 'id');
+        page_data = ForumService.build_page_data(self.community_forum, self.participant, messages_qs);
+
+        reply_data = next((m for m in page_data["messages"] if m["id"] == reply_msg.id), None);
+        self.assertIsNotNone(reply_data);
+        self.assertIsNotNone(reply_data["reply_to"]);
+        self.assertEqual(reply_data["reply_to"]["id"], self.part_message.id);
+        self.assertEqual(reply_data["reply_to"]["author"], self.part_message.author.username);
+        self.assertEqual(reply_data["reply_to"]["text"], self.part_message.content);
+
+        # Mensagem original não tem reply_to
+        orig_data = next((m for m in page_data["messages"] if m["id"] == self.part_message.id), None);
+        self.assertIsNotNone(orig_data);
+        self.assertIsNone(orig_data["reply_to"]);
+
+    def test_delete_original_message_sets_reply_to_null(self):
+        reply_msg = Message.objects.create(
+            forum=self.community_forum,
+            author=self.participant,
+            content="Mensagem cuja original sera deletada",
+            reply_to=self.part_message
+        );
+
+        self.part_message.delete();
+        reply_msg.refresh_from_db();
+
+        self.assertIsNone(reply_msg.reply_to);
+        self.assertTrue(Message.objects.filter(id=reply_msg.id).exists());
 
     # ===== DELETANDO MENSAGENS =====
     def test_mod_deleting_messages(self):

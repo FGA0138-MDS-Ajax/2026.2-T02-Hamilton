@@ -92,7 +92,15 @@ class ForumService:
                     "text": message.content,
                     "time": localtime(message.created_at).strftime("%d/%m %H:%M"),
                     "mine": message.author_id == user.id,
-                    "reply_to": None,
+                    "reply_to": (
+                        {
+                            "id": message.reply_to.id,
+                            "author": message.reply_to.author.username,
+                            "text": message.reply_to.content,
+                        }
+                        if message.reply_to
+                        else None
+                    ),
                 }
                 for message in forum_messages
             ],

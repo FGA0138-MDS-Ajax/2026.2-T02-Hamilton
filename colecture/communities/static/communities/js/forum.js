@@ -24,6 +24,7 @@ var messagesBox = document.getElementById("messages");
 var lockedNotice = document.getElementById("lockedNotice");
 var composer = document.getElementById("composer");
 var messageInput = document.getElementById("messageInput");
+var replyToInput = document.getElementById("replyToInput");
 
 var confirmOverlay = document.getElementById("confirmOverlay");
 var confirmCancel = document.getElementById("confirmCancel");
@@ -273,7 +274,9 @@ function createMessage(message) {
     replyButton.type = "button";
     replyButton.className = "message-reply-btn";
     replyButton.textContent = "Responder";
-    replyButton.addEventListener("click", function () {
+    replyButton.setAttribute("aria-label", "Responder a " + message.author);
+    replyButton.addEventListener("click", function (event) {
+      event.stopPropagation();
       startReply(message);
     });
     footer.appendChild(replyButton);
@@ -339,11 +342,19 @@ var replyBarClose = document.getElementById("replyBarClose");
 
 var replyingTo = null; 
 function startReply(message) {
+  if (!message) return;
   replyingTo = {
     id: message.id,
     author: message.author,
-    text: message.text.slice(0, 200)
+    text: message.text ? message.text.slice(0, 200) : ""
   };
+
+  if (!replyToInput) {
+    replyToInput = document.getElementById("replyToInput");
+  }
+  if (replyToInput) {
+    replyToInput.value = message.id;
+  }
 
   replyBarAuthor.textContent = replyingTo.author;
   replyBarContent.textContent = replyingTo.text;
@@ -353,6 +364,12 @@ function startReply(message) {
 
 function cancelReply() {
   replyingTo = null;
+  if (!replyToInput) {
+    replyToInput = document.getElementById("replyToInput");
+  }
+  if (replyToInput) {
+    replyToInput.value = "";
+  }
   replyBar.classList.add("hidden");
 }
 
@@ -361,6 +378,7 @@ replyBarClose.addEventListener("click", cancelReply);
 function createQuote(reply) {
   var quote = document.createElement("div");
   quote.className = "reply-quote";
+  quote.setAttribute("title", "Ir para a mensagem original");
 
   var quoteAuthor = document.createElement("span");
   quoteAuthor.className = "reply-quote-author";
@@ -373,7 +391,8 @@ function createQuote(reply) {
   quote.appendChild(quoteAuthor);
   quote.appendChild(quoteText);
 
-  quote.addEventListener("click", function () {
+  quote.addEventListener("click", function (event) {
+    event.stopPropagation();
     goToMessage(reply.id);
   });
 
@@ -472,3 +491,12 @@ if (editDots && editDialog) {
 
 renderHeader();
 renderAll();
+
+if (replyToInput && replyToInput.value) {
+  var initialMsg = findMessage(parseInt(replyToInput.value, 10));
+  if (initialMsg) {
+    startReply(initialMsg);
+  } else {
+    cancelReply();
+  }
+}
