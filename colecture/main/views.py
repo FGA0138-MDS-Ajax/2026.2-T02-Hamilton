@@ -39,12 +39,15 @@ def recommendations(request):
         recommended = _books_from_genre_scores(request.user, recommended)
 
     books = list(recommended)[:RECOMMENDATIONS_LIMIT]
+    genre_labels = dict(GENRE_CHOICES)
     results = [
         {
             'id': book.id,
             'title': book.title,
             'author': book.author,
             'genre': book.genre,
+            # nome com acento para exibir no card ("Ficção Científica")
+            'genre_label': genre_labels.get(book.genre) or book.genre or '',
             'icon': book.icon,
             'status': '',
         }
