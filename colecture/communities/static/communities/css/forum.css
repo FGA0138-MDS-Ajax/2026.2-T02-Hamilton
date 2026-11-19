@@ -754,7 +754,7 @@
 }
 
 /* No computador o botão aparece ao passar o mouse; no celular fica sempre visível */
-@media (hover: hover) {
+@media (hover: hover) and (min-width: 769px) {
   .message-reply-btn {
     opacity: 0;
     transition: opacity 0.15s;
@@ -891,6 +891,21 @@
 
   .message {
     max-width: 88%;
+  }
+
+  .message-reply-btn {
+    opacity: 1 !important;
+    padding: 3px 6px;
+    font-size: 0.75rem;
+    touch-action: manipulation;
+  }
+
+  .reply-quote {
+    touch-action: manipulation;
+  }
+
+  .reply-bar-close {
+    touch-action: manipulation;
   }
 
   .composer {

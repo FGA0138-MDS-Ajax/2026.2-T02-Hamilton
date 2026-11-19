@@ -6,7 +6,7 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="{% static 'books/css/reading_session.css' %}" />
+  <link rel="stylesheet" href="{% static 'books/css/reading_session.css' %}?v=2" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
 {% endblock %}
 
@@ -182,5 +182,5 @@
 {% block extra_js %}
   <script src="{% static 'main/js/toast.js' %}"></script>
   {# ?v= força o navegador a baixar a versão nova (sem localStorage, tudo via API) #}
-  <script src="{% static 'books/js/reading_session.js' %}?v=5"></script>
+  <script src="{% static 'books/js/reading_session.js' %}?v=6"></script>
 {% endblock %}

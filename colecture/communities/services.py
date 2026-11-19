@@ -6,6 +6,8 @@ from django.utils import timezone;
 
 from .models import Membership, Invitation, INVITATION_EXPIRATION, INVITATION_CODE_LENGTH;
 from forums.models import Forum, FORUM_NAME_MAX_LENGTH;
+from logs.models import AuditLog;
+from logs.services import create_log;
 
 class MembershipService:
     @staticmethod
@@ -85,6 +87,23 @@ class CommunityService:
         community.creator = creator or community.creator;
         community.icon = icon or "";
         community.save();
+
+        create_log(
+            community.creator,
+            AuditLog.Action.COMMUNITY_CREATED,
+            community,
+            metadata={
+                "community_id": community.id,
+                "community_name": community.name,
+                "access": community.access,
+            }
+        );
+        
+        # Verifica criação de comunidade
+        from rewards.services import check_community_founder
+        check_community_founder(community.creator)
+                
+        
 
         # forum principal de comunidade. O nome é cortado para caber
         # no limite do campo (o nome da comunidade já pode ter 100

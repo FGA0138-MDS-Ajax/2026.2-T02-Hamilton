@@ -15,6 +15,15 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from forums.models import Forum
 from goals.services import GoalService
+from notifications.services import create_notification
+from logs.models import AuditLog
+from logs.services import create_log
+
+
+def _community_log_metadata(community, **extra):
+    """Metadata padrão dos logs de ações em comunidades (o nome é guardado
+    porque a comunidade pode ser excluída ou renomeada depois)."""
+    return {"community_id": community.id, "community_name": community.name, **extra}
 
 
 def _redirect_back(request, community):
@@ -157,6 +166,14 @@ class JoinCommunityView(LoginRequiredMixin, View):
             joined_at=timezone.now() if not community_is_private else None
         );
 
+        if entrance_allowed:
+            create_log(
+                self.user,
+                AuditLog.Action.MEMBER_ADDED,
+                self.user,
+                metadata=_community_log_metadata(self.community)
+            );
+
         if self.invitation_code:
             MembershipService.delete_invitation(
                 self.community,
@@ -230,6 +247,13 @@ class LeaveCommunityView(LoginRequiredMixin, View):
         if not (self.is_creator or self.active_membership):
             return HttpResponseForbidden();
 
+        create_log(
+            self.user,
+            AuditLog.Action.MEMBER_REMOVED,
+            self.user,
+            metadata=_community_log_metadata(self.community, reason="left")
+        );
+
         # casos de borda (ordem obrigatória)
         edge_cases = [
             self.ec_last_member,
@@ -244,6 +268,12 @@ class LeaveCommunityView(LoginRequiredMixin, View):
 
     def ec_last_member(self):
         if self.user_count-1<=0: # último membro
+            create_log(
+                self.user,
+                AuditLog.Action.COMMUNITY_DELETED,
+                self.community,
+                metadata=_community_log_metadata(self.community, reason="last_member_left")
+            );
             self.community.clean_up_and_delete();
             return self.return_to_profile();
 
@@ -402,6 +432,12 @@ def delete_community(request, community_id):
         return HttpResponseForbidden()
 
     if request.method == "POST":
+        create_log(
+            request.user,
+            AuditLog.Action.COMMUNITY_DELETED,
+            community,
+            metadata=_community_log_metadata(community)
+        );
         community.clean_up_and_delete();
         return redirect('communities:home_community')
 
@@ -469,6 +505,15 @@ def edit_community(request, community_id):
 
         if form.is_valid():
             form.save()
+            if form.changed_data:
+                create_log(
+                    request.user,
+                    AuditLog.Action.COMMUNITY_UPDATED,
+                    community,
+                    metadata=_community_log_metadata(
+                        community, changed_fields=form.changed_data
+                    )
+                )
             return redirect(
                 "communities:view_community",
                 community_id=community.id
@@ -527,9 +572,45 @@ def edit_member_role(request, community_id, membership_id):
     if new_role not in allowed_roles:
         return HttpResponseForbidden()
 
+    # Guarda o cargo anterior antes de alterá-lo
+    old_role = membership.role
+
     # Atualiza somente o cargo
     membership.role = new_role
     membership.save(update_fields=["role"])
+
+    # Envia notificação quando o cargo realmente muda
+    if old_role != new_role:
+        if new_role == Membership.Role.MODERATOR:
+            create_notification(
+                target_user=membership.user,
+                content=f'Você foi promovido a moderador da comunidade "{community.name}".'
+            )
+            create_log(
+                request.user,
+                AuditLog.Action.MEMBER_PROMOTED,
+                membership.user,
+                metadata=_community_log_metadata(
+                    community, old_role=old_role, new_role=new_role
+                )
+            )
+
+            from rewards.services import check_community_founder
+            check_community_founder(membership.user)
+
+        elif new_role == Membership.Role.MEMBER:
+            create_notification(
+                target_user=membership.user,
+                content=f'Seu cargo na comunidade "{community.name}" foi alterado para membro.'
+            )
+            create_log(
+                request.user,
+                AuditLog.Action.MEMBER_DEMOTED,
+                membership.user,
+                metadata=_community_log_metadata(
+                    community, old_role=old_role, new_role=new_role
+                )
+            )
 
     return _redirect_back(request, community)
 
@@ -583,6 +664,30 @@ def manage_membership_request(request, community_id, membership_id):
 
     # Salva a alteração no banco
     membership.save(update_fields=["status", "role", "joined_at"])
+
+    if decision == "accept":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu pedido para participar da comunidade "{community.name}" foi aceito!'
+        )
+        create_log(
+            request.user,
+            AuditLog.Action.MEMBER_ADDED,
+            membership.user,
+            metadata=_community_log_metadata(community, via="request")
+        )
+
+    elif decision == "reject":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu pedido para participar da comunidade "{community.name}" foi recusado.'
+        )
+        create_log(
+            request.user,
+            AuditLog.Action.MEMBER_REQUEST_REJECTED,
+            membership.user,
+            metadata=_community_log_metadata(community)
+        )
 
     return _redirect_back(request, community)
 
@@ -644,6 +749,30 @@ def manage_member_ban(request, community_id, membership_id):
     # Salva somente o status
     membership.save(update_fields=["status"])
 
+    if decision == "ban":
+        create_notification(
+            target_user=membership.user,
+            content=f'Você foi banido da comunidade "{community.name}".'
+        )
+        create_log(
+            request.user,
+            AuditLog.Action.MEMBER_BANNED,
+            membership.user,
+            metadata=_community_log_metadata(community)
+        )
+
+    elif decision == "unban":
+        create_notification(
+            target_user=membership.user,
+            content=f'Seu banimento da comunidade "{community.name}" foi revogado.'
+        )
+        create_log(
+            request.user,
+            AuditLog.Action.MEMBER_UNBANNED,
+            membership.user,
+            metadata=_community_log_metadata(community)
+        )
+
     return _redirect_back(request, community)
 
 
@@ -661,6 +790,13 @@ def archive_community(request, community_id):
     # o save() do model preenche archived_at (contagem dos 60 dias)
     community.state = Community.State.ARCHIVED
     community.save()
+
+    create_log(
+        request.user,
+        AuditLog.Action.COMMUNITY_ARCHIVED,
+        community,
+        metadata=_community_log_metadata(community)
+    )
 
     messages.success(request, f'Comunidade "{community.name}" arquivada.')
     return redirect("communities:home_community")
@@ -682,6 +818,13 @@ def unarchive_community(request, community_id):
     # o save() do model limpa archived_at ao sair do estado arquivado
     community.state = Community.State.ACTIVE
     community.save()
+
+    create_log(
+        request.user,
+        AuditLog.Action.COMMUNITY_UNARCHIVED,
+        community,
+        metadata=_community_log_metadata(community)
+    )
 
     messages.success(request, f'Comunidade "{community.name}" desarquivada.')
     return redirect("communities:home_community")
@@ -815,3 +958,4 @@ def generate_invitation(request, community_id):
             'invitation_code':new_invitation.invitation_code
         }
     );
+

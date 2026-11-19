@@ -105,6 +105,7 @@
     var nameEl = document.getElementById('concludeName');
     Array.prototype.forEach.call(goals.querySelectorAll('[data-conclude]'), function (btn) {
       btn.addEventListener('click', function () {
+        if (btn.disabled) return;
         form.action = btn.getAttribute('data-url');
         nameEl.textContent = btn.getAttribute('data-name');
         dialog.showModal();

@@ -33,9 +33,9 @@
 
     <nav class="rail-nav" aria-label="Menu principal">
 
-      {# "Perfil" fica ativo também na edição de perfil, que é uma subpágina dele #}
+      {# "Perfil" fica ativo também nas subpáginas dele (edição de perfil, insígnias e notificações) #}
       <a href="{% url 'accounts:profile' %}"
-        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' %}active{% endif %}"
+        class="nav-item {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'editProfile' or request.resolver_match.url_name == 'insignias' or request.resolver_match.url_name == 'history' %}active{% endif %}"
         {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}
         data-label="Perfil"
         aria-label="Perfil">
@@ -60,7 +60,13 @@
         <span class="label">Pesquisa</span>
       </a>
 
-      <a href="{% url 'communities:home_community' %}" class="nav-item" data-label="Comunidade" aria-label="Comunidade">
+      {# "Comunidade" fica ativo também nas subpáginas (comunidade, fórum e metas de comunidade) #}
+      {% with app=request.resolver_match.app_name url=request.resolver_match.url_name %}
+      <a href="{% url 'communities:home_community' %}"
+        class="nav-item {% if app == 'communities' or app == 'forums' or app == 'goals' and url != 'create_profile_goal' %}active{% endif %}"
+        {% if app == 'communities' and url == 'home_community' %}aria-current="page"{% endif %}
+        data-label="Comunidade"
+        aria-label="Comunidade">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -68,6 +74,7 @@
         </svg>
         <span class="label">Comunidade</span>
       </a>
+      {% endwith %}
 
       <a href="{% url 'books:register_book' %}"
           class="nav-item {% if request.resolver_match.url_name == 'register_book' %}active{% endif %}"
@@ -81,6 +88,22 @@
         </svg>
         <span class="label">Cadastrar livro</span>
       </a>
+
+      {# Logs de auditoria: só aparecem para administradores #}
+      {% if request.user.is_superuser %}
+      <a href="{% url 'logs:log_list' %}"
+          class="nav-item {% if request.resolver_match.app_name == 'logs' %}active{% endif %}"
+          {% if request.resolver_match.url_name == 'log_list' %}aria-current="page"{% endif %}
+          data-label="Logs"
+          aria-label="Logs">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" />
+        </svg>
+        <span class="label">Logs</span>
+      </a>
+      {% endif %}
 
     </nav>
 

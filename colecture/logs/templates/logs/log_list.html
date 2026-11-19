@@ -1,0 +1,89 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Logs - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'logs/css/logs.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="logs-page">
+
+    <header class="logs-head">
+      <h1>Logs de auditoria</h1>
+      <p>{{ page.paginator.count }} registro{{ page.paginator.count|pluralize }}</p>
+    </header>
+
+    {% if messages %}
+      <ul class="logs-messages">
+        {% for message in messages %}
+          <li class="logs-message logs-message--{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if filter_form.errors %}
+      <p class="logs-message logs-message--error">Filtro inválido. Confira os valores informados.</p>
+    {% endif %}
+
+    <form class="logs-filters" method="get" action="{% url 'logs:log_list' %}">
+      <label>Ação {{ filter_form.action }}</label>
+      <label>Autor {{ filter_form.actor }}</label>
+      <label>Classe {{ filter_form.content_type }}</label>
+      <label>ID do objeto {{ filter_form.object_id }}</label>
+      <button type="submit" class="logs-btn logs-btn-primary">Filtrar</button>
+      <a class="logs-btn" href="{% url 'logs:log_list' %}">Limpar</a>
+    </form>
+
+    <div class="logs-table-wrap">
+      <table class="logs-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data</th>
+            <th>Autor</th>
+            <th>Ação</th>
+            <th>Alvo</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in page %}
+            <tr>
+              <td>{{ log.id }}</td>
+              <td>{{ log.created_at|date:"d/m/Y H:i" }}</td>
+              <td>{{ log.actor.username|default:"Sistema" }}</td>
+              <td><span class="logs-tag">{{ log.action }}</span></td>
+              <td>{{ log.content_type.model }} #{{ log.object_id }}</td>
+              <td class="logs-actions">
+                <a class="logs-btn" href="{% url 'logs:log_detail' log.id %}">Ver</a>
+                <a class="logs-btn" href="{% url 'logs:edit_log' log.id %}">Editar</a>
+                <form method="post" action="{% url 'logs:delete_log' log.id %}"
+                      onsubmit="return confirm('Excluir este log? A exclusão também será registrada.');">
+                  {% csrf_token %}
+                  <button type="submit" class="logs-btn logs-btn-danger">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="logs-empty">Nenhum log encontrado.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page.has_other_pages %}
+      <nav class="logs-pagination" aria-label="Paginação">
+        {% if page.has_previous %}
+          <a class="logs-btn" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page.previous_page_number }}">Anterior</a>
+        {% endif %}
+        <span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a class="logs-btn" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page.next_page_number }}">Próxima</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  </div>
+{% endblock %}

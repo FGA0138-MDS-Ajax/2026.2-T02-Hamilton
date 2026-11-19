@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q;
 from django.conf import settings;
+from django.core.exceptions import ValidationError;
 
 FORUM_NAME_MAX_LENGTH = 100;
 MESSAGE_MAX_LENGTH = 5000;
@@ -73,6 +74,20 @@ class Message(models.Model):
     content = models.TextField(
         max_length=MESSAGE_MAX_LENGTH
     );
+
+    reply_to = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replies"
+    );
+
+    def clean(self):
+        super().clean();
+        if self.reply_to_id and self.forum_id:
+            if self.reply_to.forum_id != self.forum_id:
+                raise ValidationError("A mensagem respondida deve pertencer ao mesmo fórum.");
 
     def __str__(self):
         return f"""

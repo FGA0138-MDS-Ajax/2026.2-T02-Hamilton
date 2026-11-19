@@ -74,7 +74,7 @@
       {% endif %}
       {% if permissions.can_edit and not item.closed %}
         <button type="button" class="btn-outline btn--sm" data-conclude
-          data-url="{% url 'goals:conclude_goal' goal.id %}" data-name="{{ goal.name }}">
+          data-url="{% url 'goals:conclude_goal' goal.id %}" data-name="{{ goal.name }}"{% if not item.progress.done %} disabled{% endif %}>
           Marcar como concluída
         </button>
       {% endif %}

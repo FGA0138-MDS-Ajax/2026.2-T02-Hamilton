@@ -65,6 +65,8 @@
 .goal-page .intro {
   font-size: 16px;
   color: var(--text-secondary);
+  /* nome de comunidade/livro sem espaços não vaza da página */
+  overflow-wrap: anywhere;
 }
 
 .goal-page .req-legend {

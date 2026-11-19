@@ -19,22 +19,80 @@ Modelo de dados usado no recálculo
   Ela precisa ficar estritamente entre a sessão anterior e a seguinte.
 """
 import sys
+from random import shuffle, sample
 from datetime import datetime, time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from itertools import zip_longest
+from .forms import GENRE_CHOICES;
+
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
+from rewards.services import (
+    check_first_read,
+    check_daily_pages,
+    check_total_pages,
+    check_daily_minutes,
+    check_total_minutes,
+    check_streak,
+    check_books_read,
+    check_genres_read,
+    check_community_goals_completed,
+)
+
 from accounts.models import Profile
-from .models import BookStatus, ReadingSession
+from .models import Book, BookStatus, ReadingSession, BookReview
+from .forms import GENRE_CHOICES;
+from notifications.services import create_notification
+
+SEARCH_LIMIT = 50;
 
 MAX_SESSION_MINUTES = 1440  # 24h, mesmo limite da tela "Registrar leitura"
 
 PERCENT_STEP = Decimal("0.01")
 PROGRESS_STEP = Decimal("0.001")
 ZERO_PERCENT = Decimal("0.00")
+
+# ======================= RECOMENDAÇÃO ======================
+MAX_RECOMMENDED_BOOKS = 11;
+# após juntar os recomendados, embaralhar?
+SORT_RECOMMENDED_BOOKS = True;
+# porcentagem máxima de livros por gênero
+MAX_RECOMMENDED_GENRE_RATE = .4;
+# avaliação (em estrelas da resenha:score)
+RATING_SCORE_TABLE = {
+    5:5,
+    4:3,
+    3:0,
+    2:-3,
+    1:-5
+};
+# status (em status:score)
+BOOKSTATUS_SCORE_TABLE = {
+    BookStatus.Status.READING:2,
+    BookStatus.Status.WANT_TO_READ:3,
+    BookStatus.Status.READ:1
+};
+# ponto/minuto
+# (atual = 1 ponto por hora lida)
+TIME_SCORE_RATE = 1/60;
+# ===============================================
+
+class BookService:
+    @staticmethod
+    def get_reading_sessions(user, book=None):
+        # pega as sessões registradas pelo usuário
+        user_sessions = ReadingSession.objects.filter(
+            user=user
+        );
+
+        if book:
+            user_sessions = user_sessions.filter(book=book);
+
+        return user_sessions;
 
 
 class ReadingSessionError(Exception):
@@ -46,6 +104,169 @@ class ReadingSessionError(Exception):
         self.field = field
         self.status = status
 
+class BookRecommendationService:
+    @staticmethod
+    def get_recommended_books(user, limit=MAX_RECOMMENDED_BOOKS):
+        genre_scores = BookRecommendationService.get_genre_scores(user);
+        genre_allocations = BookRecommendationService.allocate_genre_slots(
+            genre_scores,
+            limit
+        );
+
+        recommendation = BookRecommendationService.get_books_by_genre(
+            genre_allocations,
+            limit
+        );
+
+        if SORT_RECOMMENDED_BOOKS:
+            shuffle(recommendation);
+        
+        result = recommendation;
+
+        return result;
+
+    def get_books_by_genre(genre_quantities, limit):
+        selected_books = [];
+        remaining = limit;
+
+        for genre, quantity in genre_quantities.items():
+            # pega no máximo 'quantity' de livros
+            capped_quantity = min(quantity, remaining);
+            books = Book.objects.filter(
+                genre=genre
+            )[:capped_quantity];
+
+            # adiciona os livros selecionados desse gênero à lista
+            selected_books.extend(books);
+            # subtrai a quantidade selecionada da quantidade restante permitida
+            remaining -= len(books);
+
+        if remaining>0:
+            # caso os gêneros recomendados não tinham
+            # livros o suficiente para lotar a página,
+            # pegar outros livros aleatórios da base
+            selected_books.extend(
+                BookRecommendationService.get_random_books(
+                    remaining,
+                    [book.id for book in selected_books]
+                )
+            );
+
+        return selected_books;
+
+    def get_random_books(count, exclude_book_ids):
+        # pega apenas os IDs dos livros (mais leve)
+        pks = list(Book.objects.exclude(id__in=exclude_book_ids).values_list('id', flat=True));
+
+        # pega (count) ids aleatórios
+        sample_size = min(len(pks), count);
+        random_pks = sample(pks, sample_size);
+
+        # pega os objetos a partir dos IDs
+        random_objects = Book.objects.filter(pk__in=random_pks);
+
+        return random_objects;
+
+    @staticmethod
+    def allocate_genre_slots(genre_scores, limit):
+        # limit é o limite de livros recomendados
+        # (SEARCH_LIMIT)
+
+        # pega apenas os gêneros
+        # com score positivo
+        positive_scores = {
+            genre: score
+            for genre, score in genre_scores.items()
+            if score > 0
+        };
+
+        if not positive_scores:
+            return positive_scores;
+
+        # máximo de recomendação por gênero
+        max_per_genre = max(1, int(limit * MAX_RECOMMENDED_GENRE_RATE));
+        total_score = sum(positive_scores.values());
+
+        # calcula a quantidade recomendada de livros
+        # por gênero, ordenadamente (descrescente)
+        allocations = dict(
+            sorted(
+                {
+                    genre: min(
+                        max_per_genre,
+                        int(limit * score / total_score)
+                    )
+                    for genre, score in positive_scores.items()
+                }.items(),
+                key=lambda item: item[1],
+                reverse=True
+            )
+        );
+        
+        return allocations;
+
+    @staticmethod
+    def get_genre_scores(user):
+        # inicia todos os gêneros com
+        # score zero (para o caso de
+        # um usuário não ter nenhum registro).
+        genre_scores = {
+            genre[0]:0
+            for genre in GENRE_CHOICES
+        };
+        reading_sessions = BookService.get_reading_sessions(user);
+        bstatuses = BookStatus.objects.filter(user=user);
+        reviews = BookReview.objects.filter(
+            user=user,
+        );
+
+        # adiciona pontuação de resenhas
+        BookRecommendationService.add_rating_score(
+            genre_scores,
+            reviews
+        )
+        # adiciona pontuação de status
+        BookRecommendationService.add_status_score(
+            genre_scores,
+            bstatuses
+        );
+        BookRecommendationService.add_time_score(
+            genre_scores,
+            reading_sessions
+        );
+
+        return genre_scores;
+        
+
+    @staticmethod
+    def add_time_score(points_dict, sessions):
+        session:ReadingSession
+        for session in sessions:
+            points_dict[session.book.genre] += TIME_SCORE_RATE*session.minute_count;
+
+    @staticmethod
+    def add_status_score(points_dict, statuses):
+        # adiciona pontuação baseada
+        # no status de leitura de cada livro
+        status:BookStatus
+        for status in statuses:
+            # adiciona score à lista
+            # principal de pontuações
+            points_dict[status.book.genre] += BOOKSTATUS_SCORE_TABLE.get(
+                status.status,
+                0
+            );
+
+    @staticmethod
+    def add_rating_score(points_dict, reviews):
+        # adiciona pontuação para o gênero do livro
+        # de cada resenha baseado na avaliação
+        review:BookReview;
+        for review in reviews:
+            points_dict[review.book.genre] += RATING_SCORE_TABLE.get(
+                review.rating,
+                0
+            );
 
 # ---------------------------------------------------------------------------
 # Conversões puras (sem banco)
@@ -348,6 +569,8 @@ def _rebuild_streak(profile):
 
 def _sync_streak(user, session_date, rebuild):
     profile, _ = Profile.objects.get_or_create(user=user)
+    previous_streak = profile.streak
+    previous_last_read = profile.last_read_date
 
     retroactive = (
         profile.last_read_date is not None and session_date < profile.last_read_date
@@ -356,6 +579,28 @@ def _sync_streak(user, session_date, rebuild):
         _rebuild_streak(profile)
     elif profile.register_reading_day(session_date):
         profile.save(update_fields=["streak", "last_read_date"])
+
+    if profile.streak > 0 and (
+        profile.streak != previous_streak or profile.last_read_date != previous_last_read
+    ):
+        if profile.streak == 1:
+            create_notification(
+                target_user=user,
+                content="Sua ofensiva foi iniciada: 1 dia seguido de leitura!",
+            )
+        else:
+            create_notification(
+                target_user=user,
+                content=f"Sua ofensiva aumentou para {profile.streak} dias seguidos de leitura!",
+            )
+    elif previous_streak > 0 and profile.streak == 0:
+        create_notification(
+            target_user=user,
+            content="Sua ofensiva foi zerada por falta de leitura em dias consecutivos.",
+        )
+
+    check_streak(user) # confere streak do usuario
+    
     return profile
 
 
@@ -372,6 +617,7 @@ def persist_reading_session(user, book, data, session=None, clamp_to_remaining=F
     Devolve dict com session, sessions (histórico atualizado), book_status, profile.
     """
     with transaction.atomic():
+        is_edit = session is not None
         all_sessions = list(_user_sessions(user, book))
 
         target = None
@@ -485,8 +731,33 @@ def persist_reading_session(user, book, data, session=None, clamp_to_remaining=F
 
         # edição: o conjunto de dias pode ter mudado (inclusive perdido o único dia)
         profile = _sync_streak(user, target.date, rebuild=old_date is not None)
+        
+        # Verificações para atribuição das insígnias
+        check_first_read(user)
+        check_books_read(user)
+        check_genres_read(user)
 
+        check_daily_pages(user)
+        check_total_pages(user)
+
+        check_daily_minutes(user)
+        check_total_minutes(user)
+
+        check_community_goals_completed(user)
+        
+        
         target = next(s for s in ordered if s.pk == target.pk)
+
+        if target.pages_read is not None:
+            pages_label = "página lida" if target.pages_read == 1 else "páginas lidas"
+            progress_suffix = f" ({target.cumulative_pages}/{book.pages} páginas)" if book.pages else ""
+            if is_edit:
+                content = f'Leitura atualizada em "{book.title}": {target.pages_read} {pages_label}{progress_suffix}.'
+            else:
+                content = f'Você registrou {target.pages_read} {pages_label} em "{book.title}"{progress_suffix}.'
+        else:
+            content = f'Progresso de leitura atualizado em "{book.title}": {target.cumulative_percent}%.'
+        create_notification(target_user=user, content=content)
 
     return {
         "session": target,

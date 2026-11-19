@@ -12,6 +12,7 @@ from io import StringIO
 from goals.services import GoalService;
 from communities.services import CommunityService, MembershipService;
 from accounts.services import AccountService;
+from notifications.models import Notification
 # Create your tests here.
 
 class CT03(TestCase):
@@ -690,6 +691,23 @@ class ManageMemberBanTest(TestCase):
             Membership.Status.ACTIVE
         )
 
+    def test_ban_member_sends_notification_to_banned_user(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.post(
+            self.url,
+            {"decision": "ban"}
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.objects.filter(
+            target_user=self.user,
+            content__icontains="banido"
+        ).first()
+
+        self.assertIsNotNone(notification)
+
 
 # ---------------------------------------------------------------------------
 # CT03 - aceitação/rejeição de membros por solicitação (R09, comunidade privada)
@@ -1266,6 +1284,40 @@ class MemberRoleEditTest(TestCase):
         self.assertIn(reverse("accounts:login"), response.url)
         self.assert_role(self.target, Membership.Role.MEMBER)
 
+    # membro promovido a moderador recebe notificação
+    def test_promoting_member_sends_notification(self):
+        response = self.set_role(
+            self.moderator,
+            self.target,
+            Membership.Role.MODERATOR
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.objects.filter(
+            target_user=self.member,
+            content__icontains="promovido a moderador"
+        ).first()
+
+        self.assertIsNotNone(notification)
+
+    # moderador rebaixado a membro recebe notificação
+    def test_demoting_moderator_sends_notification(self):
+        response = self.set_role(
+            self.moderator,
+            self.mod_target,
+            Membership.Role.MEMBER
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        notification = Notification.objects.filter(
+            target_user=self.other_moderator,
+            content__icontains="alterado para membro"
+        ).first()
+
+        self.assertIsNotNone(notification)
+
 
 # ---------------------------------------------------------------------------
 # Purge de comunidades arquivadas (retenção de 60 dias)
@@ -1489,3 +1541,5 @@ class CT_CommunityGoalsPage(TestCase):
     def test_public_community_has_no_code_box(self):
         self.client.force_login(self.member)
         self.assertNotContains(self.client.get(self.url), "Código da comunidade")
+
+

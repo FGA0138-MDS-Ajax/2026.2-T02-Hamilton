@@ -17,11 +17,22 @@ from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP;
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from rewards.services import check_first_read
+from rewards.services import check_first_read, check_books_read
+from rewards.services import (
+    check_first_read,
+    check_books_read,
+    check_genres_read
+)
+
 from .forms import BookForm, BookReviewForm, ReadingSessionForm
 from .models import Book, BookReview, BookStatus, ReadingSession
+from notifications.services import create_notification
 from .services import (
     MAX_SESSION_MINUTES,  # noqa: F401  (reexportado: limite de 24h por sessão)
+    SEARCH_LIMIT,
     ReadingSessionError,
+    BookRecommendationService,
     build_session_response,
     created_at_from_date,
     parse_session_payload,
@@ -30,7 +41,6 @@ from .services import (
     serialize_session,
 )
 
-SEARCH_LIMIT = 50
 MAX_DB_ID = 2_147_483_647  # maior id de livro aceito nos parâmetros (inteiro de 32 bits)
 
 
@@ -217,9 +227,15 @@ def book_detail(request, book_id):
         urlencode({"next": request.path}),
     )
 
+    # Mesma regra de edit_book: só quem cadastrou o livro (ou superusuário) edita
+    can_edit = request.user.is_authenticated and (
+        request.user.is_superuser or request.user == book.created_by
+    )
+
     return render(request, "books/book_detail.html", {
         "id": book_id,
         "livro": livro,
+        "can_edit": can_edit,
         "form": form,
         "login_url": login_url,
     })
@@ -314,6 +330,28 @@ def mark_book_as_read(request, book_id):
 
     if book_status.status != BookStatus.Status.READ:
         book_status.mark_as_read()
+        if book_status.book.pages:
+            create_notification(
+                target_user=request.user,
+                content=(
+                    f'Você concluiu a leitura de "{book_status.book.title}" '
+                    f'({book_status.book.pages}/{book_status.book.pages} páginas)!'
+                ),
+            )
+        else:
+            create_notification(
+                target_user=request.user,
+                content=f'Você concluiu a leitura de "{book_status.book.title}" (100% lido)!',
+            )
+
+    #Verificações que serão utilizadas para adiquirir insígnias
+    check_first_read(request.user)
+    check_books_read(request.user)
+    check_first_read(request.user)
+    check_books_read(request.user)
+    check_genres_read(request.user)
+
+        
 
     return JsonResponse({
         'success': True,
@@ -369,6 +407,21 @@ def save_reading_progress(request, book_id):
         book_status.status = BookStatus.Status.READING
         fields.append('status')
     book_status.save(update_fields=fields)
+    check_first_read(request.user) # Verifica primeira leitura do usuario
+
+    if book_status.pages_read is not None:
+        create_notification(
+            target_user=request.user,
+            content=(
+                f'Progresso atualizado em "{book_status.book.title}": '
+                f'{book_status.pages_read}/{book_status.book.pages} páginas ({book_status.progress_percent}%).'
+            ),
+        )
+    else:
+        create_notification(
+            target_user=request.user,
+            content=f'Progresso atualizado em "{book_status.book.title}": {book_status.progress_percent}%.',
+        )
 
     return JsonResponse({
         'success': True,

@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.contrib.auth import get_user_model;
 
+
 from communities.models import Community, Membership
 from communities.services import MembershipService
 from forums.models import Forum
@@ -95,6 +96,13 @@ class GoalService:
         elif creator_is_a_user:
             # meta individual: o dono entra na própria meta
             GoalService.join(creator, goal)
+            
+            from rewards.services import (
+                check_individual_goal_created,                              
+            )
+            # Verifica criação de meta para obter insignia
+            check_individual_goal_created(creator)
+            
         return goal
 
     @staticmethod
@@ -226,11 +234,32 @@ class GoalService:
 
     # ---------- conclusão ----------
     @staticmethod
+    def is_goal_reached(goal) -> bool:
+        if goal.is_collective:
+            return GoalService.get_progress(goal)["done"]
+        return GoalService.get_individual_progress(goal)["done"]
+
+    @staticmethod
     def conclude(goal) -> bool:
-        if goal.status == Goal.Status.CONCLUDED:
+        if goal.status == Goal.Status.CONCLUDED or not GoalService.is_goal_reached(goal):
             return False
         goal.status = Goal.Status.CONCLUDED
         goal.save(update_fields=["status"])
+        
+        # Se a meta for individual (não coletiva), verifica e concede insígnias
+        if not goal.is_collective:
+            from rewards.services import (
+            check_individual_goals_completed,
+            check_individual_goal_on_time,
+    )
+
+            user = goal.owner_profile.user
+            
+            # verifica se as metas foram concluídas e se foram entregues no prazo
+            check_individual_goals_completed(user)
+            check_individual_goal_on_time(goal)
+            
+            
         return True
 
     # ---------- cards da comunidade ----------
@@ -323,7 +352,12 @@ class GoalService:
             GoalService.get_user_contribution(p) for p in goal.participations.all()
         )
         percent = min(100, round(total / goal.target * 100)) if goal.target else 0
-        return {"current": total, "target": goal.target, "percent": percent}
+        return {
+            "current": total,
+            "target": goal.target,
+            "percent": percent,
+            "done": bool(goal.target and total >= goal.target),
+        }
 
     @staticmethod
     def current_individual_goals(profile):

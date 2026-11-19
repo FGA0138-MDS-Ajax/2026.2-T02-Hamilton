@@ -6,7 +6,7 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
   {# Reaproveita o mesmo CSS e JS da página de criação (seletor de livro, campos, visibilidade) #}
-  <link rel="stylesheet" href="{% static 'communities/css/create_community.css' %}" />
+  <link rel="stylesheet" href="{% static 'communities/css/create_community.css' %}?v=2" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <script src="{% static 'communities/js/create_community.js' %}" defer></script>
 {% endblock %}
@@ -30,7 +30,7 @@
     </a>
 
     <section>
-      <h1>Editar {{ community.name }}</h1>
+      <h1 title="Editar {{ community.name }}">Editar {{ community.name }}</h1>
       <p class="form-intro">Atualize as informações da comunidade. Os campos marcados com * são obrigatórios.</p>
 
       {% if messages %}

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+  <title>Chama Acesa</title>
+  <g transform="translate(32 36) scale(0.8)"><path d="M0,-26 C6,-17 17,-10 17,4 C17,15 9,23 0,23 C-9,23 -17,15 -17,4 C-17,-5 -11,-9 -9,-17 C-5,-11 -3,-9 -1,-8 C2,-14 2,-20 0,-26Z" fill="#FDE047"/><path d="M0,-10 C5,-3 11,1 11,9 C11,16 6,20 0,20 C-6,20 -11,16 -11,9 C-11,3 -6,0 0,-10Z" fill="#FEF9C3"/></g>
+</svg>

@@ -63,7 +63,7 @@
   color: #fff;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   background: var(--purple-600);
   box-shadow: var(--glow);
 }
@@ -72,7 +72,7 @@
   background: #b42318;
 }
 
-.btn--danger:hover {
+.btn--danger:hover:not(:disabled) {
   background: #d92d20;
   box-shadow: none;
 }
@@ -83,9 +83,15 @@
   color: var(--purple-300);
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
   background: var(--purple-500);
   color: #fff;
+}
+
+.btn:disabled,
+.btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn:focus-visible,

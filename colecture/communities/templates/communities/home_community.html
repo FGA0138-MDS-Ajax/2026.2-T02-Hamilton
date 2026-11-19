@@ -5,7 +5,7 @@
 
 {% block extra_head %}
   {# ?v= força o navegador a baixar a versão nova do CSS #}
-  <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}?v=2" />
+  <link rel="stylesheet" href="{% static 'communities/css/home_community.css' %}?v=3" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'main/css/toast.css' %}" />
   <script src="{% static 'main/js/toast.js' %}" defer></script>
@@ -55,12 +55,12 @@
         {% endif %}
           <div class="com-card-top">
             <div class="com-cover">{{ c.nome|slice:":1"|upper }}</div>
-            <div>
-              <h2>{{ c.nome }}</h2>
+            <div class="com-card-info">
+              <h2 title="{{ c.nome }}">{{ c.nome }}</h2>
               <div class="com-role">{{ c.papel }}</div>
             </div>
           </div>
-          <p class="com-desc">{{ c.descricao }}</p>
+          <p class="com-desc" title="{{ c.descricao }}">{{ c.descricao }}</p>
           <div class="com-card-foot">
             <span class="com-members"><i class="bx bx-group"></i> {{ c.membros_count }} membro{{ c.membros_count|pluralize }}</span>
 

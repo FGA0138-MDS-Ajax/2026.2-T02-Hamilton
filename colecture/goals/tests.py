@@ -610,7 +610,15 @@ class CT_GoalConclude(GoalBase):
 
     def setUp(self):
         super().setUp()
-        self.goal = self.make_collective_goal()
+        self.goal = self.make_collective_goal(book=self.book)
+        GoalService.join(self.member, self.goal)
+        self.session = ReadingSession.objects.create(
+            user=self.member,
+            book=self.book,
+            pages_read=500,
+            minute_count=60,
+            date=timezone.localdate(),
+        )
         self.url = reverse("goals:conclude_goal", kwargs={"goal_id": self.goal.id})
 
     def test_moderator_concludes_goal_VALID(self):
@@ -641,6 +649,99 @@ class CT_GoalConclude(GoalBase):
         self.assertEqual(
             response["Location"],
             reverse("communities:view_community", kwargs={"community_id": self.goal.owner_community_id}))
+
+    def test_cannot_conclude_collective_goal_when_not_reached_INVALID(self):
+        self.session.delete()
+        self.assertFalse(GoalService.conclude(self.goal))
+
+        self.client.force_login(self.moderator)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.status, Goal.Status.ACTIVE)
+
+    def test_collective_conclude_button_reflects_goal_progress(self):
+        community_url = reverse(
+            "communities:view_community",
+            kwargs={"community_id": self.community.id},
+        )
+        self.client.force_login(self.moderator)
+
+        self.session.delete()
+        response = self.client.get(community_url)
+        self.assertContains(
+            response,
+            f'data-url="{self.url}" data-name="{self.goal.name}" disabled>',
+        )
+
+        ReadingSession.objects.create(
+            user=self.member,
+            book=self.book,
+            pages_read=500,
+            minute_count=60,
+            date=timezone.localdate(),
+        )
+        response = self.client.get(community_url)
+        self.assertContains(
+            response,
+            f'data-url="{self.url}" data-name="{self.goal.name}">',
+        )
+
+    def test_individual_goal_conclude_and_button_state(self):
+        other_book = Book.objects.create(
+            isbn="5555555555", title="Outro Livro", author="Autor"
+        )
+        personal_goal = Goal.objects.create(
+            name="Meta Pessoal",
+            owner_profile=self.member.profile,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=50,
+            book=other_book,
+            period=Goal.Period.TOTAL,
+        )
+        conclude_url = reverse(
+            "goals:conclude_goal", kwargs={"goal_id": personal_goal.id}
+        )
+        profile_url = reverse("accounts:profile")
+        self.client.force_login(self.member)
+
+        response = self.client.get(profile_url)
+        self.assertContains(
+            response, 'class="btn-outline goal-action goal-action--success" disabled>'
+        )
+        self.assertFalse(GoalService.conclude(personal_goal))
+        self.client.post(conclude_url)
+        personal_goal.refresh_from_db()
+        self.assertEqual(personal_goal.status, Goal.Status.ACTIVE)
+
+        ReadingSession.objects.create(
+            user=self.member,
+            book=other_book,
+            pages_read=25,
+            minute_count=15,
+            date=timezone.localdate(),
+        )
+        response = self.client.get(profile_url)
+        self.assertContains(
+            response, 'class="btn-outline goal-action goal-action--success" disabled>'
+        )
+
+        ReadingSession.objects.create(
+            user=self.member,
+            book=other_book,
+            pages_read=25,
+            minute_count=15,
+            date=timezone.localdate(),
+        )
+        response = self.client.get(profile_url)
+        self.assertContains(
+            response, 'class="btn-outline goal-action goal-action--success">'
+        )
+
+        response = self.client.post(conclude_url)
+        self.assertEqual(response.status_code, 302)
+        personal_goal.refresh_from_db()
+        self.assertEqual(personal_goal.status, Goal.Status.CONCLUDED)
 
 
 # Testes dos métodos de ofensiva do Profile (sem requisição HTTP)

@@ -2,20 +2,27 @@ import json;
 import importlib
 from pathlib import Path
 from unittest import mock
+from io import StringIO;
 
 from datetime import timedelta, date
 from django.test import TestCase, Client;
 from django.urls import reverse;
 from django.contrib.auth import get_user_model;
 from django.core.exceptions import ValidationError
+from django.core.management import call_command;
 from django.utils import timezone
 
 from accounts.services import AccountService;
 from accounts.models import Profile;
 from .models import Book, BookReview, BookStatus, ReadingSession, SYNOPSIS_MAX_LENGTH;
-from .forms import BookForm, GENRE_CHOICES;
+from .forms import BookForm, GENRE_CHOICES, ReadingSessionForm;
 from .views import SEARCH_LIMIT;
-from .forms import ReadingSessionForm
+from .services import (
+    BookRecommendationService, 
+    RATING_SCORE_TABLE,
+    BOOKSTATUS_SCORE_TABLE,
+    TIME_SCORE_RATE
+);
 from decimal import Decimal
 from django.apps import apps as django_apps
 from goals.models import Goal, GoalParticipation;
@@ -739,7 +746,7 @@ class ReadingSessionFormTests(TestCase):
         self.assertIn("current_page", form.errors)
 
 
-# Testes da view de registro de leitura
+# Testes do registro de leitura pela página reading_session (endpoint JSON)
 class ReadingSessionViewTests(TestCase):
 
     def setUp(self):
@@ -757,19 +764,19 @@ class ReadingSessionViewTests(TestCase):
             pages=100
         )
 
-        self.url = reverse("books:register_reading_session")
+        self.url = reverse("books:save_reading_session", args=[self.book.id])
+
+    def post_session(self, payload):
+        return self.client.post(
+            self.url, data=json.dumps(payload), content_type="application/json"
+        )
 
     def test_usuario_autenticado_registra_sessao(self):
         self.client.force_login(self.user)
 
-        response = self.client.post(self.url, {
-            "book": self.book.id,
-            "current_page": 20,
-            "minute_count": 30,
-            "date": "2026-11-04"
-        })
+        response = self.post_session({"pages_read": 20, "minute_count": 30})
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(ReadingSession.objects.count(), 1)
 
         session = ReadingSession.objects.first()
@@ -781,42 +788,35 @@ class ReadingSessionViewTests(TestCase):
     def test_pagina_atual_e_acumulada_entre_sessoes(self):
         self.client.force_login(self.user)
 
-        for current_page in (20, 30):
-            self.client.post(self.url, {
-                "book": self.book.id,
-                "current_page": current_page,
-                "minute_count": 30,
-                "date": "2026-11-04"
-            })
-
         # a 2ª sessão leu só as páginas que faltavam: 30 - 20
-        pages = list(
-            ReadingSession.objects.order_by("id")
-            .values_list("pages_read", flat=True)
-        )
-        self.assertEqual(pages, [20, 10])
+        for pages_read in (20, 10):
+            self.post_session({"pages_read": pages_read, "minute_count": 30})
+
+        sessions = list(ReadingSession.objects.order_by("id"))
+        self.assertEqual([s.pages_read for s in sessions], [20, 10])
+        self.assertEqual([s.cumulative_pages for s in sessions], [20, 30])
 
     def test_progresso_menor_ou_igual_ao_anterior_e_rejeitado(self):
         self.client.force_login(self.user)
-        self.client.post(self.url, {
-            "book": self.book.id,
-            "current_page": 20,
-            "minute_count": 30,
-            "date": "2026-11-04"
-        })
+        self.post_session({"pages_read": 20, "minute_count": 30})
 
-        response = self.client.post(self.url, {
-            "book": self.book.id,
-            "current_page": 20,
-            "minute_count": 30,
-            "date": "2026-11-04"
-        })
+        # em percentual, o progresso informado precisa superar os 20% já lidos
+        for percent in (20, 10):
+            with self.subTest(percent=percent):
+                response = self.post_session(
+                    {"stopped_percent": percent, "minute_count": 30}
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(response.json()["success"])
 
-        self.assertEqual(response.status_code, 200)
+        # sessão sem avanço de páginas também é recusada
+        response = self.post_session({"pages_read": 0, "minute_count": 30})
+        self.assertEqual(response.status_code, 400)
+
         self.assertEqual(ReadingSession.objects.count(), 1)
 
     def test_usuario_nao_autenticado_nao_acessa_registro(self):
-        response = self.client.get(self.url)
+        response = self.post_session({"pages_read": 20, "minute_count": 30})
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ReadingSession.objects.count(), 0)
@@ -829,18 +829,18 @@ class ReadingSessionStreakViewTests(TestCase):
         self.book = Book.objects.create(
             isbn="9780590353403", title="Livro de Teste",
             author="Autor Teste", genre="Ficção", pages=100)
-        self.url = reverse("books:register_reading_session")
+        self.url = reverse("books:save_reading_session", args=[self.book.id])
         self.client.force_login(self.user)
         self.today = timezone.localdate()
 
-    def post_session(self, current_page, day=None):
-        # current_page é a página em que o leitor parou (acumulada no livro)
-        return self.client.post(self.url, {
-            "book": self.book.id,
-            "current_page": current_page,
-            "minute_count": 30,
-            "date": (day or self.today).isoformat(),
-        })
+    def post_session(self, pages_read, day=None):
+        # pages_read são as páginas lidas nesta sessão; sem `day` vale o momento atual
+        payload = {"pages_read": pages_read, "minute_count": 30}
+        if day is not None:
+            payload["created_at"] = day.isoformat()
+        return self.client.post(
+            self.url, data=json.dumps(payload), content_type="application/json"
+        )
 
     def streak(self):
         # o Profile é criado sob demanda (get_or_create na view): se nenhuma
@@ -851,7 +851,7 @@ class ReadingSessionStreakViewTests(TestCase):
     def test_primeira_sessao_define_ofensiva_em_1(self):
         response = self.post_session(10)
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         profile = Profile.objects.get(user=self.user)
         self.assertEqual(profile.streak, 1)
         self.assertEqual(profile.last_read_date, self.today)
@@ -860,13 +860,13 @@ class ReadingSessionStreakViewTests(TestCase):
         self.post_session(10, day=self.today - timedelta(days=1))
         self.assertEqual(self.streak(), 1)
 
-        self.post_session(20, day=self.today)
+        self.post_session(10, day=self.today)
         self.assertEqual(self.streak(), 2)
 
     def test_varias_sessoes_no_mesmo_dia_contam_uma_vez(self):
         self.post_session(10)
-        self.post_session(20)
-        self.post_session(30)
+        self.post_session(10)
+        self.post_session(10)
 
         self.assertEqual(ReadingSession.objects.count(), 3)
         self.assertEqual(self.streak(), 1)
@@ -886,8 +886,9 @@ class ReadingSessionStreakViewTests(TestCase):
     def test_data_futura_e_rejeitada_e_nao_altera_ofensiva(self):
         response = self.post_session(10, day=self.today + timedelta(days=1))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("date", response.context["form"].errors)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["field"], "created_at")
         self.assertEqual(ReadingSession.objects.count(), 0)
         self.assertEqual(self.streak(), 0)
 
@@ -919,16 +920,16 @@ class ReadingSessionProgressAndGoalTests(TestCase):
             pages=100
         )
 
-        self.url = reverse("books:register_reading_session")
+        self.url = reverse("books:save_reading_session", args=[self.book.id])
         self.client.force_login(self.user)
 
-    def post_session(self, current_page, minute_count=30):
-        return self.client.post(self.url, {
-            "book": self.book.id,
-            "current_page": current_page,
-            "minute_count": minute_count,
-            "date": timezone.localdate().isoformat()
-        })
+    def post_session(self, pages_read, minute_count=30):
+        # pages_read são as páginas lidas nesta sessão (não a página acumulada)
+        return self.client.post(
+            self.url,
+            data=json.dumps({"pages_read": pages_read, "minute_count": minute_count}),
+            content_type="application/json"
+        )
 
     def test_registro_inicia_bookstatus_com_status_lendo(self):
         self.post_session(20)
@@ -945,7 +946,7 @@ class ReadingSessionProgressAndGoalTests(TestCase):
 
     def test_progresso_bookstatus_acumula_corretamente(self):
         self.post_session(20)
-        self.post_session(34)
+        self.post_session(14)
 
         book_status = BookStatus.objects.get(
             user=self.user,
@@ -998,7 +999,7 @@ class ReadingSessionProgressAndGoalTests(TestCase):
         )
 
         self.post_session(20)
-        self.post_session(34)
+        self.post_session(14)
 
         contribution = GoalService.get_user_contribution(
             participation
@@ -1022,7 +1023,7 @@ class ReadingSessionProgressAndGoalTests(TestCase):
         )
 
         self.post_session(20, minute_count=30)
-        self.post_session(34, minute_count=40)
+        self.post_session(14, minute_count=40)
 
         contribution = GoalService.get_user_contribution(
             participation
@@ -1907,56 +1908,6 @@ class EditReadingSessionApiTests(SessionApiBase):
         self.assertEqual(self.cumulatives(), [10, 30, 35])
 
 
-class RegisterReadingSessionSharedHelperTests(SessionApiBase):
-    """O form de reading/register/ usa o mesmo helper do endpoint JSON."""
-
-    def setUp(self):
-        super().setUp()
-        self.url = reverse("books:register_reading_session")
-
-    def post_form(self, **extra):
-        data = {"book": self.book.id, "minute_count": 30, "date": timezone.localdate().isoformat()}
-        data.update(extra)
-        return self.client.post(self.url, data)
-
-    def test_form_preenche_acumulados_bookstatus_e_ofensiva(self):
-        self.assertEqual(self.post_form(current_page=20).status_code, 302)
-        self.assertEqual(self.post_form(current_page=35).status_code, 302)
-
-        self.assertEqual([s.pages_read for s in self.rows()], [20, 15])
-        self.assertEqual(self.cumulatives(), [20, 35])
-        self.assertEqual([s.stopped_page for s in self.rows()], [20, 35])
-        self.assertEqual(self.rows()[-1].cumulative_percent, Decimal("35.00"))
-        self.assertEqual(BookStatus.objects.get(user=self.user, book=self.book).reading_progress, Decimal("0.350"))
-        self.assertEqual(self.profile().streak, 1)
-
-    def test_form_com_percentual_grava_record_type_percent(self):
-        self.assertEqual(self.post_form(current_percentage="40").status_code, 302)
-
-        session = self.rows()[0]
-        self.assertEqual((session.record_type, session.pages_read, session.cumulative_pages), ("percent", 40, 40))
-
-    def test_form_com_data_passada_define_created_at_e_date(self):
-        yesterday = timezone.localdate() - timedelta(days=1)
-
-        self.assertEqual(self.post_form(current_page=10, date=yesterday.isoformat()).status_code, 302)
-
-        session = self.rows()[0]
-        self.assertEqual(session.date, yesterday)
-        self.assertEqual(timezone.localtime(session.created_at).date(), yesterday)
-
-    def test_sessao_do_form_aparece_na_lista_e_pode_ser_editada(self):
-        self.post_form(current_page=20)
-        self.post_form(current_page=50)
-        first, second = self.rows()
-
-        self.assertEqual(self.edit(first.pk, {"pages_read": 25}).status_code, 200)
-
-        self.assertEqual(self.cumulatives(), [25, 55])
-        listed = self.client.get(self.list_url()).json()["sessions"]
-        self.assertEqual([s["cumulative_pages"] for s in listed], [25, 55])
-
-
 # O banco (BookStatus) é a única fonte de verdade da estante e do "Lendo".
 # books_lookup, manage_bookshelf, busca e estante do perfil leem/gravam só no banco.
 class BookshelfDatabaseSourceTests(TestCase):
@@ -2295,4 +2246,107 @@ class ReadingSessionScriptTests(TestCase):
             response, 'data-edit-url="%s"' % reverse("books:edit_reading_session", args=[0, 0]))
         self.assertContains(
             response, 'data-mark-read-url="%s"' % reverse("books:mark_book_as_read", args=[0]))
-        self.assertContains(response, "reading_session.js?v=5")
+        self.assertContains(response, "reading_session.js?v=6")
+
+class CT06_BookRecommendation(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # popula a base com livros
+        call_command("seed_books", stdout=StringIO());
+        cls.client = Client();
+        cls.user = AccountService.create_account(
+            get_user_model().objects.create(
+                username='Client1'
+            )
+        );
+        cls.genre1 = GENRE_CHOICES[1][0];
+        cls.book_genre1 = Book.objects.filter(genre=cls.genre1).first();
+
+    def test_rating_calculation(self):
+        # neste caso, o único registro é uma resenha
+        # com 4 estrelas
+        rating = 4;
+        review = BookReview.objects.create(
+            book=self.book_genre1,
+            rating=float(rating),
+            user=self.user    
+        );
+        result = BookRecommendationService.get_genre_scores(
+            self.user
+        );
+        self.assertEqual(
+            result[self.genre1],
+            RATING_SCORE_TABLE[rating]
+        );
+
+    def test_status_calculation(self):
+        # neste caso, o único registro é
+        # uma marcaçao como "lendo"
+        status_given = BookStatus.Status.READING;
+        status = BookStatus.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            status=status_given
+        )
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            BOOKSTATUS_SCORE_TABLE[status_given]
+        );
+
+    def test_time_calculation(self):
+        # neste caso, o único registro é um registro
+        # de leitura com tempo = 35 min
+        minute_count = 35;
+        register = ReadingSession.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            minute_count=minute_count
+        )
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            TIME_SCORE_RATE*minute_count
+        );
+
+    def test_mixed_calculation(self):
+        # neste caso, o usuário utilizou
+        # todos os registros influentes
+
+        # resenha
+        rating = 2;
+        review = BookReview.objects.create(
+            book=self.book_genre1,
+            rating=float(rating),
+            user=self.user    
+        );
+
+        # status
+        status_given = BookStatus.Status.READ;
+        status = BookStatus.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            status=status_given
+        );
+
+        # registro de leitura
+        minute_count = 90;
+        register = ReadingSession.objects.create(
+            user=self.user,
+            book=self.book_genre1,
+            minute_count=minute_count
+        );
+
+        result = BookRecommendationService.get_genre_scores(
+            user=self.user,
+        );
+        self.assertEqual(
+            result[self.genre1],
+            BOOKSTATUS_SCORE_TABLE[status_given] + 
+            RATING_SCORE_TABLE[rating] + 
+            TIME_SCORE_RATE*minute_count
+        );

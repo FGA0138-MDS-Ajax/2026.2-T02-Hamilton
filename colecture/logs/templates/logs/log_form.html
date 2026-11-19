@@ -1,0 +1,30 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}Editar log #{{ log.id }} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'logs/css/logs.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="logs-page">
+
+    <a class="logs-back" href="{% url 'logs:log_detail' log.id %}">&larr; Voltar ao log</a>
+
+    <header class="logs-head">
+      <h1>Editar log #{{ log.id }}</h1>
+      <p>A edição será registrada no log de auditoria.</p>
+    </header>
+
+    <form class="logs-form" method="post" action="{% url 'logs:edit_log' log.id %}">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="logs-actions">
+        <button type="submit" class="logs-btn logs-btn-primary">Salvar alterações</button>
+        <a class="logs-btn" href="{% url 'logs:log_detail' log.id %}">Cancelar</a>
+      </div>
+    </form>
+
+  </div>
+{% endblock %}

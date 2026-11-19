@@ -8,6 +8,8 @@ from django.utils.http import url_has_allowed_host_and_scheme;
 from .models import Forum, Message;
 from .forms import MessageForm, ForumForm;
 from .services import ForumService;
+from logs.models import AuditLog;
+from logs.services import create_log;
 
 # Create your views here.
 class ViewForum(LoginRequiredMixin, View):
@@ -38,7 +40,7 @@ class ViewForum(LoginRequiredMixin, View):
         return ForumService.user_can_view(self.user, self.forum);
 
     def post(self, request, *args, **kwargs):
-        form = MessageForm(request.POST);
+        form = MessageForm(request.POST, forum=self.forum);
         if self.forum.state!=Forum.State.ACTIVE:
             # fórum trancado: nada é salvo, e o usuário volta para a
             # página do fórum com um aviso (em vez de um 403 sem template).
@@ -61,13 +63,13 @@ class ViewForum(LoginRequiredMixin, View):
         return self.render_forum(request, form, status=400);
 
     def get(self, request, *args, **kwargs):
-        return self.render_forum(request, MessageForm());
+        return self.render_forum(request, MessageForm(forum=self.forum));
 
     def render_forum(self, request, form, status=200):
         # não usar a chave 'messages': ela é do
         # django.contrib.messages (context processor).
         forum_messages = self.forum.messages.select_related(
-            'author'
+            'author', 'reply_to', 'reply_to__author'
         ).order_by('created_at', 'id');
 
         context = {
@@ -107,6 +109,19 @@ def delete_message(request, message_id):
         if forum.state!=Forum.State.ACTIVE:
             messages.error(request, "Este fórum está trancado. Não é possível apagar mensagens.");
             return redirect("forums:view_forum", forum_id=forum.id);
+
+        # registra antes de apagar (o log guarda só o ID da mensagem).
+        # O conteúdo da mensagem não vai para o log.
+        create_log(
+            user,
+            AuditLog.Action.MESSAGE_DELETED,
+            message,
+            metadata={
+                "forum_id": forum.id,
+                "community_id": ForumService.get_forum_parent_community(forum).id,
+                "message_author_id": message.author_id,
+            }
+        );
 
         message.delete();
 

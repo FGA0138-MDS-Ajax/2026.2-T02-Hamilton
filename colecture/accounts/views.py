@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, get_user_model;
 from django.contrib.auth.decorators import login_required;
 from django.contrib import messages
@@ -7,15 +7,19 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import calendar
 
 from .models import Profile;
+from rewards.models import  Award;
 from goals.services import GoalService;
 from .services import AccountService;
 from .forms import LoginForm, RegistrationForm, EditUserForm;
+from rewards.selectors import get_insignia_overview
 
 from books.models import BookStatus, ReadingSession
+from notifications.models import Notification
+from notifications.services import create_notification
 
 def register_view(request):
     if request.method == "POST":
@@ -68,17 +72,40 @@ def profile_view(request):
     # antes de exibir (senão ela só seria zerada na próxima leitura).
     if profile.reset_streak_if_broken():
         profile.save(update_fields=["streak"])
+        create_notification(
+            target_user=request.user,
+            content="Sua ofensiva foi zerada porque você ficou sem registrar leitura.",
+        )
 
     individual_goal = GoalService.get_current_individual_goal(profile)
     goal_progress = (
         GoalService.get_individual_progress(individual_goal) if individual_goal else None
     )
-    
-    # Verifica se leu hoje (exemplo integrando com ReadingLog se houver)
+
     today = timezone.localdate()
-    read_today = False
-    if hasattr(profile, 'reading_logs'):
-        read_today = profile.reading_logs.filter(date=today).exists()
+    read_today = ReadingSession.objects.filter(user=request.user, date=today).exists()
+
+    today_iso = today.isoformat()
+    start_of_today = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    already_warned_today = (
+        request.session.get("streak_warning_date") == today_iso
+        or Notification.objects.filter(
+            target_user=request.user,
+            content__startswith="Não perca sua ofensiva",
+            created_at__gte=start_of_today,
+        ).exists()
+    )
+    show_streak_warning = False
+    if not read_today and not already_warned_today:
+        request.session["streak_warning_date"] = today_iso
+        show_streak_warning = True
+        if profile.streak > 0:
+            streak_reminder = (
+                f"Não perca sua ofensiva de {profile.streak} "
+                f"{'dia' if profile.streak == 1 else 'dias'}! "
+                "Registre uma leitura hoje para manter sua sequência."
+            )
+            create_notification(target_user=request.user, content=streak_reminder)
 
     # Estante: livros do usuário com a tag (Lido, Lendo, Quero ler)
     shelf_items = list(
@@ -104,13 +131,37 @@ def profile_view(request):
         )
     ]
 
+    popup_notifications = list(
+        Notification.objects
+        .filter(target_user=request.user, hidden_from_popup=False)
+        .order_by('-created_at', '-id')
+    )
+    unread_notifications_count = Notification.objects.filter(
+        target_user=request.user,
+        hidden_from_popup=False,
+        is_read=False,
+    ).count()
+
+    awards = (
+        Award.objects
+        .filter(
+            user=request.user,
+            insignia__is_active=True)
+        .select_related('insignia')
+        .order_by('-awarded_at')
+    )
     context = {
         'profile': profile,
         'individual_goal': individual_goal,
         'goal_progress': goal_progress,
         'read_today': read_today,
+        'show_streak_warning': show_streak_warning,
         'shelf_items': shelf_items,
         'shelf_filters': shelf_filters,
+        'insignias': get_insignia_overview(request.user),
+        'notifications': popup_notifications[:5],
+        'notifications_count': unread_notifications_count,
+        'awards': awards,
     }
     return render(request, 'accounts/profile.html', context)
 
