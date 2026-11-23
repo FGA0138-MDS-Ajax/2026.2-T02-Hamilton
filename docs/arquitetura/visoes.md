@@ -26,9 +26,9 @@ A funcionalidade mais complexa é o **registro do progresso diário**, que envol
 - **Comunidade:** fórum de mensagens e informações (nome, data de criação, moderadores, livro ou tema atual e participantes).
 - **Perfil:** nome, livro favorito, foto, data de entrada, progresso dos livros em leitura, comunidades, avaliações e marcações "Pretendo Ler", "Já Li", "Em Progresso" e "Não Terminei de Ler". O próprio usuário pode editar seu perfil.
 
-![Módulos do sistema CoLecture](../img/arq-fig4-modulos.png)
+![Pacotes do sistema CoLecture](../img/arq-fig4-modulos.png)
 
-*Figura 4: Módulos do sistema CoLecture (MTV/Django). Fonte: elaborado pelos autores (2026).*
+*Figura 4: Pacotes do sistema CoLecture (MTV/Django). Fonte: elaborado pelos autores (2026).*
 
 ## Visão estrutural
 
