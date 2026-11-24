@@ -33,3 +33,14 @@ O CoLecture é executado em ambiente local e acessado por navegador, exigindo au
 | Leitor | Tudo do visitante, além de criar e entrar em comunidades, registrar progresso, avaliar e cadastrar livros e participar de fóruns |
 | Moderador | Tudo do leitor, além de remover conteúdo e gerenciar membros das comunidades que modera |
 | Administrador | Gerenciar comunidades, usuários e livros (editar e aprovar livros e edições) pelo painel administrativo |
+
+## Itens de Configuração e Repositório
+
+- **Repositório oficial:** https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton
+
+| Item de Configuração | Localização no Repositório | Descrição |
+| :--- | :--- | :--- |
+| Código-fonte | `colecture/` (`main`, `accounts`, `books`, `communities`, `goals`, `forums`, `notifications`) | Aplicação web Django, models, views, forms, templates e arquivos estáticos |
+| Testes | `colecture/*/tests*.py` | Suítes de testes unitários e de integração dos módulos do sistema |
+| Dependências | `requirements.txt` | Bibliotecas e pacotes Python/Django necessários para execução do projeto |
+| Documentos | `docs/` (`arquitetura/`, `visao/`, `sprints/`, `atas-reuniao/`, `documentos/`) | Documentação de arquitetura, visão, relatórios de sprint, atas e PDFs exportados |

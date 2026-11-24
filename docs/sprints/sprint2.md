@@ -22,7 +22,7 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | R06       | Pesquisar e filtrar catálogo             | 100%              |
 | R07       | Avaliar livros                           | 100%              |
 | R08       | Página de registro de livros e avaliação | 95%               |
-| Média     |                                          | 0,9875            |
+| Média     |                                          | 98,75%            |
 
 ## 4. Avaliação da qualidade do Software
 

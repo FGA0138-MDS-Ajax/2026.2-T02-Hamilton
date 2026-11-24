@@ -18,6 +18,12 @@ A equipe adota um ciclo de vida ágil baseado no **Scrum**, complementado por pr
 - Cada funcionalidade é implementada, testada e avaliada antes do fim da sprint; o backlog é atualizado a cada ciclo.
 - Requisitos descritos do ponto de vista de quem os usa e priorizados em **Must, Should e Could**.
 - Comunicação por Teams ou Discord e versionamento no GitHub.
+- **Práticas do XP adotadas:**
+  - **Integração Contínua (*Continuous Integration*):** integração frequente das entregas nas branches `sprintN` com testes antes do merge na `main`.
+  - **Refatoração (*Refactoring*):** melhoria contínua do código e pagamento de débitos técnicos entre sprints (como ajustes de formulários e integrações).
+  - **Revisão em Par / Inspeção (*Code Review* / *Pair Programming*):** revisão conjunta de pull requests e inspeções de qualidade conduzidas antes do fechamento.
+  - **Entregas Pequenas e Frequentes (*Small Releases*):** releases incrementais semanais validados ao fim de cada sprint.
+  - **Padrões de Codificação (*Coding Standards*):** uso de Conventional Commits, identificadores em inglês e documentação em português.
 
 ## Processo de desenvolvimento
 
@@ -47,15 +53,15 @@ Uma branch para cada sprint, nomeada `sprintN` (`sprint1` a `sprint7`), onde o d
 | Sprint | Entrega | Início | Fim | Entregáveis | Conclusão |
 | :----: | ------- | :----: | :-: | ----------- | :-------: |
 | 1 | Cadastro e gerenciamento de usuário | 07/10/2026 | 14/10/2026 | R01 a R04 | 100% |
-| 2 | Gestão de catálogo e avaliação de livros | 15/10/2026 | 21/10/2026 | R05 a R08 | 100% |
-| 3 | Manter comunidades | 22/10/2026 | 28/10/2026 | R09 e R10 | 0% |
-| 4 | Metas de leitura e fóruns | 29/10/2026 | 04/11/2026 | R11 a R14 | 0% |
-| 5 | Acompanhamento de progresso e ofensivas | 05/11/2026 | 11/11/2026 | R15 a R18 | 0% |
+| 2 | Gestão de catálogo e avaliação de livros | 15/10/2026 | 21/10/2026 | R05 a R08 | 98,75% |
+| 3 | Manter comunidades | 22/10/2026 | 28/10/2026 | R09 e R10 | 90% |
+| 4 | Metas de leitura e fóruns | 29/10/2026 | 04/11/2026 | R11 a R14 | 83,75% |
+| 5 | Acompanhamento de progresso e ofensivas | 05/11/2026 | 11/11/2026 | R15 a R18 | 100% |
 | 6 | Conquistas, recomendações e testes | 12/11/2026 | 18/11/2026 | R19 a R22 | 0% |
 | 7 | Ajustes finais e apresentação | 19/11/2026 | 25/11/2026 | R23 | 0% |
 
 !!! note
-    As porcentagens de conclusão refletem o estado registrado na versão 1.2 do documento (09/11/2026).
+    As porcentagens de conclusão refletem as médias registradas nos relatórios de cada sprint (`docs/sprints/sprint1.md` a `sprint5.md`).
 
 Além das sprints, o cronograma prevê dois marcos de controle:
 
@@ -92,3 +98,14 @@ O grau de exposição combina a probabilidade do risco com o seu impacto. Os ní
 - **Incompatibilidade técnica:** se uma tecnologia ou integração for inviável no prazo, adota-se solução alternativa.
 
 A cada revisão de sprint a equipe confere esses critérios e, se necessário, atualiza e versiona este documento no repositório.
+
+## Itens de Configuração e Repositório
+
+- **Repositório oficial:** https://github.com/FGA0138-MDS-Ajax/2026.2-T02-Hamilton
+
+| Item de Configuração | Localização no Repositório | Descrição |
+| :--- | :--- | :--- |
+| Código-fonte | `colecture/` (`main`, `accounts`, `books`, `communities`, `goals`, `forums`, `notifications`) | Aplicação web Django, models, views, forms, templates e arquivos estáticos |
+| Testes | `colecture/*/tests*.py` | Suítes de testes unitários e de integração dos módulos do sistema |
+| Dependências | `requirements.txt` | Bibliotecas e pacotes Python/Django necessários para execução do projeto |
+| Documentos | `docs/` (`arquitetura/`, `visao/`, `sprints/`, `atas-reuniao/`, `documentos/`) | Documentação de arquitetura, visão, relatórios de sprint, atas e PDFs exportados |
