@@ -45,7 +45,7 @@ Uma branch para cada sprint, nomeada `sprintN` (`sprint1` a `sprint7`), onde o d
 | Dono do Produto | Atualizar o escopo, organizar as sprints, validar entregas | Ricieri | Letícia, Arthur, Ricieri |
 | Arquiteto de Software | Definir arquitetura, tecnologias e padrões, orientar decisões técnicas | Arthur Miguel | Arthur, Henrique |
 | Analista de Requisitos e Documentação | Levantar, analisar e documentar requisitos, manter a documentação atualizada | Jônatas | Jônatas, Arthur |
-| Analista de Qualidade | Garantir a qualidade e o conceito de pronto, realizar inspeções de código | Letícia | Letícia, Ricieri, Gabriel |
+| Analista de Qualidade | Garantir a qualidade e o conceito de pronto, realizar inspeções de código, executar e auditar os casos de teste (CT01 a CT07) e registrar os resultados e defeitos nos relatórios de sprint (ver [Testes](testes.md#responsabilidades-registro-e-esforco-5w1h)) | Letícia | Letícia, Ricieri, Gabriel |
 | Engenheiro de Dados | Projetar, organizar e manter a estrutura dos dados | Guilherme | Guilherme, Ricieri, Ana Clara, Gabriel |
 
 ## Planejamento das sprints

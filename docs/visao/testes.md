@@ -5,8 +5,8 @@ A garantia da qualidade do CoLecture apoia-se em um processo estruturado de veri
 ## Níveis
 
 1. **Unitários:** regras de negócio isoladas em Python/Django, como a média de avaliações dos livros, o algoritmo de contagem de ofensivas e as regras de permissão por perfil (Cliente, Moderador e Administrador).
-2. **Integração:** comunicação entre os módulos, incluindo persistência e consulta no SQLite, integração das views com as rotas (URLconf) e os models, e sincronização entre ações nos fóruns e as metas de leitura ativas.
-3. **Sistema:** comportamento do software como um todo, na perspectiva do usuário final, com jornadas completas (cadastro de novo leitor, entrada em comunidade, registro diário de páginas lidas e alcance de metas colaborativas) pela interface responsiva.
+2. **Integração:** comunicação entre os módulos, incluindo persistência e consulta no SQLite, integração das views com as rotas (URLconf) e os models, e sincronização entre ações nos fóruns e as metas de leitura ativas. Inclui os testes automatizados que simulam requisições HTTP com o `django.test.Client` (sem navegador nem interface gráfica), como o CT01 e o CT07 (`accounts/tests.py`): eles exercitam rota, view, formulário, model e banco em conjunto, mas não a interface renderizada.
+3. **Sistema:** comportamento do software como um todo, na perspectiva do usuário final, com jornadas completas (cadastro de novo leitor, entrada em comunidade, registro diário de páginas lidas e alcance de metas colaborativas) pela interface responsiva. Só é classificado neste nível o teste executado pela interface, seja manualmente no navegador, seja por ferramenta de automação de interface (como Selenium ou Playwright).
 
 ## Tipos
 
@@ -35,19 +35,27 @@ Cada caso de teste define um **resultado previsto**; durante a bateria de testes
 - Previsto = realizado: **teste aprovado** (ausência de defeitos).
 - Previsto ≠ realizado: **teste reprovado**; o defeito é registrado no histórico da sprint, corrigido e retestado até que os resultados coincidam, o que autoriza a promoção do código à `main`.
 
+## Responsabilidades, registro e esforço
+
+Cada caso de teste é planejado segundo o 5W1H: **o quê** (objetivo e critérios), **por quê** (requisitos associados), **quando** (sprint), **quem** (responsável pela execução e pela auditoria), **onde** (ambiente de execução e local de registro dos resultados) e **quanto** (esforço estimado).
+
+- **Quem:** a execução e a auditoria dos testes cabem aos Analistas de Qualidade (ver [Organização do projeto](projeto.md#organizacao-do-projeto)). Por definição do Dono do Produto, a líder de Qualidade (Letícia) executa e audita todos os casos. A auditoria confere se há evidência da execução, se os testes automatizados cobrem o que cada caso promete, se o previsto × realizado foi registrado corretamente e se as métricas do relatório da sprint batem com os defeitos e requisitos testados.
+- **Onde:** os testes automatizados são executados no ambiente local, dentro da pasta `colecture/`, com `python manage.py test`, e novamente na branch `sprintN` após a integração dos recursos da sprint. Os resultados (previsto × realizado, defeitos, reparos e retestes) são registrados no relatório da sprint correspondente (`docs/sprints/sprintN.md`), e cada defeito é aberto como *issue* no GitHub.
+- **Quanto:** o esforço de cada caso é a soma de 30 minutos de preparação (ambiente, banco de testes e leitura dos critérios), do tempo de execução medido da suíte automatizada e de cerca de 2 minutos por método de teste para a conferência do previsto × realizado e o registro, arredondada para a meia hora seguinte. Os tempos de execução foram medidos em 23/11/2026, na branch `sprint7` (commit `5fe1e41`), em ambiente local, com todos os 362 métodos dos CT01 a CT07 aprovados. Retestes de defeitos não estão incluídos e são contabilizados no relatório da sprint. O esforço total previsto é de 17 horas.
+
 ## Roteiro de testes
 
-Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de registro de resultados, reparos e ciclos ficam como "[A preencher]" no documento, pois ele reflete a fase de planejamento; serão alimentados com evidências reais ao longo das sprints.
+Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os quadros abaixo registram o planejamento de cada caso (objetivo, critérios, responsáveis, ambiente e esforço); os resultados de cada execução (previsto × realizado, defeitos encontrados, reparos e ciclos de reteste) são registrados no relatório da sprint indicada em cada quadro, em `docs/sprints/sprintN.md`.
 
 | Caso | Nome | Requisitos | Nível | Tipo |
 | :--: | ---- | ---------- | ----- | ---- |
-| [CT01](#ct01) | Validação de Autenticação, Cadastro e Perfil | R01, R02, R03, R04 (Sprint 1) | Sistema | Funcional |
+| [CT01](#ct01) | Validação de Autenticação, Cadastro e Perfil | R01, R02, R03, R04 (Sprint 1) | Integração | Funcional |
 | [CT02](#ct02) | Catálogo, Registro, Busca e Avaliação de Livros | R05, R06, R07, R08 (Sprint 2) | Integrado / Sistema | Funcional |
 | [CT03](#ct03) | Manter Comunidade e Interface da Página | R09, R10 (Sprint 3) | Sistema | Funcional |
 | [CT04](#ct04) | Metas de Leitura, Manter e Moderar Fórum | R11, R12, R13, R14 (Sprint 4) | Sistema | Funcional |
 | [CT05](#ct05) | Registro de Progresso, Livro Lido, Página de Leitura e Ofensivas | R15, R16, R17, R18 (Sprint 5) | Integrado / Sistema | Funcional |
 | [CT06](#ct06) | Insígnias, Recomendações por Tema e Notificações | R19, R20, R21 (parte de notificações) (Sprint 6) | Sistema | Funcional e Não Funcional |
-| [CT07](#ct07) | Gestão Administrativa e Inicialização via Seed | R02, R03 (Sprint 1 / Gestão Geral) | Sistema | Funcional e Não Funcional |
+| [CT07](#ct07) | Gestão Administrativa e Inicialização via Seed | R02, R03 (Sprint 1 / Gestão Geral) | Integração | Funcional e Não Funcional |
 
 ### CT01
 
@@ -57,11 +65,18 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | ---- | --------- |
 | Requisitos associados | R01, R02, R03, R04 (Sprint 1) |
 | Objetivo do teste | Garantir que o usuário consiga criar uma conta, realizar login com credenciais válidas, efetuar logout e editar suas informações na página de perfil. |
-| Nível do teste | Sistema |
+| Nível do teste | Integração (requisições simuladas com `django.test.Client`, sem interface) |
 | Tipo de teste | Funcional |
-| Precondições | Aplicação no ar e página de login/cadastro acessível. |
+| Precondições | Banco de testes criado pelo `TestCase` do Django e rotas de cadastro, login, logout e perfil (`accounts`) configuradas. |
 | Critério de aceito | O usuário cria a conta, acessa a plataforma e atualiza dados do perfil com sucesso. |
 | Critério de rejeitado | Erro ao autenticar credenciais válidas ou falha ao salvar alterações de perfil. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test accounts.tests.CT01`) e branch `sprint1` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint1.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `accounts/tests.py`: `CT01` (11 métodos) |
+| Tempo de execução medido | 17 s (11 de 11 aprovados) |
+| Esforço estimado (Quanto) | 1 h |
 
 ### CT02
 
@@ -76,6 +91,13 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | Precondições | Usuário autenticado e catálogo populado para buscas. |
 | Critério de aceito | O livro é registrado na página dedicada, aparece nos filtros de busca e permite receber nota (1-5) e resenha, calculando a média corretamente. |
 | Critério de rejeitado | Livro não cadastrado, falha nos filtros da busca ou erro no cálculo da média das avaliações. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test books.tests.CT02 books.tests.CT02_BookStatus`) e branch `sprint2` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint2.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `books/tests.py`: `CT02` (11) e `CT02_BookStatus` (5), total de 16 métodos |
+| Tempo de execução medido | 5 s (16 de 16 aprovados) |
+| Esforço estimado (Quanto) | 1,5 h |
 
 ### CT03
 
@@ -90,6 +112,13 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | Precondições | Usuário autenticado no sistema com perfil de Leitor/Cliente. |
 | Critério de aceito | A página da comunidade exibe todas as informações e o moderador consegue gerenciar membros, aprovar solicitações ou excluir a comunidade. |
 | Critério de rejeitado | Falha ao carregar a página da comunidade ou negação de acesso nas funções do moderador. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test communities`) e branch `sprint3` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint3.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `communities/tests.py`: `CT03` (5), `CreateCommunityTest` (1), `ViewCommunityTest` (4), `MembershipRequestTest` (17), `MemberRoleEditTest` (16), `ManageMemberBanTest` (6), `DeleteCommunityTest` (2) e `PurgeArchivedCommunitiesTest` (5), total de 56 métodos |
+| Tempo de execução medido | 3 min 48 s (56 de 56 aprovados) |
+| Esforço estimado (Quanto) | 2,5 h |
 
 ### CT04
 
@@ -104,6 +133,13 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | Precondições | Comunidade criada e usuário autenticado como Moderador. |
 | Critério de aceito | A meta é criada com datas/capítulos, o progresso é listado na visão de metas ativas/encerradas e o moderador consegue fixar/trancar/editar/excluir tópicos do fórum. |
 | Critério de rejeitado | Metas não diferenciam status ativo/encerrado ou falha nas permissões de moderação do fórum. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test goals forums communities.tests.CT_CommunityGoalsPage`) e branch `sprint4` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint4.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `goals/tests.py`: `CT04GoalCreation` (16), `CT04GoalEdit` (6), `CT04GoalParticipation` (11), `CT04GoalAutoParticipation` (17) e `CT_GoalConclude` (7); `communities/tests.py`: `CT_CommunityGoalsPage` (11); `forums/tests.py`: `ForumCreation` (2), `ForumCreationRules` (2), `ForumAccess` (28) e `ForumMessages` (14), total de 114 métodos |
+| Tempo de execução medido | 3 min 51 s (114 de 114 aprovados) |
+| Esforço estimado (Quanto) | 4,5 h |
 
 ### CT05
 
@@ -118,6 +154,13 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | Precondições | Usuário possui livros vinculados à sua conta ("em andamento" ou "lidos"). |
 | Critério de aceito | A página de leitura alterna corretamente entre as abas, o progresso/livro lido é registrado com data/porcentagem e a ofensiva (streak) acumula os dias consecutivos. |
 | Critério de rejeitado | Erro de navegação entre abas, falha ao registrar status "lido" ou cálculo incorreto da ofensiva. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test books accounts.tests.CTEstantePerfil accounts.tests.ProfileViewStreakResetTests goals.tests.ProfileStreakModelTests goals.tests.GoalReadingSessionApiTests`) e branch `sprint5` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint5.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `books/tests.py`: classes de sessão de leitura (`ReadingSession*`, `CreateReadingSessionApiTests`, `EditReadingSessionApiTests`, `ListReadingSessionsApiTests`, `SaveReadingSessionViewTests`), 82 métodos, e `BookshelfDatabaseSourceTests` (23); `accounts/tests.py`: `CTEstantePerfil` (11) e `ProfileViewStreakResetTests` (2); `goals/tests.py`: `ProfileStreakModelTests` (9) e `GoalReadingSessionApiTests` (5), total de 132 métodos |
+| Tempo de execução medido | 3 min 15 s (132 de 132 aprovados) |
+| Esforço estimado (Quanto) | 5 h |
 
 ### CT06
 
@@ -132,6 +175,13 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | Precondições | Histórico de leituras/avaliações no perfil e ações disparadoras de notificação disponíveis. |
 | Critério de aceito | O leitor recebe insígnias ao bater conquistas, visualiza recomendações alinhadas ao seu perfil e recebe alertas/notificações de aprovações e novos ciclos. |
 | Critério de rejeitado | Recomendações desconexas com o perfil, não concessão de insígnias devidas ou falha no envio de notificações. |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test books.tests.CT06_BookRecommendation rewards notifications`) e branch `sprint6` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint6.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `books/tests.py`: `CT06_BookRecommendation` (4); `rewards/tests.py`: `CT01` (3); `notifications/tests.py`: `Notification_Task_Tests` (4) e `NotificationProfileAndHistoryTests` (11), total de 22 métodos |
+| Tempo de execução medido | 26 s (22 de 22 aprovados) |
+| Esforço estimado (Quanto) | 1,5 h |
 
 ### CT07
 
@@ -141,9 +191,16 @@ Os casos CT01 a CT07 derivam dos cenários e requisitos do backlog. Os campos de
 | ---- | --------- |
 | Requisitos associados | R02, R03 (Sprint 1 / Gestão Geral) |
 | Objetivo do teste | Validar a criação automática do perfil Administrador via seed/migration no banco zerado e testar os privilégios de editar, mesclar duplicados ou bloquear usuários. |
-| Nível do teste | Sistema |
+| Nível do teste | Integração (requisições simuladas com `django.test.Client`, sem interface) |
 | Tipo de teste | Funcional e Não Funcional |
-| Precondições | Executando `python manage.py migrate`. |
+| Precondições | Banco de testes criado pelo `TestCase` do Django, com as migrations aplicadas (incluindo a seed do admin). |
 | Critério de aceito | O admin realiza login com as credenciais padrão do sistema e consegue executar ações restritas (editar, adicionar e remover usuários). |
-| Critério de rejeitado | Falha na geração do admin via seed ou ausência de permissões administrativas na interface. |
+| Critério de rejeitado | Falha na geração do admin via seed ou ausência de permissões administrativas nas rotas do painel (`/admin/`). |
+| Responsável pela execução (Quem) | Letícia (líder de Qualidade) |
+| Auditoria (Quem) | Letícia (líder de Qualidade) |
+| Ambiente de execução (Onde) | Local (`python manage.py test accounts.tests.CT07`) e branch `sprint1` |
+| Registro dos resultados (Onde) | `docs/sprints/sprint1.md` e *issues* do GitHub para os defeitos |
+| Testes automatizados | `accounts/tests.py`: `CT07` (11 métodos) |
+| Tempo de execução medido | 9 s (11 de 11 aprovados) |
+| Esforço estimado (Quanto) | 1 h |
 
