@@ -30,4 +30,5 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Executar Testes
-        run: python colecture/manage.py test
+        working-directory: colecture
+        run: python manage.py test
