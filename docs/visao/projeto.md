@@ -54,9 +54,9 @@ Uma branch para cada sprint, nomeada `sprintN` (`sprint1` a `sprint7`), onde o d
 | :----: | ------- | :----: | :-: | ----------- | :-------: |
 | 1 | Cadastro e gerenciamento de usuário | 07/10/2026 | 14/10/2026 | R01 a R04 | 100% |
 | 2 | Gestão de catálogo e avaliação de livros | 15/10/2026 | 21/10/2026 | R05 a R08 | 98,75% |
-| 3 | Manter comunidades | 22/10/2026 | 28/10/2026 | R09 e R10 | 90% |
-| 4 | Metas de leitura e fóruns | 29/10/2026 | 04/11/2026 | R11 a R14 | 83,75% |
-| 5 | Acompanhamento de progresso e ofensivas | 05/11/2026 | 11/11/2026 | R15 a R18 | 100% |
+| 3 | Manter comunidades | 22/10/2026 | 28/10/2026 | R09 e R10 (+ débito R08) | 89,33% |
+| 4 | Metas de leitura e fóruns | 29/10/2026 | 04/11/2026 | R11 a R14 (+ débitos R09 e R10) | 87,5% |
+| 5 | Acompanhamento de progresso e ofensivas | 05/11/2026 | 11/11/2026 | R15 a R18 (+ débitos R08, R09, R11 a R13) | 100% |
 | 6 | Conquistas, recomendações e testes | 12/11/2026 | 18/11/2026 | R19 a R22 | 0% |
 | 7 | Ajustes finais e apresentação | 19/11/2026 | 25/11/2026 | R23 | 0% |
 

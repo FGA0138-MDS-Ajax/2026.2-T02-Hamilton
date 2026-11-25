@@ -38,31 +38,31 @@ Foram testados **3 dos 4 requisitos planejados**, resultando em uma porcentagem 
 
 ## 6. Entregas
 
-### Feature: Sistema de insígnias e conquistas
+**Feature: Sistema de insígnias**
 
 - **O que foi feito:** Implementação dos modelos `Insignia` e `Award` com 35 conquistas cadastradas via migração/seed em 8 categorias, concessão automática por gatilhos de atividade e página de galeria com medalhas em SVG.
 - **Arquivos/apps:** `rewards/models.py`, `rewards/services.py`, `rewards/selectors.py`, `rewards/views.py`, `rewards/templates/...`, `rewards/static/...`
 - **Requisito:** R19
 
-### Feature: Recomendação de livros por tema
+**Feature: Recomendação por tema**
 
 - **O que foi feito:** Desenvolvimento do serviço de recomendação (`get_recommended_books`) que pontua livros a partir dos gêneros lidos, tempo de leitura, status na estante e avaliações, exibindo a seção de recomendados na página de busca.
 - **Arquivos/apps:** `books/services.py`, `books/views.py`, `main/views.py`, `main/templates/search.html`
 - **Requisito:** R20
 
-### Feature: Centro de notificações e logs de auditoria
+**Feature: Notificações e logs**
 
 - **O que foi feito:** Implementação do dropdown de notificações no sino da barra lateral, página de histórico de alertas e módulo administrativo de logs (`AuditLog`) para registro automático, filtragem e consulta de ações críticas.
 - **Arquivos/apps:** `notifications/models.py`, `notifications/views.py`, `notifications/templates/...`, `logs/models.py`, `logs/services.py`, `logs/views.py`, `logs/templates/...`
 - **Requisito:** R21
 
-### Feature: Resposta a mensagens no fórum
+**Feature: Resposta no fórum**
 
 - **O que foi feito:** Adição do relacionamento `reply_to` no modelo `Message`, formulário e integração visual no front-end para permitir responder diretamente a mensagens específicas dentro dos fóruns.
 - **Arquivos/apps:** `forums/models.py`, `forums/forms.py`, `forums/views.py`, `communities/templates/forum.html`
 - **Requisito:** R12, R14
 
-### Feature: Testes unitários e reestruturação da documentação do repositório
+**Feature: Testes e documentação**
 
 - **O que foi feito:** Adição de suítes de testes para insígnias, recomendações, logs e respostas no fórum, além da divisão da documentação técnica do código entre `README.md` e `DETALHES.md`.
 - **Arquivos/apps:** `README.md`, `DETALHES.md`, `rewards/tests.py`, `books/tests.py`, `logs/tests.py`, `forums/tests.py`

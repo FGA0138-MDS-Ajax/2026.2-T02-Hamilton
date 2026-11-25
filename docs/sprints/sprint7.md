@@ -33,13 +33,13 @@ Foram testados **_X_ dos 1 requisitos planejados**, resultando em uma porcentage
 
 ## 6. Entregas
 
-### Feature: Pipeline de Integração Contínua (CI) e documentação das sprints
+**Feature: Pipeline de CI e documentação**
 
 - **O que foi feito:** Configuração do workflow do GitHub Actions para execução automatizada da suíte de testes do Django a cada push ou pull request e consolidação da documentação de entregas das sprints no MkDocs.
 - **Arquivos/apps:** `.github/workflows/...`, `forums/tests.py`, `docs/sprints/...`
 - **Requisito:** R22, R23
 
-### Feature: Ajustes pós-inspeção e responsividade mobile
+**Feature: Ajustes pós-inspeção e responsividade**
 
 - **O que foi feito:** Inclusão das tags de gêneros nos cartões de recomendação de livros e correção de estilos responsivos para títulos e descrições longas em telas móveis nas páginas de busca e fórum.
 - **Arquivos/apps:** `main/views.py`, `main/templates/search.html`, `main/static/...`, `communities/static/...`
