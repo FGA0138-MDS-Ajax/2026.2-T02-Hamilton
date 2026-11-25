@@ -71,3 +71,20 @@ Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem 
 - **Arquivos/apps:** `accounts/templates/...`, `accounts/static/...`, `main/templates/index.html`
 - **Requisito:** R04
 
+## 7. Análise dos resultados
+
+Comparação dos valores registrados neste relatório com as metas do [plano GQM](../visao/metricas.md):
+
+| Métrica | Meta | Resultado | Situação |
+| ------- | ---- | --------- | -------- |
+| M1 – Taxa de conclusão | No mínimo 70% | 100% (todos os requisitos com 100%) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0,05 (Cadastro); 0 (Login e Admin editar usuários) | Atingida |
+| M3 – Cobertura de requisitos | 100% | 100% (4 de 4) | Atingida |
+
+Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
+
+**Decisões e encaminhamentos** (Ata 3, 14/10/2026):
+
+- Ainda havia um bug na página de cadastro (*register*), a ser investigado e corrigido na Sprint 2; como solução, foi discutida a exibição de um balão de mensagem abaixo do botão Cadastrar.
+- Ricieri passou a atuar no back-end e Gabriel no front-end.
+

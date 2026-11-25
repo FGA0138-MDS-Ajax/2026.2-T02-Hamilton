@@ -109,3 +109,20 @@ Foram testados **4 dos 4 requisitos planejados** (além da validação dos 2 req
 - **Arquivos/apps:** `communities/models.py`, `communities/services.py`, `communities/views.py`, `communities/templates/community_view.html`, `communities/templates/home_community.html`
 - **Requisito:** R09
 
+## 8. Análise dos resultados
+
+Comparação dos valores registrados neste relatório com as metas do [plano GQM](../visao/metricas.md):
+
+| Métrica | Meta | Resultado | Situação |
+| ------- | ---- | --------- | -------- |
+| M1 – Taxa de conclusão | No mínimo 70% | 87,5% (R13 com 70%, no limite; R11 com 75%) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0,111 (Criação de meta de leitura); 0 (Fórum e Moderação) | Atingida |
+| M3 – Cobertura de requisitos | 100% | 100% (4 de 4 planejados e 2 de débito técnico) | Atingida |
+
+Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
+
+**Decisões e encaminhamentos** (Ata 6, 04/11/2026):
+
+- Foram levantados cinco itens de débito técnico (R09, R11, R12 e R13), listados na seção 7.
+- Como a Sprint 5 tinha escopo menor, a equipe decidiu em consenso absorver nela esses itens, sem atrasar os requisitos planejados (R15 a R18).
+

@@ -85,3 +85,20 @@ Foram testados **2 dos 2 requisitos planejados**, resultando em uma porcentagem 
 - **Arquivos/apps:** `communities/models.py`, `communities/services.py`, `communities/views.py`, `communities/templates/home_community.html`
 - **Requisito:** R09
 
+## 8. Análise dos resultados
+
+Comparação dos valores registrados neste relatório com as metas do [plano GQM](../visao/metricas.md):
+
+| Métrica | Meta | Resultado | Situação |
+| ------- | ---- | --------- | -------- |
+| M1 – Taxa de conclusão | No mínimo 70% | 89,33% (R08 com 98%, R09 com 80% e R10 com 90%) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0 em todas as funcionalidades | Atingida |
+| M3 – Cobertura de requisitos | 100% | 100% (2 de 2 planejados) | Atingida |
+
+Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
+
+**Decisões e encaminhamentos** (Ata 5, 28/10/2026):
+
+- Pendências da Sprint 3 levadas para a Sprint 4: conectar a página do moderador à página de comunidade, ajustes no front-end, corrigir e retestar um bug identificado nos testes e implementar o código de solicitação de entrada nas comunidades privadas.
+- Alteração de regra: o livro não é atributo obrigatório da comunidade, mas a meta de leitura exige um livro vinculado.
+

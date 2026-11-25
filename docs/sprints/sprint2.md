@@ -79,3 +79,20 @@ Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem 
 - **Arquivos/apps:** `books/views.py`, `books/templates/book_detail.html`, `books/templates/book_form.html`
 - **Requisito:** R08
 
+## 8. Análise dos resultados
+
+Comparação dos valores registrados neste relatório com as metas do [plano GQM](../visao/metricas.md):
+
+| Métrica | Meta | Resultado | Situação |
+| ------- | ---- | --------- | -------- |
+| M1 – Taxa de conclusão | No mínimo 70% | 98,75% (R08 com 95%, demais com 100%) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0 em todas as funcionalidades | Atingida |
+| M3 – Cobertura de requisitos | 100% | 100% (4 de 4) | Atingida |
+
+Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
+
+**Decisões e encaminhamentos:**
+
+- A parte pendente do R08 (edição de livros na interface) passou como débito técnico para a Sprint 3 e foi concluída na Sprint 5 (ver seção 7 e os relatórios das sprints 3 e 5).
+- Ata 4 (21/10/2026): o usuário que cadastrou o livro pode editá-lo, mas não excluí-lo; as mensagens de erro e sucesso do login, do registro de livro e da avaliação de livro devem ser padronizadas.
+

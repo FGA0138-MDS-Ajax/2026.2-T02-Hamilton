@@ -103,3 +103,21 @@ Foram testados **4 dos 4 requisitos planejados** (além da validação dos **5 r
 - **O que foi feito:** Resolve o débito técnico da Sprint 4 ao unificar as views de `forums` com o template `communities/forum.html`, criar migração para gerar fóruns ausentes, corrigir a listagem e o botão *Editar* nos cards de metas da comunidade (`_goal_card.html`), redirecionar os cards para o fórum da meta e adicionar o pop-up de edição do fórum para moderadores.
 - **Arquivos/apps:** `forums/views.py`, `forums/services.py`, `forums/migrations/...`, `communities/templates/forum.html`, `communities/templates/_goal_card.html`, `communities/static/...`, `forums/tests.py`
 - **Requisito:** R11, R12, R13, R14
+
+## 7. Análise dos resultados
+
+Comparação dos valores registrados neste relatório com as metas do [plano GQM](../visao/metricas.md):
+
+| Métrica | Meta | Resultado | Situação |
+| ------- | ---- | --------- | -------- |
+| M1 – Taxa de conclusão | No mínimo 70% | 100% (requisitos planejados e débitos técnicos) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0 em todas as funcionalidades | Atingida |
+| M3 – Cobertura de requisitos | 100% | 100% (4 de 4 planejados e 5 de débito técnico) | Atingida |
+
+Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
+
+**Decisões e encaminhamentos** (Ata 7, 11/11/2026):
+
+- Todas as features da sprint e todos os débitos técnicos das sprints anteriores foram entregues, e os testes passaram sem erros.
+- Além de R19 a R22, a Sprint 6 passou a contemplar: corrigir a cor da sidebar na aba de comunidades, corrigir a resposta às mensagens do fórum, criar o pop-up de notificações com sino e exibir o botão de concluir meta só quando os requisitos da meta forem atingidos.
+- As insígnias do sistema foram definidas na própria reunião.
