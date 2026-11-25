@@ -29,6 +29,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      - name: Instalar navegadores do Playwright
+        run: python -m playwright install --with-deps chromium
+
       - name: Executar Testes
         working-directory: colecture
         run: python manage.py test

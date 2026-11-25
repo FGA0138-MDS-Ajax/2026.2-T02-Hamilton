@@ -51,6 +51,8 @@ O **CoLecture** é uma plataforma colaborativa para incentivo e acompanhamento d
   - [3. Iniciar o Celery Beat](#3-inicie-o-celery-beat-agendador)
   - [Atalho: Worker + Beat juntos](#atalho-worker--beat-juntos-para-desenvolvimento)
 - [Executando os Testes](#executando-os-testes)
+  - [Testes de Unidade e Integração](#testes-de-unidade-e-integração)
+  - [Testes de Sistema E2E (Playwright)](#testes-de-sistema-e2e-playwright)
 - [Equipe](#equipe)
 - [Mais Detalhes](#mais-detalhes)
 
@@ -227,7 +229,9 @@ Em desenvolvimento, você pode rodar ambos em um único processo:
 
 ## Executando os Testes
 
-Execute a suíte completa de testes automatizados dentro da pasta `colecture/`:
+### Testes de Unidade e Integração
+
+Execute a suíte de testes de unidade e integração dentro da pasta `colecture/`:
 
 ```bash
 python manage.py test
@@ -240,6 +244,63 @@ python manage.py test accounts
 python manage.py test notifications
 python manage.py test books
 ```
+
+---
+
+### Testes de Sistema E2E (Playwright)
+
+Os testes de sistema automatizados cobrem fluxos ponta a ponta (E2E) dos Casos de Teste CT01 a CT07 e responsividade via **Playwright** integrado ao Django (`StaticLiveServerTestCase`).
+
+#### 1. Instalar navegador do Playwright (primeira execução)
+
+Com o ambiente virtual ativado:
+
+```bash
+playwright install chromium
+```
+
+#### 2. Executar a suíte completa de testes de sistema
+
+Dentro da pasta `colecture/`:
+
+```bash
+python manage.py test system_tests
+```
+
+#### 3. Executar um caso de teste específico
+
+Você pode rodar apenas a classe do caso de teste desejado:
+
+```bash
+# CT01: Autenticação, Cadastro e Perfil
+python manage.py test system_tests.test_system.CT01AuthenticationSystemTest
+
+# CT02: Catálogo, Registro, Busca e Avaliação
+python manage.py test system_tests.test_system.CT02BookCatalogSystemTest
+
+# CT03: Gestão de Comunidades e Moderação
+python manage.py test system_tests.test_system.CT03CommunityManagementSystemTest
+
+# CT04: Metas de Leitura e Fórum
+python manage.py test system_tests.test_system.CT04ReadingGoalsAndForumSystemTest
+
+# CT05: Progresso, Livro Lido e Ofensiva
+python manage.py test system_tests.test_system.CT05ReadingProgressAndStreakSystemTest
+
+# CT06: Insígnias, Recomendações e Notificações
+python manage.py test system_tests.test_system.CT06BadgesRecommendationsAndNotificationsSystemTest
+
+# CT07: Gestão Administrativa e Seed
+python manage.py test system_tests.test_system.CT07AdministrativeManagementAndSeedSystemTest
+
+# Responsividade transversal (CT01, CT03 e CT05 em mobile/desktop)
+python manage.py test system_tests.test_system.ResponsiveDesignSystemTest
+```
+
+> 💡 **Visualizar execução no navegador (modo Headed):**  
+> Por padrão, os testes rodam em modo *headless* (em segundo plano). Para abrir o navegador e acompanhar visualmente a automação, defina a variável `HEADED=1`:
+> - **PowerShell (Windows):** `$env:HEADED="1"; python manage.py test system_tests`
+> - **Bash (Linux/macOS):** `HEADED=1 python manage.py test system_tests`
 
 ---
 
