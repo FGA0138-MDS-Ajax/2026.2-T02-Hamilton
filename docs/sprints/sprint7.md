@@ -30,3 +30,18 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 ## 5. Cobertura dos testes
 
 Foram testados **_X_ dos 1 requisitos planejados**, resultando em uma porcentagem de **_X%_** dos requisitos testados com um valor mínimo de 100%.
+
+## 6. Entregas
+
+### Feature: Pipeline de Integração Contínua (CI) e documentação das sprints
+
+- **O que foi feito:** Configuração do workflow do GitHub Actions para execução automatizada da suíte de testes do Django a cada push ou pull request e consolidação da documentação de entregas das sprints no MkDocs.
+- **Arquivos/apps:** `.github/workflows/django_tests.yml`, `.github/workflows/ci.yml`, `forums/tests.py`, `docs/sprints/`
+- **Requisito:** R22, R23
+
+### Feature: Ajustes pós-inspeção e responsividade mobile
+
+- **O que foi feito:** Inclusão das tags de gêneros nos cartões de recomendação de livros e correção de estilos responsivos para títulos e descrições longas em telas móveis nas páginas de busca e fórum.
+- **Arquivos/apps:** `main/views.py`, `main/templates/main/search.html`, `main/static/main/css/search.css`, `main/static/main/js/search.js`, `communities/static/communities/css/forum.css`
+- **Requisito:** R23
+
