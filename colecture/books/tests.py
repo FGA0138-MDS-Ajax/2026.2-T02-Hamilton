@@ -419,6 +419,33 @@ Hey, hey, hey. Who wants coffee? Does anybody want coffee? Who wants coffee?
             302
         );
 
+    def test_review_messages_create_and_update(self):
+        user = get_user_model().objects.create_user(username="ReviewerMessagesUser");
+        book = self.create_book();
+        self.client.force_login(user);
+        url = reverse("books:book_detail", kwargs={'book_id': book.id});
+
+        # 1. Mensagem de criação da avaliação ("fazer review")
+        res_create = self.client.post(url, data={'rating': '5.0', 'review': 'Excelente livro!'}, follow=True);
+        self.assertEqual(res_create.status_code, 200);
+        self.assertContains(res_create, 'Avaliação enviada com sucesso!');
+        self.assertContains(res_create, 'showToast');
+        self.assertNotContains(res_create, '<ul class="mensagens">');
+
+        # 2. Mensagem de atualização da avaliação ("atualizar review")
+        res_update = self.client.post(url, data={'rating': '4.0', 'review': 'Atualizando resenha.'}, follow=True);
+        self.assertEqual(res_update.status_code, 200);
+        self.assertContains(res_update, 'Avaliação atualizada com sucesso!');
+        self.assertContains(res_update, 'showToast');
+        self.assertNotContains(res_update, '<ul class="mensagens">');
+
+        # 3. Mensagem de erro em avaliação com dados inválidos
+        res_invalid = self.client.post(url, data={'rating': '6.0', 'review': 'Nota inválida'});
+        self.assertEqual(res_invalid.status_code, 200);
+        self.assertContains(res_invalid, 'Não foi possível salvar a avaliação. Verifique os campos.');
+        self.assertContains(res_invalid, 'showToast');
+        self.assertNotContains(res_invalid, '<ul class="mensagens">');
+
 class CT02_BookStatus(TestCase):
     @classmethod
     def setUpTestData(cls):

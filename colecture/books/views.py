@@ -176,6 +176,7 @@ def book_detail(request, book_id):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
 
+        is_update = existing_review is not None
         form = BookReviewForm(request.POST, instance=existing_review)
 
         if form.is_valid():
@@ -184,10 +185,15 @@ def book_detail(request, book_id):
             review.user = request.user
             review.save()
 
-            messages.success(request, 'Avaliação salva com sucesso!')
+            if is_update:
+                messages.success(request, 'Avaliação atualizada com sucesso!')
+            else:
+                messages.success(request, 'Avaliação enviada com sucesso!')
 
             # Post/Redirect/Get: evita reenvio do formulário ao recarregar
             return redirect(request.path)
+        else:
+            messages.error(request, 'Não foi possível salvar a avaliação. Verifique os campos.')
     else:
         form = BookReviewForm(instance=existing_review)
 
@@ -237,6 +243,7 @@ def book_detail(request, book_id):
         "livro": livro,
         "can_edit": can_edit,
         "form": form,
+        "existing_review": existing_review,
         "login_url": login_url,
     })
 
