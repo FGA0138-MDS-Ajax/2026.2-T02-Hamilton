@@ -34,11 +34,18 @@ class BaseSystemTestCase(StaticLiveServerTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.playwright = sync_playwright().start()
-        headed = os.environ.get("HEADED") == "1"
-        cls.browser = cls.playwright.chromium.launch(
-            headless=not headed,
-            args=["--disable-web-security"],
-        )
+        try:
+            headed = os.environ.get("HEADED") == "1"
+            cls.browser = cls.playwright.chromium.launch(
+                headless=not headed,
+                args=["--disable-web-security"],
+            )
+        except Exception:
+            try:
+                cls.playwright.stop()
+            except Exception:
+                pass
+            raise
 
     @classmethod
     def tearDownClass(cls):
