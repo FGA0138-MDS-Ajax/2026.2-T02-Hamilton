@@ -3,3 +3,5 @@
 __pycache__/
 db.sqlite3
 .prettierrc.json
+system_tests/screenshots/
+screenshots/
