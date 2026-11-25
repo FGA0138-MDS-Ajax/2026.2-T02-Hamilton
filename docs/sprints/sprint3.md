@@ -39,3 +39,18 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 ## 5. Cobertura dos testes
 
 Foram testados **2 dos 2 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
+
+## 6. Entregas
+
+### Feature: Criação e gerenciamento de comunidades
+
+- **O que foi feito:** Implementação do CRUD de comunidades públicas e privadas (`Community` e `Membership`), incluindo ingresso e saída de membros, aprovação de solicitações, promoção/rebaixamento de moderadores e arquivamento com comando de expurgo após 60 dias.
+- **Arquivos/apps:** `communities/models.py`, `communities/forms.py`, `communities/views.py`, `communities/urls.py`, `communities/admin.py`, `communities/management/commands/purge_archived_communities.py`, `communities/tests.py`
+- **Requisito:** R09
+
+### Feature: Páginas de comunidade e navegação lateral
+
+- **O que foi feito:** Desenvolvimento das interfaces de listagem e busca de comunidades, criação e edição de clubes, página principal da comunidade, tela do moderador e barra lateral de navegação (`sidebar`).
+- **Arquivos/apps:** `communities/templates/communities/home_community.html`, `communities/templates/communities/community_view.html`, `communities/templates/communities/create_community.html`, `communities/templates/communities/edit_community.html`, `communities/templates/communities/moderator.html`, `communities/static/communities/css/community_view.css`, `communities/static/communities/js/community_view.js`, `main/templates/sidebar.html`
+- **Requisito:** R10
+
