@@ -35,3 +35,30 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 ## 5. Cobertura dos testes
 
 Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
+
+## 6. Entregas
+
+### Feature: Criação de metas de leitura
+
+- **O que foi feito:** Implementação dos modelos `Goal` e `GoalParticipation`, formulários e serviços para criação, edição, adesão e saída de metas de leitura individuais e coletivas com prazo opcional.
+- **Arquivos/apps:** `goals/models.py`, `goals/forms.py`, `goals/services.py`, `goals/signals.py`, `goals/views.py`, `goals/urls.py`, `goals/templates/goals/goal_form.html`, `communities/templates/communities/meta_form.html`
+- **Requisito:** R11
+
+### Feature: Fórum geral e fórum por meta de leitura
+
+- **O que foi feito:** Desenvolvimento dos modelos `Forum` e `Message` com geração automática de um fórum geral por comunidade e de um fórum específico para cada meta de leitura criada, além do envio de mensagens.
+- **Arquivos/apps:** `forums/models.py`, `forums/forms.py`, `forums/services.py`, `forums/views.py`, `forums/urls.py`, `communities/templates/communities/forum.html`, `communities/static/communities/css/forum.css`, `communities/static/communities/js/forum.js`
+- **Requisito:** R12
+
+### Feature: Visualização de metas ativas e encerradas
+
+- **O que foi feito:** Implementação da listagem e dos cartões de visualização de metas ativas e concluídas na comunidade, exibindo progresso, data limite e status do ciclo.
+- **Arquivos/apps:** `goals/views.py`, `goals/templates/goals/goal_view.html`, `communities/templates/communities/_goal_card.html`, `communities/templates/communities/community_view.html`, `communities/static/communities/css/community_goals.css`
+- **Requisito:** R13
+
+### Feature: Moderação de fórum
+
+- **O que foi feito:** Implementação das regras e views de moderação para edição de dados do fórum, validação de estado (ativo ou congelado) antes de postagens e exclusão de mensagens por moderadores.
+- **Arquivos/apps:** `forums/services.py`, `forums/views.py`, `forums/forms.py`, `forums/templates/forums/edit_forum.html`, `forums/tests.py`
+- **Requisito:** R14
+
