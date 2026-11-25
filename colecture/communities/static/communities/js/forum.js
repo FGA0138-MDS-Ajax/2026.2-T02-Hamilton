@@ -300,12 +300,15 @@ function createMessage(message) {
   }
 
   if (!picking && !state.locked) {
-    if (dados.is_admin && !message.mine) {
+    if (dados.is_admin) {
       var deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.className = "message-delete-btn";
       deleteButton.textContent = "Excluir";
-      deleteButton.setAttribute("aria-label", "Excluir mensagem de " + message.author);
+      deleteButton.setAttribute(
+        "aria-label",
+        message.mine ? "Excluir sua mensagem" : "Excluir mensagem de " + message.author
+      );
       deleteButton.addEventListener("click", function (event) {
         event.stopPropagation();
         openDeleteMessageModal(message.delete_url);

@@ -699,6 +699,19 @@ class ForumAccess(TestCase):
         self.assertEqual(delete_response.status_code, 403);
         self.assertTrue(Message.objects.filter(pk=other_msg.pk).exists());
 
+    def test_moderator_deletes_own_message_in_community_forum(self):
+        message = Message.objects.create(
+            forum=self.community_forum,
+            author=self.moderator,
+            content='Minha propria mensagem de moderador'
+        );
+        self.client.force_login(self.moderator);
+        response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id': message.id})
+        );
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(Message.objects.filter(pk=message.pk).exists());
+
     # ===== ENVIO =====
     def test_invalid_message_is_rejected_and_form_is_shown_again(self):
         self.client.force_login(self.member);
