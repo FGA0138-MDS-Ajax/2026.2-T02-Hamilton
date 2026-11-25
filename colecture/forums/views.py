@@ -79,6 +79,7 @@ class ViewForum(LoginRequiredMixin, View):
             'parent_community':self.forum_parent_community,
             'parent_goal':self.forum_parent_goal,
             'can_moderate':ForumService.user_can_edit(self.user, self.forum),
+            'is_admin':ForumService.user_can_edit(self.user, self.forum),
         };
 
         # todos os fóruns (geral da comunidade e de meta) usam a mesma

@@ -5,7 +5,7 @@
 
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'main/css/variables.css' %}" />
-  <link rel="stylesheet" href="{% static 'communities/css/forum.css' %}" />
+  <link rel="stylesheet" href="{% static 'communities/css/forum.css' %}?v=2" />
 {% endblock %}
 
 {% block content %}
@@ -206,6 +206,22 @@
     </div>
   </div>
 
+  {% if is_admin %}
+    <div class="confirm-overlay" id="confirmDeleteMessageOverlay">
+      <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirmDeleteMessageTitle">
+        <h2 id="confirmDeleteMessageTitle">Excluir mensagem?</h2>
+        <p>Esta ação não pode ser desfeita e a mensagem será removida permanentemente.</p>
+        <form id="deleteMessageForm" method="post" action="">
+          {% csrf_token %}
+          <div class="confirm-actions">
+            <button type="button" class="confirm-cancel" id="confirmDeleteMessageCancel">Cancelar</button>
+            <button type="submit" class="confirm-delete" id="confirmDeleteMessageBtn">Excluir</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
   {{ dados_forum|json_script:"dados-forum" }}
-  <script src="{% static 'communities/js/forum.js' %}"></script>
+  <script src="{% static 'communities/js/forum.js' %}?v=2"></script>
 {% endblock %}

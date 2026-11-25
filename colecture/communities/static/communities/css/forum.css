@@ -753,15 +753,32 @@
   text-decoration: underline;
 }
 
+.message-delete-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--danger, #ef4444);
+  cursor: pointer;
+}
+
+.message-delete-btn:hover {
+  text-decoration: underline;
+}
+
 /* No computador o botão aparece ao passar o mouse; no celular fica sempre visível */
 @media (hover: hover) and (min-width: 769px) {
-  .message-reply-btn {
+  .message-reply-btn,
+  .message-delete-btn {
     opacity: 0;
     transition: opacity 0.15s;
   }
 
   .message:hover .message-reply-btn,
-  .message-reply-btn:focus-visible {
+  .message:hover .message-delete-btn,
+  .message-reply-btn:focus-visible,
+  .message-delete-btn:focus-visible {
     opacity: 1;
   }
 }
@@ -926,7 +943,8 @@
     max-width: 88%;
   }
 
-  .message-reply-btn {
+  .message-reply-btn,
+  .message-delete-btn {
     opacity: 1 !important;
     padding: 3px 6px;
     font-size: 0.75rem;
