@@ -46,7 +46,6 @@ class ForumCreation(TestCase):
             target=2
         ), cls.com_owner.profile);
         
-
     def test_forums_creation(self):
         # forum principal de comunidade e de meta
         # são criados
