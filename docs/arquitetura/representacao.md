@@ -9,6 +9,7 @@ Resumo do documento *CoLecture: Arquitetura do Produto de Software* (Grupo Hamil
 | 07/10/2026 | 1.0 | Versão inicial com o detalhamento arquitetural, escopo e bibliografias | Grupo Hamilton |
 | 13/10/2026 | 1.1 | Remoção da camada de serviços; padronização de "comunidade"; moderador como papel de comunidade; atualização das Figuras 1, 2, 4 e 5 | Ricieri |
 | 23/11/2026 | 1.2 | Ajustes das ponderações feitas pelo professor| Arthur Miguel |
+| 25/11/2026 | 1.3 | Correções de normas ABNT apontadas na inspeção (DEF-001, DEF-002, DEF-004 e DEF-005)| Ana Clara |
 
 ## Propósito e escopo
 
