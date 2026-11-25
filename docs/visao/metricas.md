@@ -46,7 +46,7 @@ A equipe elaborou o plano de medição segundo o paradigma **GQM** (*Goal, Quest
 
 | ID | Métrica | Cálculo | Unidade | Medição | Valor esperado | Análise |
 | :-: | ------- | ------- | ------- | ------- | -------------- | ------- |
-| M2 | Densidade de defeitos | Defeitos encontrados ÷ requisitos testados | Defeitos/requisito | Ao final de cada sprint | No máximo 0,2 defeito por requisito testado | Mostra se a qualidade evolui ao longo das sprints; valores acima do esperado pedem reparos antes da próxima entrega |
+| M2 | Densidade de defeitos | Defeitos encontrados ÷ requisitos testados | Defeitos/requisito | Ao final de cada sprint | No máximo 0,2 defeito por requisito testado | Mostra se a qualidade evolui ao longo das sprints; valores acima do esperado pedem reparos antes da próxima entrega e acionam o [replanejamento](projeto.md#criterios-de-replanejamento) |
 
 ## Objetivo 3 – Avaliar a cobertura dos testes
 
@@ -64,4 +64,4 @@ A equipe elaborou o plano de medição segundo o paradigma **GQM** (*Goal, Quest
 
 | ID | Métrica | Cálculo | Unidade | Medição | Valor esperado | Análise |
 | :-: | ------- | ------- | ------- | ------- | -------------- | ------- |
-| M3 | Cobertura de requisitos | (Requisitos testados ÷ requisitos implementados) × 100 | % de requisitos | Ao final de cada sprint | 100% dos requisitos implementados testados em cada sprint | Abaixo de 100% há requisitos sem validação, que devem ser testados antes da entrega da sprint |
+| M3 | Cobertura de requisitos | (Requisitos testados ÷ requisitos implementados) × 100 | % de requisitos | Ao final de cada sprint | 100% dos requisitos implementados testados em cada sprint | Abaixo de 100% há requisitos sem validação, que devem ser testados antes da entrega da sprint; aciona o [replanejamento](projeto.md#criterios-de-replanejamento) |

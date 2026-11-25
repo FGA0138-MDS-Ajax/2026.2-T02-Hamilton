@@ -45,7 +45,7 @@ Uma branch para cada sprint, nomeada `sprintN` (`sprint1` a `sprint7`), onde o d
 | Dono do Produto | Atualizar o escopo, organizar as sprints, validar entregas | Ricieri | Letícia, Arthur, Ricieri |
 | Arquiteto de Software | Definir arquitetura, tecnologias e padrões, orientar decisões técnicas | Arthur Miguel | Arthur, Henrique |
 | Analista de Requisitos e Documentação | Levantar, analisar e documentar requisitos, manter a documentação atualizada | Jônatas | Jônatas, Arthur |
-| Analista de Qualidade | Garantir a qualidade e o conceito de pronto, realizar inspeções de código, executar e auditar os casos de teste (CT01 a CT07) e registrar os resultados e defeitos nos relatórios de sprint (ver [Testes](testes.md#responsabilidades-registro-e-esforco-5w1h)) | Letícia | Letícia, Ricieri, Gabriel |
+| Analista de Qualidade | Garantir a qualidade e o conceito de pronto, realizar inspeções de código, executar e auditar os casos de teste (CT01 a CT07) e registrar os resultados e defeitos nos relatórios de sprint (ver [Testes](testes.md#responsabilidades-registro-e-esforco)) | Letícia | Letícia, Ricieri, Gabriel |
 | Engenheiro de Dados | Projetar, organizar e manter a estrutura dos dados | Guilherme | Guilherme, Ricieri, Ana Clara, Gabriel |
 
 ## Planejamento das sprints
@@ -92,10 +92,16 @@ O grau de exposição combina a probabilidade do risco com o seu impacto. Os ní
 
 ## Critérios de replanejamento
 
-- **Atraso no cronograma:** taxa de conclusão inferior a 70% ao final de uma sprint; o escopo das sprints seguintes é reavaliado.
-- **Riscos mapeados:** se um risco de exposição alta se concretizar, as tarefas são redistribuídas conforme o plano de contingência. Riscos médios ou baixos seguem o planejamento ordinário.
-- **Ajuste interno de prioridades:** requisitos Should ou Could são adiados em favor de funcionalidades essenciais.
-- **Incompatibilidade técnica:** se uma tecnologia ou integração for inviável no prazo, adota-se solução alternativa.
+Os critérios de atraso, qualidade e validação são acionados pelas métricas do [plano GQM](metricas.md) (M1 – taxa de conclusão, M2 – densidade de defeitos e M3 – cobertura de requisitos), calculadas ao fim de cada sprint e registradas no relatório da sprint (`docs/sprints/sprintN.md`).
+
+| Critério | Gatilho (métrica e limite) | Ação |
+| -------- | -------------------------- | ---- |
+| Atraso no cronograma | M1 inferior a 70% ao fim da sprint (Q1.3) | O escopo das sprints seguintes é reavaliado |
+| Qualidade abaixo do aceitável | M2 superior a 0,2 defeito por requisito testado (Q2.3) | A sprint não é integrada à `main`; os defeitos são corrigidos e retestados antes da próxima entrega |
+| Requisito sem validação | M3 inferior a 100% (Q3.2) | Os requisitos sem teste são testados antes da entrega da sprint |
+| Riscos mapeados | Risco de exposição alta concretizado | As tarefas são redistribuídas conforme o plano de contingência. Riscos médios ou baixos seguem o planejamento ordinário |
+| Ajuste interno de prioridades | — | Requisitos Should ou Could são adiados em favor de funcionalidades essenciais |
+| Incompatibilidade técnica | Tecnologia ou integração inviável no prazo | Adota-se solução alternativa |
 
 A cada revisão de sprint a equipe confere esses critérios e, se necessário, atualiza e versiona este documento no repositório.
 
