@@ -44,7 +44,18 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 ## 5. Cobertura dos testes
 
-Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
+Foram testados **4 dos 4 requisitos planejados** (além da validação dos 2 requisitos de débito técnico concluídos), resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
+
+**Critério de cobertura:** um requisito é considerado testado quando está associado a um caso de teste do [roteiro de testes](../visao/testes.md#roteiro-de-testes) cujos testes foram executados e aprovados (resultado previsto igual ao realizado). A cobertura é calculada pela métrica [M3](../visao/metricas.md) (requisitos testados ÷ requisitos implementados).
+
+| Requisito | Caso de teste |
+| --------- | ------------- |
+| R09 (débito técnico – Sprint 3) | [CT03](../visao/testes.md#ct03) |
+| R10 (débito técnico – Sprint 3) | [CT03](../visao/testes.md#ct03) |
+| R11       | [CT04](../visao/testes.md#ct04) |
+| R12       | [CT04](../visao/testes.md#ct04) |
+| R13       | [CT04](../visao/testes.md#ct04) |
+| R14       | [CT04](../visao/testes.md#ct04) |
 
 ## 6. Entregas
 

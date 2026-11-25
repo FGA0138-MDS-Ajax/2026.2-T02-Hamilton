@@ -36,6 +36,15 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
 
+**Critério de cobertura:** um requisito é considerado testado quando está associado a um caso de teste do [roteiro de testes](../visao/testes.md#roteiro-de-testes) cujos testes foram executados e aprovados (resultado previsto igual ao realizado). A cobertura é calculada pela métrica [M3](../visao/metricas.md) (requisitos testados ÷ requisitos implementados).
+
+| Requisito | Caso de teste |
+| --------- | ------------- |
+| R05       | [CT02](../visao/testes.md#ct02) |
+| R06       | [CT02](../visao/testes.md#ct02) |
+| R07       | [CT02](../visao/testes.md#ct02) |
+| R08       | [CT02](../visao/testes.md#ct02) |
+
 ## 6. Entregas
 
 **Feature: Registro de livros**
