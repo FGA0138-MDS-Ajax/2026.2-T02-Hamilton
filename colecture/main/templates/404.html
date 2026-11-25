@@ -1,0 +1,19 @@
+{% extends "sidebar.html" %}
+{% load static %}
+
+{% block title %}{{ title|default:"Página não encontrada" }} - CoLecture{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'main/css/error.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="main-box error-page">
+    <section class="erro-container">
+      <h1 class="erro-titulo">{{ title|default:"Página não encontrada" }}</h1>
+      <p class="erro-descricao">{{ message|default:"Essa página não existe, foi removida ou você não tem permissão para acessá-la." }}</p>
+      <a class="botao-voltar" href="{% url 'main:search' %}">Voltar para a pesquisa</a>
+      <img class="erro-img" src="{% static 'books/img/mascote.png' %}" alt="Mascote procurando a página" />
+    </section>
+  </div>
+{% endblock %}

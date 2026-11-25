@@ -27,3 +27,31 @@ class SidebarTests(TestCase):
     def test_perfil_fica_ativo_na_edicao_de_perfil(self):
         response = self.client.get(reverse("accounts:editProfile"))
         self.assertContains(response, 'class="nav-item active"', count=1)
+
+
+class ErrorPagesTests(TestCase):
+    """Página de erro 404 e 403 no padrão visual do projeto."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="LeitorComum", password="senha123456")
+        self.client.force_login(self.user)
+
+    def test_invalid_url_renders_custom_404_page(self):
+        response = self.client.get("/url-que-nao-existe-no-sistema/")
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Página não encontrada", status_code=404)
+        self.assertContains(response, "Voltar para a pesquisa", status_code=404)
+        self.assertContains(response, "mascote.png", status_code=404)
+        self.assertContains(response, "error.css", status_code=404)
+        self.assertContains(response, "<main", count=1, status_code=404)
+
+    def test_forbidden_url_renders_custom_error_page_with_403(self):
+        # Usuário leitor comum não tem permissão para acessar /logs/
+        response = self.client.get(reverse("logs:log_list"))
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "Página não encontrada", status_code=403)
+        self.assertContains(response, "Voltar para a pesquisa", status_code=403)
+        self.assertContains(response, "mascote.png", status_code=403)
+        self.assertContains(response, "error.css", status_code=403)
+        self.assertContains(response, "<main", count=1, status_code=403)
+

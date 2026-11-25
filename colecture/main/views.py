@@ -57,6 +57,21 @@ def recommendations(request):
     return JsonResponse({'results': results})
 
 
+def page_not_found_view(request, exception=None):
+    return render(request, '404.html', {
+        'title': 'Página não encontrada',
+        'message': 'Essa página não existe, foi removida ou você não tem permissão para acessá-la.',
+    }, status=404)
+
+
+def permission_denied_view(request, exception=None):
+    return render(request, '403.html', {
+        'title': 'Página não encontrada',
+        'message': 'Essa página não existe, foi removida ou você não tem permissão para acessá-la.',
+    }, status=403)
+
+
+
 def _books_from_genre_scores(user, genre_scores):
     # Adaptador provisório: hoje o BookRecommendationService devolve só a
     # pontuação por gênero. Aqui viram livros dos gêneros com pontuação
