@@ -1,6 +1,6 @@
 # Representação Arquitetural
 
-Resumo do documento *CoLecture: Arquitetura do Produto de Software* (Grupo Hamilton, 2026), **versão 1.2** (23/11/2026). [Baixar o PDF completo](../documentos/arquitetura-do-produto-de-software.pdf){ target="_blank" rel="noopener" }.
+Resumo do documento *CoLecture: Arquitetura do Produto de Software* (Grupo Hamilton, 2026), **versão 1.3** (25/11/2026). [Baixar o PDF completo](../documentos/arquitetura-do-produto-de-software.pdf){ target="_blank" rel="noopener" }.
 
 ## Histórico de revisões
 

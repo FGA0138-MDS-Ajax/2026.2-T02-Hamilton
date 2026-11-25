@@ -20,7 +20,7 @@ O CoLecture integra o acompanhamento individual da leitura ao engajamento comuni
 ## Documentos em PDF
 
 - [Visão do Produto e do Projeto (v1.2)](documentos/visao-do-produto-e-do-projeto.pdf){ target="_blank" rel="noopener" }
-- [Arquitetura do Produto de Software (v1.2)](documentos/arquitetura-do-produto-de-software.pdf){ target="_blank" rel="noopener" }
+- [Arquitetura do Produto de Software (v1.3)](documentos/arquitetura-do-produto-de-software.pdf){ target="_blank" rel="noopener" }
 
 ## Equipe
 
