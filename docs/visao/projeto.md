@@ -92,16 +92,16 @@ O grau de exposição combina a probabilidade do risco com o seu impacto. Os ní
 
 ## Critérios de replanejamento
 
-Os critérios de atraso, qualidade e validação são acionados pelas métricas do [plano GQM](metricas.md) (M1 – taxa de conclusão, M2 – densidade de defeitos e M3 – cobertura de requisitos), calculadas ao fim de cada sprint e registradas no relatório da sprint (`docs/sprints/sprintN.md`).
+Os critérios de replanejamento são acionados pelas métricas do [plano GQM](metricas.md) (M1 – taxa de conclusão, M2 – densidade de defeitos e M3 – cobertura de requisitos), calculadas ao fim de cada sprint e registradas no relatório da sprint (`docs/sprints/sprintN.md`).
 
 | Critério | Gatilho (métrica e limite) | Ação |
 | -------- | -------------------------- | ---- |
 | Atraso no cronograma | M1 inferior a 70% ao fim da sprint (Q1.3) | O escopo das sprints seguintes é reavaliado |
 | Qualidade abaixo do aceitável | M2 superior a 0,2 defeito por requisito testado (Q2.3) | A sprint não é integrada à `main`; os defeitos são corrigidos e retestados antes da próxima entrega |
 | Requisito sem validação | M3 inferior a 100% (Q3.2) | Os requisitos sem teste são testados antes da entrega da sprint |
-| Riscos mapeados | Risco de exposição alta concretizado | As tarefas são redistribuídas conforme o plano de contingência. Riscos médios ou baixos seguem o planejamento ordinário |
-| Ajuste interno de prioridades | — | Requisitos Should ou Could são adiados em favor de funcionalidades essenciais |
-| Incompatibilidade técnica | Tecnologia ou integração inviável no prazo | Adota-se solução alternativa |
+| Riscos mapeados | Risco de exposição alta concretizado, com impacto em M1 (abaixo de 70%) ou M2 (acima de 0,2) no requisito afetado | As tarefas são redistribuídas conforme o plano de contingência. Riscos médios ou baixos seguem o planejamento ordinário |
+| Ajuste interno de prioridades | M1 acumulada com projeção inferior a 90% ao fim da Sprint 6 (Q1.2) | Requisitos Should ou Could são adiados em favor de funcionalidades essenciais |
+| Incompatibilidade técnica | Tecnologia ou integração inviável no prazo, evidenciada por M1 abaixo de 70% ou M2 acima de 0,2 no requisito afetado | Adota-se solução alternativa |
 
 A cada revisão de sprint a equipe confere esses critérios e, se necessário, atualiza e versiona este documento no repositório.
 
