@@ -28,6 +28,7 @@
     {% endif %}
 
     <form class="logs-filters" method="get" action="{% url 'logs:log_list' %}">
+      <label>Categoria {{ filter_form.category }}</label>
       <label>Ação {{ filter_form.action }}</label>
       <label>Autor {{ filter_form.actor }}</label>
       <label>Classe {{ filter_form.content_type }}</label>
@@ -43,6 +44,7 @@
             <th>ID</th>
             <th>Data</th>
             <th>Autor</th>
+            <th>Categoria</th>
             <th>Ação</th>
             <th>Alvo</th>
             <th>Ações</th>
@@ -54,6 +56,7 @@
               <td>{{ log.id }}</td>
               <td>{{ log.created_at|date:"d/m/Y H:i" }}</td>
               <td>{{ log.actor.username|default:"Sistema" }}</td>
+              <td><span class="logs-tag">{{ log.category }}</span></td>
               <td><span class="logs-tag">{{ log.action }}</span></td>
               <td>{{ log.content_type.model }} #{{ log.object_id }}</td>
               <td class="logs-actions">
@@ -67,7 +70,7 @@
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="6" class="logs-empty">Nenhum log encontrado.</td></tr>
+            <tr><td colspan="7" class="logs-empty">Nenhum log encontrado.</td></tr>
           {% endfor %}
         </tbody>
       </table>

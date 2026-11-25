@@ -24,6 +24,11 @@ class AuditLogForm(forms.ModelForm):
 class AuditLogFilterForm(forms.Form):
     """Filtros da listagem de logs (todos opcionais, enviados por GET)."""
 
+    category = forms.ChoiceField(
+        required=False,
+        choices=AuditLog.CATEGORY_CHOICES,
+        label="Categoria",
+    )
     action = forms.ChoiceField(
         required=False,
         choices=[("", "Todas as ações")] + AuditLog.Action.choices,
@@ -50,6 +55,9 @@ class AuditLogFilterForm(forms.Form):
         if not self.is_valid():
             return queryset.none()
         data = self.cleaned_data
+        if data.get("category"):
+            actions = AuditLog.CATEGORY_ACTION_MAP.get(data["category"], [])
+            queryset = queryset.filter(action__in=actions)
         if data["action"]:
             queryset = queryset.filter(action=data["action"])
         if data["actor"]:
