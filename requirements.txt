@@ -23,3 +23,5 @@ tzdata==2026.6
 tzlocal==5.4.5
 vine==5.1.0
 wcwidth==0.9.4
+playwright==1.65.2
+
