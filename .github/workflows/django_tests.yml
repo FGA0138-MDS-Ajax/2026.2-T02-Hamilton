@@ -1,16 +1,53 @@
-
 name: Testes do Django
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: Executar Testes do Django
+  test-apps:
+    name: Teste (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - accounts
+          - books
+          - communities
+          - forums
+          - goals
+          - logs
+          - main
+          - notifications
+          - rewards
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Executar Testes do App
+        working-directory: colecture
+        run: python manage.py test ${{ matrix.app }}
+
+  test-system:
+    name: Testes de Sistema (system_tests)
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +69,6 @@ jobs:
       - name: Instalar navegadores do Playwright
         run: python -m playwright install --with-deps chromium
 
-      - name: Executar Testes
+      - name: Executar Testes de Sistema E2E
         working-directory: colecture
-        run: python manage.py test
+        run: python manage.py test system_tests
