@@ -1,18 +1,19 @@
-"""Popula o banco com dados de demonstração: usuários, comunidades, fórum e metas.
+"""Popula o banco com dados de demonstração: usuários, comunidades, fórum, metas e avaliações.
 
 Uso:
     python manage.py seed_demo                    # cria os dados que ainda não existem
     python manage.py seed_demo --password abc123  # define outra senha para os usuários
 
 O que é criado:
-    - 5 usuários (ana, bruno, carla, diego, elisa), todos com Profile;
-    - 2 comunidades: uma PÚBLICA e uma PRIVADA (com um pedido de entrada pendente);
-    - mensagens no fórum geral de cada comunidade;
-    - 1 meta coletiva por comunidade (com fórum automático) e 1 meta individual por usuário;
+    - 10 usuários (ana, bruno, carla, diego, elisa, felipe, gabriela, heitor, isabela, joao), todos com Profile;
+    - 2 comunidades: uma PÚBLICA e uma PRIVADA (com membros ativos e pedidos pendentes);
+    - mensagens no fórum geral de cada comunidade debatendo os livros;
+    - 1 meta coletiva por comunidade (com fórum automático) e 1 meta individual por usuário (10 metas);
+    - avaliações e resenhas (BookReview) cadastradas em todos os livros do catálogo;
     - a usuária "ana" com 5 dias seguidos de leitura (ofensiva de 5 dias).
 
 O comando é idempotente: rodá-lo de novo não duplica usuários, comunidades,
-mensagens nem metas. Se o catálogo estiver vazio, o seed_books é executado antes.
+mensagens, metas nem resenhas. Se o catálogo estiver vazio, o seed_books é executado antes.
 """
 from datetime import datetime, time, timedelta
 
@@ -25,6 +26,10 @@ from django.utils import timezone
 from accounts.models import Profile
 from accounts.services import AccountService
 from books.models import Book, ReadingSession
+from books.management.commands.seed_reviews_data import (
+    SEED_USERS,
+    seed_reviews_for_books,
+)
 from books.services import persist_reading_session
 from communities.models import Community, Membership
 from communities.services import CommunityService, MembershipService
@@ -43,7 +48,7 @@ ISBN_DUNE = "9780441172719"
 ISBN_HOBBIT = "9780547928227"
 ISBN_HARRY_POTTER = "9780590353427"
 
-USERS = ["ana", "bruno", "carla", "diego", "elisa"]
+USERS = list(SEED_USERS)
 
 # (autor, minutos atrás, texto)
 PUBLIC_MESSAGES = [
@@ -52,7 +57,10 @@ PUBLIC_MESSAGES = [
     ("carla", 2700, "Comecei ontem e já estou fascinada pela especiaria. Vamos combinar um ritmo de páginas por dia?"),
     ("diego", 2400, "Sugiro 30 páginas por dia, assim fechamos a meta do mês sem sufoco."),
     ("elisa", 1500, "Fechado! Vou registrar minha leitura todo dia para não perder a ofensiva 🔥"),
+    ("felipe", 1100, "Cheguei no capítulo do deserto profundo com Paul e Jessica. A ambientação ecológica é surreal!"),
+    ("gabriela", 800, "Estou adorando a leitura coletiva! As intrigas da Casa Harkonnen são muito bem tramadas."),
     ("ana", 600, "Cheguei ao capítulo em que o Paul encontra os Fremen. Sem spoilers, por favor!"),
+    ("joao", 400, "O ecossistema de Arrakis é uma aula magistral de ficção científica hard."),
     ("bruno", 120, "Prometo não dar spoiler. Quem quer abrir uma discussão sobre o Bene Gesserit depois?"),
 ]
 
@@ -60,6 +68,8 @@ PRIVATE_MESSAGES = [
     ("bruno", 2800, "Este círculo é fechado de propósito: só entra quem o moderador aprova."),
     ("carla", 2600, "Adorei a ideia. O Hobbit é perfeito para começar uma jornada de leitura em grupo."),
     ("diego", 1800, "Já estou na parte dos trolls. Bilbo é muito melhor personagem do que eu lembrava."),
+    ("heitor", 1400, "A mitologia e a poesia dos anões nas canções iniciais dão o tom perfeito para a jornada."),
+    ("isabela", 1200, "Gandalf é a melhor bússola moral do grupo. Ansiosa pelos próximos capítulos na floresta!"),
     ("carla", 900, "Que tal discutirmos o capítulo do Gollum na sexta?"),
     ("bruno", 200, "Combinado. Quem estiver atrasado, sem pressa: o importante é manter o hábito."),
 ]
@@ -86,6 +96,11 @@ INDIVIDUAL_GOALS = {
     "carla": ("30 minutos por dia", Goal.GoalType.HOUR_COUNT, 30, Goal.Period.DAILY, "", "⏱️", None),
     "diego": ("Leitura seg/qua/sex", Goal.GoalType.PAGE_COUNT, 30, Goal.Period.WEEKDAYS, "0,2,4", "🌙", None),
     "elisa": ("Terminar Harry Potter", Goal.GoalType.PAGE_COUNT, 309, Goal.Period.TOTAL, "", "📖", ISBN_HARRY_POTTER),
+    "felipe": ("Maratona de Duna", Goal.GoalType.PAGE_COUNT, 400, Goal.Period.TOTAL, "", "🚀", ISBN_DUNE),
+    "gabriela": ("Hábito matinal de leitura", Goal.GoalType.HOUR_COUNT, 20, Goal.Period.DAILY, "", "☀️", None),
+    "heitor": ("100 páginas por semana", Goal.GoalType.PAGE_COUNT, 100, Goal.Period.WEEKLY, "", "📜", None),
+    "isabela": ("Leitura no fim de semana", Goal.GoalType.PAGE_COUNT, 40, Goal.Period.WEEKDAYS, "5,6", "🛋️", None),
+    "joao": ("Concluir O Hobbit", Goal.GoalType.PAGE_COUNT, 300, Goal.Period.TOTAL, "", "🧙", ISBN_HOBBIT),
 }
 
 STREAK_USER = "ana"
@@ -97,7 +112,7 @@ STREAK_MINUTES_PER_DAY = 40
 class Command(BaseCommand):
     help = (
         "Cria usuários, comunidades (uma pública e uma privada), mensagens de fórum, "
-        "metas e uma ofensiva de demonstração. Uso: python manage.py seed_demo"
+        "metas, resenhas em todos os livros e uma ofensiva de demonstração. Uso: python manage.py seed_demo"
     )
 
     def add_arguments(self, parser):
@@ -115,6 +130,7 @@ class Command(BaseCommand):
         self._create_community_goals()
         self._create_individual_goals(users, books)
         self._create_streak(users[STREAK_USER], books[ISBN_DUNE])
+        reviews_stats = self._create_reviews(options["password"])
 
         self.stdout.write(self.style.SUCCESS("Dados de demonstração prontos."))
         self.stdout.write(f"  Usuários: {', '.join(USERS)} (senha: {options['password']})")
@@ -122,6 +138,10 @@ class Command(BaseCommand):
         self.stdout.write(f"  Comunidade privada:  {private.name} (código {private.code})")
         profile = Profile.objects.get(user=users[STREAK_USER])
         self.stdout.write(f"  Ofensiva de {STREAK_USER}: {profile.streak} dia(s)")
+        self.stdout.write(
+            f"  Resenhas: {reviews_stats['created']} criada(s), "
+            f"{reviews_stats['total_books_reviewed']} livros avaliados."
+        )
 
     # ------------------------------------------------------------------
     def _get_books(self):
@@ -183,15 +203,29 @@ class Command(BaseCommand):
         # O criador não tem Membership (já conta como membro).
         M = Membership
         for username, role in [
-            ("bruno", M.Role.MODERATOR), ("carla", M.Role.MEMBER),
-            ("diego", M.Role.MEMBER), ("elisa", M.Role.MEMBER),
+            ("bruno", M.Role.MODERATOR),
+            ("carla", M.Role.MEMBER),
+            ("diego", M.Role.MEMBER),
+            ("elisa", M.Role.MEMBER),
+            ("felipe", M.Role.MEMBER),
+            ("gabriela", M.Role.MEMBER),
+            ("heitor", M.Role.MEMBER),
+            ("isabela", M.Role.MEMBER),
+            ("joao", M.Role.MEMBER),
         ]:
             MembershipService.enter_community(users[username], public, role=role, status=M.Status.ACTIVE)
 
-        for username, role in [("carla", M.Role.MODERATOR), ("diego", M.Role.MEMBER)]:
+        for username, role in [
+            ("carla", M.Role.MODERATOR),
+            ("diego", M.Role.MEMBER),
+            ("heitor", M.Role.MEMBER),
+            ("isabela", M.Role.MEMBER),
+        ]:
             MembershipService.enter_community(users[username], private, role=role, status=M.Status.ACTIVE)
-        # pedido de entrada aguardando aprovação na comunidade privada
-        MembershipService.enter_community(users["elisa"], private, role=M.Role.NONE, status=M.Status.PENDING)
+
+        # Pedidos de entrada aguardando aprovação na comunidade privada
+        for username in ["elisa", "felipe"]:
+            MembershipService.enter_community(users[username], private, role=M.Role.NONE, status=M.Status.PENDING)
 
         return public, private
 
@@ -281,3 +315,10 @@ class Command(BaseCommand):
                 "created_at": created_at,
             })
         self.stdout.write(f"Ofensiva criada: {user.username} com {STREAK_DAYS} dias de leitura")
+
+    def _create_reviews(self, password):
+        """Garante que todos os livros do catálogo tenham avaliações."""
+        return seed_reviews_for_books(
+            stdout=self.stdout,
+            default_password=password,
+        )

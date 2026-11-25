@@ -132,12 +132,15 @@ python manage.py migrate
 
 ### 5. Popule o banco com dados de demonstração (opcional)
 
-Para testar a plataforma com livros reais, usuários, comunidades e ofensivas:
+Para testar a plataforma com livros reais, avaliações, usuários, comunidades e ofensivas:
 
 ```bash
 python manage.py seed_books
 python manage.py seed_demo
 ```
+
+> - **`seed_books`:** Cadastra 82 livros reais com capas e gera avaliações/resenhas (`BookReview`) de leitores em todos os títulos do catálogo (suporta `--no-covers`, `--no-reviews` e `--update`).
+> - **`seed_demo`:** Cria 10 usuários com perfis completos (`ana`, `bruno`, `carla`, `diego`, `elisa`, `felipe`, `gabriela`, `heitor`, `isabela`, `joao`), 2 comunidades (pública e privada com membros e pedidos pendentes), mensagens em fóruns, 10 metas individuais e 2 coletivas, ofensiva ativa de 5 dias e garante resenhas em todos os livros.
 
 ---
 

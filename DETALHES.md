@@ -89,7 +89,7 @@ A aplicação segue a divisão modular do Django, onde cada módulo possui respo
     │   ├── views.py                   # Estante, cronômetro, cadastro e busca de livros
     │   ├── urls.py
     │   ├── tests.py
-    │   ├── management/commands/       # seed_books.py e seed_demo.py
+    │   ├── management/commands/       # seed_books.py, seed_demo.py e seed_reviews_data.py
     │   └── templates/books/
     ├── communities/                   # Clubes de leitura, membros e moderação
     │   ├── models.py                  # Community, Membership, Invitation
@@ -411,8 +411,8 @@ Localizados em `management/commands/` de cada app, executados a partir de `colec
 
 | Comando | App | Parâmetros Disponíveis | O que faz |
 | :--- | :--- | :--- | :--- |
-| `seed_books` | `books` | `--no-covers`<br>`--update` | Popula o catálogo com livros reais baseados em ISBN único. |
-| `seed_demo` | `books` | `--password <senha>` | Cria 5 usuários de demonstração, 2 comunidades, metas e ofensivas ativas. |
+| `seed_books` | `books` | `--no-covers`<br>`--no-reviews`<br>`--update` | Popula o catálogo com 82 livros reais baseados em ISBN único e adiciona avaliações/resenhas (`BookReview`) em todos os títulos. |
+| `seed_demo` | `books` | `--password <senha>` | Cria 10 usuários de demonstração com perfis, 2 comunidades (com moderação e pedidos pendentes), mensagens em fóruns, metas individuais e coletivas, ofensiva ativa e resenhas em todos os livros. |
 | `seed_insignias` | `rewards` | Nenhum | Recarrega e sincroniza a tabela de 35 insígnias oficiais. |
 | `purge_archived_communities` | `communities` | Nenhum | Exclui definitivamente comunidades arquivadas há mais de 60 dias. |
 

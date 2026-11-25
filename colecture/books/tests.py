@@ -2350,3 +2350,93 @@ class CT06_BookRecommendation(TestCase):
             RATING_SCORE_TABLE[rating] + 
             TIME_SCORE_RATE*minute_count
         );
+
+
+class SeedBooksCommandTest(TestCase):
+    def test_seed_books_creates_books_and_reviews(self):
+        out = StringIO()
+        call_command("seed_books", stdout=out)
+        self.assertEqual(Book.objects.count(), 82)
+        # Todos os livros devem possuir ao menos uma avaliação
+        self.assertEqual(Book.objects.filter(reviews__isnull=True).count(), 0)
+        self.assertGreater(BookReview.objects.count(), 0)
+
+        # Idempotência: rodar novamente não duplica livros nem avaliações
+        initial_books = Book.objects.count()
+        initial_reviews = BookReview.objects.count()
+        call_command("seed_books", stdout=out)
+        self.assertEqual(Book.objects.count(), initial_books)
+        self.assertEqual(BookReview.objects.count(), initial_reviews)
+
+    def test_seed_books_no_reviews_flag(self):
+        out = StringIO()
+        call_command("seed_books", no_reviews=True, stdout=out)
+        self.assertEqual(Book.objects.count(), 82)
+        self.assertEqual(BookReview.objects.count(), 0)
+
+    def test_seed_books_no_covers_flag(self):
+        out = StringIO()
+        call_command("seed_books", no_covers=True, no_reviews=True, stdout=out)
+        self.assertEqual(Book.objects.count(), 82)
+        self.assertFalse(Book.objects.exclude(icon="").exists())
+
+    def test_seed_books_update_flag(self):
+        out = StringIO()
+        call_command("seed_books", stdout=out)
+        first_book = Book.objects.first()
+        original_title = first_book.title
+        first_book.title = "Título Modificado"
+        first_book.save()
+
+        call_command("seed_books", update=True, stdout=out)
+        first_book.refresh_from_db()
+        self.assertEqual(first_book.title, original_title)
+
+
+class SeedDemoCommandTest(TestCase):
+    def test_seed_demo_creates_10_users_and_all_artifacts(self):
+        from communities.models import Community, Membership
+        from forums.models import Message
+
+        out = StringIO()
+        call_command("seed_demo", stdout=out)
+
+        expected_users = [
+            "ana", "bruno", "carla", "diego", "elisa",
+            "felipe", "gabriela", "heitor", "isabela", "joao"
+        ]
+        # Valida que todos os 10 usuários foram criados com Profile
+        for username in expected_users:
+            user = get_user_model().objects.filter(username=username).first()
+            self.assertIsNotNone(user, f"Usuário {username} deveria existir.")
+            self.assertTrue(Profile.objects.filter(user=user).exists())
+
+        # Valida comunidades
+        self.assertTrue(Community.objects.filter(name="Clube da Ficção Científica").exists())
+        self.assertTrue(Community.objects.filter(name="Círculo dos Clássicos de Fantasia").exists())
+
+        # Valida memberships e pedidos pendentes
+        self.assertTrue(Membership.objects.filter(status=Membership.Status.ACTIVE).count() >= 10)
+        self.assertTrue(Membership.objects.filter(status=Membership.Status.PENDING).count() >= 2)
+
+        # Valida mensagens em fóruns
+        self.assertGreater(Message.objects.count(), 10)
+
+        # Valida metas coletivas e individuais (10 metas individuais)
+        self.assertTrue(Goal.objects.filter(owner_community__isnull=False).count() >= 2)
+        self.assertEqual(Goal.objects.filter(owner_profile__isnull=False).count(), 10)
+
+        # Valida ofensiva de Ana
+        ana = get_user_model().objects.get(username="ana")
+        self.assertEqual(ana.profile.streak, 5)
+
+        # Valida que TODOS os livros possuem resenhas
+        self.assertEqual(Book.objects.filter(reviews__isnull=True).count(), 0)
+        self.assertGreater(BookReview.objects.count(), 80)
+
+        # Idempotência: rodar de novo não deve falhar nem duplicar dados essenciais
+        user_count_before = get_user_model().objects.count()
+        comm_count_before = Community.objects.count()
+        call_command("seed_demo", stdout=out)
+        self.assertEqual(get_user_model().objects.count(), user_count_before)
+        self.assertEqual(Community.objects.count(), comm_count_before)
