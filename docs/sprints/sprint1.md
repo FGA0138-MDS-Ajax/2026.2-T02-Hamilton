@@ -59,6 +59,6 @@ Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem 
 ### Feature: Páginas de login, cadastro e perfil
 
 - **O que foi feito:** Desenvolvimento das interfaces responsivas de login, registro de usuário, visualização e edição de perfil, além da página inicial da aplicação.
-- **Arquivos/apps:** `accounts/templates/accounts/login.html`, `accounts/templates/accounts/register.html`, `accounts/templates/accounts/profile.html`, `accounts/templates/accounts/profileEdit.html`, `accounts/static/accounts/css/login.css`, `accounts/static/accounts/css/register.css`, `accounts/static/accounts/css/profile.css`, `main/templates/main/index.html`
+- **Arquivos/apps:** `accounts/templates/...`, `accounts/static/...`, `main/templates/index.html`
 - **Requisito:** R04
 
