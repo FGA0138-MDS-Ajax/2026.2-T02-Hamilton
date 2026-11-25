@@ -35,3 +35,30 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 ## 5. Cobertura dos testes
 
 Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
+
+## 6. Entregas
+
+### Feature: Cadastro, autenticação e perfil
+
+- **O que foi feito:** Implementação do fluxo de criação de conta, login, logout e edição de dados do perfil do leitor (`Profile`), com validação de e-mail único e testes unitários do ciclo de vida do usuário.
+- **Arquivos/apps:** `accounts/models.py`, `accounts/views.py`, `accounts/forms.py`, `accounts/urls.py`, `accounts/tests.py`
+- **Requisito:** R01
+
+### Feature: Gerenciamento administrativo de usuários
+
+- **O que foi feito:** Configuração do painel administrativo do Django para permitir que administradores consultem, criem, editem e removam contas de usuários e perfis.
+- **Arquivos/apps:** `accounts/admin.py`, `colecture/urls.py`, `accounts/tests.py`
+- **Requisito:** R02
+
+### Feature: Administrador inicial via seed
+
+- **O que foi feito:** Criação de migração de dados que provisiona automaticamente o superusuário administrador padrão (`admin`) ao inicializar o banco de dados vazio com `migrate`.
+- **Arquivos/apps:** `accounts/migrations/0002_createDefaultAdmin.py`, `colecture/settings.py`
+- **Requisito:** R03
+
+### Feature: Páginas de login, cadastro e perfil
+
+- **O que foi feito:** Desenvolvimento das interfaces responsivas de login, registro de usuário, visualização e edição de perfil, além da página inicial da aplicação.
+- **Arquivos/apps:** `accounts/templates/accounts/login.html`, `accounts/templates/accounts/register.html`, `accounts/templates/accounts/profile.html`, `accounts/templates/accounts/profileEdit.html`, `accounts/static/accounts/css/login.css`, `accounts/static/accounts/css/register.css`, `accounts/static/accounts/css/profile.css`, `main/templates/main/index.html`
+- **Requisito:** R04
+
