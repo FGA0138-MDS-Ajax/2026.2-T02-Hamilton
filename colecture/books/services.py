@@ -192,10 +192,10 @@ class BookRecommendationService:
         allocations = dict(
             sorted(
                 {
-                    genre: min(
+                    genre: max(1, min(
                         max_per_genre,
                         int(limit * score / total_score)
-                    )
+                    ))
                     for genre, score in positive_scores.items()
                 }.items(),
                 key=lambda item: item[1],
@@ -264,7 +264,7 @@ class BookRecommendationService:
         review:BookReview;
         for review in reviews:
             points_dict[review.book.genre] += RATING_SCORE_TABLE.get(
-                review.rating,
+                int(review.rating) if review.rating is not None else 0,
                 0
             );
 
