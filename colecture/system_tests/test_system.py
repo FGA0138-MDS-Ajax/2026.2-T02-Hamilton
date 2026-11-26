@@ -1173,3 +1173,182 @@ class ResponsiveDesignSystemTest(BaseSystemTestCase):
             expect(self.page.locator("#rsMinutes")).to_be_visible()
             expect(self.page.locator(".rs-submit")).to_be_visible()
 
+
+class SiteBreakingEdgeCasesSystemTest(BaseSystemTestCase):
+    """Testes de sistema focados em tentar quebrar a aplicação com casos limítrofes,
+    entradas inválidas, injeções e violações de regras de negócio."""
+
+    def test_break_registration_with_duplicate_and_mismatched_data(self):
+        """Resultado Previsto: Tentativa de cadastro com username/email já existentes, senhas divergentes
+        ou injeção de scripts no formulário deve falhar na validação, exibir erros na tela e não quebrar o servidor (sem 500)."""
+        # Cria usuário previamente cadastrado
+        self.create_user("usuario_existente", email="existente@colecture.com")
+
+        self.page.goto(f"{self.live_server_url}/user/register/")
+        self.page.fill("#id_username", "usuario_existente")
+        self.page.fill("#id_email", "existente@colecture.com")
+        self.page.fill("#id_password1", "SenhaSegura#123")
+        self.page.fill("#id_password2", "SenhaDiferente#999")
+        self.page.click('#register-form button[type="submit"]')
+        self.page.wait_for_load_state("networkidle")
+
+        # Verifica se o sistema permaneceu na tela de cadastro com exibição dos erros
+        self.assertIn("/user/register", self.page.url)
+        error_locators = self.page.locator(".error")
+        self.assertGreater(error_locators.count(), 0, "Deveria exibir mensagens de erro para dados conflitantes.")
+
+        # Garante que nenhum usuário duplicado foi criado
+        self.assertEqual(
+            get_user_model().objects.filter(username="usuario_existente").count(),
+            1,
+            "Não deve haver duplicação de usuário no banco de dados.",
+        )
+
+    def test_break_book_registration_with_negative_pages_and_invalid_isbn(self):
+        """Resultado Previsto: Submissão de livro com ISBN inválido e páginas negativas/nulas burlando validação
+        HTML do frontend não deve registrar livro corrompido nem causar erro 500 no servidor."""
+        user = self.create_user("cadastrador_quebra", "Senha#12345")
+        self.login_via_ui(user.username, "Senha#12345")
+
+        self.page.goto(f"{self.live_server_url}/books/register/")
+
+        # Preenche os campos obrigatórios
+        self.page.fill("#id_title", "Livro Teste Quebra")
+        self.page.fill("#id_author", "Autor Quebra")
+        self.page.fill("#id_isbn", "12345")  # ISBN inválido
+
+        # Burlar validação do browser (min="1" e novalidate no form) para tentar salvar -50 páginas
+        self.page.evaluate(
+            """() => {
+                const pagesInput = document.getElementById('id_pages');
+                pagesInput.removeAttribute('min');
+                pagesInput.value = '-50';
+                const form = document.querySelector('form');
+                if (form) form.noValidate = true;
+            }"""
+        )
+
+        self.page.click('button[type="submit"]')
+        self.page.wait_for_load_state("networkidle")
+
+        # Verifica se o livro com dados inválidos foi rejeitado
+        self.assertFalse(
+            Book.objects.filter(title="Livro Teste Quebra").exists(),
+            "Livro com páginas negativas ou ISBN inválido não deve ser salvo no banco.",
+        )
+
+        # Verifica se a página respondeu com erros de validação sem crash
+        error_elements = self.page.locator(".error")
+        self.assertGreater(
+            error_elements.count(),
+            0,
+            "Formulário deve indicar erros de validação para ISBN ou páginas.",
+        )
+
+    def test_break_reading_session_with_negative_values(self):
+        """Resultado Previsto: Tentativa de registrar sessão de leitura com páginas inválidas ou negativas
+        deve exibir erro no formulário (#rsAmountError) e requisições diretas via API com valores negativos
+        devem retornar HTTP 400, sem persistir dados corrompidos nem causar crash 500."""
+        user = self.create_user("leitor_limites", "Senha#12345")
+        book = self.create_book("Livro Limites", pages=150)
+        BookStatus.objects.create(user=user, book=book, status=BookStatus.Status.READING)
+
+        self.login_via_ui(user.username, "Senha#12345")
+        self.page.goto(f"{self.live_server_url}/books/reading/?book={book.id}")
+        self.page.wait_for_load_state("networkidle")
+
+        # 1. Tentativa via UI: preenche valor negativo e verifica bloqueio e exibição de erro
+        self.page.fill("#rsAmount", "-20")
+        self.page.fill("#rsMinutes", "30")
+        self.page.click(".rs-submit")
+
+        amount_error = self.page.locator("#rsAmountError")
+        expect(amount_error).to_be_visible()
+
+        # 2. Tentativa direta via API (bypassing frontend): envia fetch com payload inválido
+        csrf_token = self.page.evaluate("() => document.getElementById('readingSession').dataset.csrf")
+        api_status = self.page.evaluate(
+            f"""async () => {{
+                const res = await fetch('/books/shelf/{book.id}/session/', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{csrf_token}'
+                    }},
+                    body: JSON.stringify({{ pages_read: -20, minute_count: 30 }})
+                }});
+                return res.status;
+            }}"""
+        )
+        self.assertEqual(api_status, 400, "API deve rejeitar requisição direta com páginas negativas com status 400.")
+
+        self.assertFalse(
+            ReadingSession.objects.filter(user=user, book=book).exists(),
+            "Nenhuma sessão com páginas negativas deve ser gravada no banco.",
+        )
+
+    def test_break_forum_with_blank_or_whitespace_message(self):
+        """Resultado Previsto: Tentativa de envio de mensagem vazia ou apenas com espaços em branco
+        no fórum da comunidade deve ser impedida e não persistir registros vazios no banco."""
+        creator = self.create_user("criador_forum_vazio", "Senha#12345")
+        community = self.create_community("Comunidade Forum Vazio", creator=creator)
+        goal = Goal.objects.create(
+            name="Meta Forum Vazio",
+            owner_community=community,
+            goal_type=Goal.GoalType.PAGE_COUNT,
+            target=100,
+        )
+        forum = Forum.objects.create(name=goal.name, goal=goal)
+
+        self.login_via_ui(creator.username, "Senha#12345")
+        self.page.goto(f"{self.live_server_url}/forums/{forum.id}")
+        self.page.wait_for_load_state("networkidle")
+
+        # Tenta contornar validações do input no DOM e enviar mensagem apenas com espaços em branco
+        self.page.evaluate(
+            """() => {
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.removeAttribute('required');
+                    input.value = '     ';
+                }
+            }"""
+        )
+
+        initial_messages_count = Message.objects.filter(forum=forum).count()
+        self.page.click("#sendButton")
+        self.page.wait_for_load_state("networkidle")
+
+        # Garante que nenhuma mensagem vazia foi gravada no banco
+        current_messages_count = Message.objects.filter(forum=forum).count()
+        self.assertEqual(
+            initial_messages_count,
+            current_messages_count,
+            "Mensagens em branco não devem ser salvas no fórum.",
+        )
+
+    def test_break_site_with_fuzzing_nonexistent_and_malformed_urls(self):
+        """Resultado Previsto: Requisições a recursos com IDs inexistentes ou astronômicos devem retornar
+        código HTTP 404 (Not Found) de forma limpa, garantindo que o servidor não sofra crash (500)."""
+        user = self.create_user("fuzzer_usuario", "Senha#12345")
+        self.login_via_ui(user.username, "Senha#12345")
+
+        test_urls = [
+            f"{self.live_server_url}/books/99999999/",
+            f"{self.live_server_url}/communities/99999999",
+            f"{self.live_server_url}/forums/99999999",
+        ]
+
+        for url in test_urls:
+            response = self.page.goto(url)
+            self.assertEqual(
+                response.status,
+                404,
+                f"Acessar URL inexistente '{url}' deveria retornar status 404 limpo, sem crash 500.",
+            )
+
+
+
+
+
+
