@@ -13,6 +13,19 @@ A garantia da qualidade do CoLecture apoia-se em um processo estruturado de veri
 - **Funcionais:** validam as saídas contra os requisitos R01 a R22 (o CT06 cobre o R21). Cobrem autenticação, cadastro e filtragem no catálogo, gerenciamento de membros, moderação de tópicos e concessão de insígnias.
 - **Não funcionais:** responsividade da interface em diferentes resoluções, integridade das sementes de inicialização do banco (seeds) e envio correto de notificações e logs (R21).
 
+## Técnicas
+
+Os casos de teste combinam técnicas de caixa-preta e de caixa-branca (Pressman e Maxim, 2016):
+
+| Técnica | Como é aplicada | Exemplos no projeto |
+| ------- | --------------- | ------------------- |
+| **Caixa-preta** | O teste usa apenas as entradas e as saídas previstas nos requisitos, sem depender do código interno. É a base dos testes de integração com o `django.test.Client` e dos testes de sistema pela interface | Login com credenciais válidas e inválidas (CT01); jornadas completas pelo navegador em `system_tests` (CT01 a CT07) |
+| **Partição de equivalência** | As entradas são divididas em classes válidas e inválidas, e cada classe é testada com ao menos um valor representativo. Nos testes, os métodos costumam vir em pares `VALID` e `INVALID` | Nota da avaliação: válida (1 a 5) e inválida (texto, `6.0` ou `9.0`) (CT02); criação e edição de meta com dados válidos e inválidos e com e sem permissão (CT04) |
+| **Análise de valor-limite** | São testados os valores nas bordas de cada classe, onde os erros são mais frequentes | Notas `1.0` e `5.0` aceitas e `6.0` recusada (CT02); páginas lidas igual a zero e maior que o total do livro, progresso menor ou igual ao anterior e data de amanhã recusados (CT05); ofensiva mantida com leitura de ontem e zerada ao faltar um dia (CT05) |
+| **Caixa-branca** | O teste é escrito a partir da lógica interna (models, services e regras de validação), para percorrer os caminhos e as condições do código | Algoritmo de contagem da ofensiva em `ProfileStreakModelTests`; validações do model `ReadingSession` em `ReadingSessionModelTests`; regras de participação em metas do `GoalService` (CT04) |
+
+Os testes de sistema também incluem cenários de robustez (`SiteBreakingEdgeCasesSystemTest`), que tentam quebrar o site com dados duplicados, valores negativos, mensagens em branco e URLs inexistentes ou malformadas.
+
 ## Ambientes
 
 | Ambiente | Uso |
@@ -20,6 +33,19 @@ A garantia da qualidade do CoLecture apoia-se em um processo estruturado de veri
 | Desenvolvimento local | Desenvolvedores e analistas de qualidade executam testes unitários e de integração antes do commit |
 | Branch `sprintN` (`sprint1` a `sprint7`) | Homologação e integração: testes de integração e de sistema validam a fusão dos novos recursos; nada vai à `main` sem aprovação completa |
 | Branch `main` | Entrega ao término de cada sprint: recebe apenas código testado, auditado pela qualidade e aprovado pelo Dono do Produto, sem regressões |
+
+## Integração contínua
+
+A validação automática é feita pelo GitHub Actions, no workflow **Testes do Django** (`.github/workflows/django_tests.yml`), adotado a partir da Sprint 7:
+
+1. **Quando roda:** a cada *push* em qualquer branch, a cada *pull request* e manualmente (`workflow_dispatch`). Assim, todo commit na `sprintN` e o *pull request* da `sprintN` para a `main` disparam os testes.
+2. **Testes por app (`test-apps`):** um job para cada app Django (`accounts`, `books`, `communities`, `forums`, `goals`, `logs`, `main`, `notifications` e `rewards`), executados em paralelo com `python manage.py test <app>`. Um app com falha não interrompe os demais (`fail-fast: false`), de modo que o relatório mostra todos os apps reprovados de uma vez.
+3. **Testes de sistema (`test-system`):** instala o navegador Chromium do Playwright e executa `python manage.py test system_tests`, que percorre as jornadas dos CT01 a CT07 pela interface.
+4. **Ambiente:** Ubuntu com Python 3.14 e as dependências do `requirements.txt`.
+
+O *pull request* da `sprintN` para a `main` só é integrado com todos os jobs aprovados, conforme a regra de que nada vai à `main` sem aprovação completa. Uma falha na CI é tratada como teste reprovado: o defeito é registrado no relatório da sprint, corrigido e retestado até que a execução fique verde.
+
+O workflow `ci.yml` é separado: ele apenas publica este site de documentação a cada *push* na branch `docs` e não executa testes.
 
 ## Formas de análise
 
