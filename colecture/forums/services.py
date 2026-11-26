@@ -70,6 +70,8 @@ class ForumService:
             kind = "geral";
             description = community.description;
 
+        is_admin = ForumService.user_can_edit(user, forum);
+
         return {
             "id": forum.id,
             "title": forum.name,
@@ -79,6 +81,7 @@ class ForumService:
             # o menu de moderação do front (fixar/trancar/excluir) ainda não
             # tem backend; trancar e editar continuam em forums:edit_forum.
             "is_moderator": False,
+            "is_admin": is_admin,
             "locked": forum.state != forum.State.ACTIVE,
             "pinned_id": None,
             "current_user": user.username,
@@ -92,6 +95,7 @@ class ForumService:
                     "text": message.content,
                     "time": localtime(message.created_at).strftime("%d/%m %H:%M"),
                     "mine": message.author_id == user.id,
+                    "delete_url": reverse("forums:delete_message", kwargs={"message_id": message.id}),
                     "reply_to": (
                         {
                             "id": message.reply_to.id,

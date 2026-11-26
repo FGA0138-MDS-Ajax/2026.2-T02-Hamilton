@@ -46,7 +46,6 @@ class ForumCreation(TestCase):
             target=2
         ), cls.com_owner.profile);
         
-
     def test_forums_creation(self):
         # forum principal de comunidade e de meta
         # são criados
@@ -363,6 +362,19 @@ class ForumMessages(TestCase):
         self.assertIsNone(reply_msg.reply_to);
         self.assertTrue(Message.objects.filter(id=reply_msg.id).exists());
 
+    def test_build_page_data_includes_is_admin_and_delete_url(self):
+        messages_qs = self.community_forum.messages.select_related(
+            'author', 'reply_to', 'reply_to__author'
+        ).order_by('created_at', 'id')
+        page_data_user = ForumService.build_page_data(self.community_forum, self.participant, messages_qs)
+        self.assertFalse(page_data_user['is_admin'])
+        msg_data = next((m for m in page_data_user['messages'] if m['id'] == self.part_message.id), None)
+        self.assertIsNotNone(msg_data)
+        expected_delete_url = reverse('forums:delete_message', kwargs={'message_id': self.part_message.id})
+        self.assertEqual(msg_data['delete_url'], expected_delete_url)
+        page_data_admin = ForumService.build_page_data(self.community_forum, self.admin_acc, messages_qs)
+        self.assertTrue(page_data_admin['is_admin'])
+
     # ===== DELETANDO MENSAGENS =====
     def test_mod_deleting_messages(self):
         # moderadores e criador da comunidade podem
@@ -631,6 +643,74 @@ class ForumAccess(TestCase):
 
         self.assertContains(response, 'so na meta');
         self.assertNotContains(response, 'so no geral');
+
+    def test_admin_sees_delete_message_modal_in_forum_page(self):
+        self.client.force_login(self.admin_acc);
+        response = self.client.get(self.forum_url(self.community_forum));
+        self.assertEqual(response.status_code, 200);
+        self.assertTrue(response.context['is_admin']);
+        self.assertContains(response, 'id="confirmDeleteMessageOverlay"');
+        self.assertContains(response, 'id="deleteMessageForm"');
+
+    def test_moderator_sees_delete_message_modal_in_forum_page(self):
+        self.client.force_login(self.moderator);
+        response = self.client.get(self.forum_url(self.community_forum));
+        self.assertEqual(response.status_code, 200);
+        self.assertTrue(response.context['is_admin']);
+        self.assertContains(response, 'id="confirmDeleteMessageOverlay"');
+        self.assertContains(response, 'id="deleteMessageForm"');
+
+    def test_regular_user_does_not_see_delete_message_modal(self):
+        self.client.force_login(self.member);
+        response = self.client.get(self.forum_url(self.community_forum));
+        self.assertEqual(response.status_code, 200);
+        self.assertFalse(response.context['is_admin']);
+        self.assertNotContains(response, 'id="confirmDeleteMessageOverlay"');
+        self.assertNotContains(response, 'id="deleteMessageForm"');
+
+    def test_moderator_cannot_delete_message_in_unmoderated_community(self):
+        # Comunidade diferente onde o moderador é apenas membro comum
+        other_community = CommunityService.create_community(Community.objects.create(
+            name='OtherCommunityForMod',
+            creator=self.com_owner
+        ));
+        MembershipService.enter_community(
+            self.moderator,
+            other_community,
+            role=Membership.Role.MEMBER
+        );
+        other_msg = Message.objects.create(
+            forum=other_community.forum,
+            author=self.member,
+            content='Mensagem na outra comunidade'
+        );
+
+        self.client.force_login(self.moderator);
+        # Não deve ver o modal de moderação na comunidade que ele não modera
+        response = self.client.get(self.forum_url(other_community.forum));
+        self.assertEqual(response.status_code, 200);
+        self.assertFalse(response.context['is_admin']);
+        self.assertNotContains(response, 'id="confirmDeleteMessageOverlay"');
+
+        # Tentar apagar mensagem diretamente retorna 403
+        delete_response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id': other_msg.id})
+        );
+        self.assertEqual(delete_response.status_code, 403);
+        self.assertTrue(Message.objects.filter(pk=other_msg.pk).exists());
+
+    def test_moderator_deletes_own_message_in_community_forum(self):
+        message = Message.objects.create(
+            forum=self.community_forum,
+            author=self.moderator,
+            content='Minha propria mensagem de moderador'
+        );
+        self.client.force_login(self.moderator);
+        response = self.client.post(
+            reverse("forums:delete_message", kwargs={'message_id': message.id})
+        );
+        self.assertEqual(response.status_code, 302);
+        self.assertFalse(Message.objects.filter(pk=message.pk).exists());
 
     # ===== ENVIO =====
     def test_invalid_message_is_rejected_and_form_is_shown_again(self):

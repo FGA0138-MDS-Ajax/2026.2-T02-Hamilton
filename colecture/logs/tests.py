@@ -229,6 +229,24 @@ class AuditLogAdminViewsTests(TestCase):
         by_object = self.client.get(url, {'object_id': self.reader.id})
         self.assertEqual(list(by_object.context['page']), [self.log])
 
+    def test_list_filters_by_category(self):
+        msg_log = create_log(
+            self.admin, AuditLog.Action.MESSAGE_DELETED, self.owner
+        )
+        url = reverse('logs:log_list')
+
+        by_cat_forums = self.client.get(url, {'category': 'forums'})
+        self.assertEqual(list(by_cat_forums.context['page']), [msg_log])
+
+        by_cat_members = self.client.get(url, {'category': 'members'})
+        self.assertIn(self.log, by_cat_members.context['page'])
+        self.assertNotIn(msg_log, by_cat_members.context['page'])
+
+    def test_log_category_property(self):
+        msg_log = create_log(self.admin, AuditLog.Action.MESSAGE_DELETED, self.owner)
+        self.assertEqual(msg_log.category, "Fóruns")
+        self.assertEqual(self.log.category, "Membros")
+
     def test_invalid_filter_shows_no_logs(self):
         response = self.client.get(reverse('logs:log_list'), {'object_id': 'abc'})
 

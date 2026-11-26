@@ -35,6 +35,10 @@
         <dd>{{ log.created_at|date:"d/m/Y H:i:s" }}</dd>
       </div>
       <div>
+        <dt>Categoria</dt>
+        <dd><span class="logs-tag">{{ log.category }}</span></dd>
+      </div>
+      <div>
         <dt>Classe do alvo</dt>
         <dd>{{ log.content_type.app_label }}.{{ log.content_type.model }}</dd>
       </div>

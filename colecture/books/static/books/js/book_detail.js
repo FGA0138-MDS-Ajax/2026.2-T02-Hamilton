@@ -180,6 +180,9 @@ if (formResenha) {
     if (notaSelecionada === 0) {
       evento.preventDefault();
       aviso.textContent = "Escolha uma nota de 1 a 5 estrelas.";
+      if (typeof showToast === "function") {
+        showToast("warning", "Escolha uma nota de 1 a 5 estrelas.");
+      }
       return;
     }
     aviso.textContent = "";

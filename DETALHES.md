@@ -45,6 +45,7 @@
 8. [Catálogo de Livros e Algoritmo de Recomendação](#8-catálogo-de-livros-e-algoritmo-de-recomendação)
 9. [Padrões Arquiteturais e de Código](#9-padrões-arquiteturais-e-de-código)
 10. [Políticas de Branches e Conventional Commits](#10-políticas-de-branches-e-conventional-commits)
+    - [Integração Contínua (GitHub Actions)](#integração-contínua-github-actions)
 11. [Histórico de Sprints e Documentação Externa](#11-histórico-de-sprints-e-documentação-externa)
 
 ---
@@ -55,9 +56,12 @@ A aplicação segue a divisão modular do Django, onde cada módulo possui respo
 
 ```text
 2026.2-T02-Hamilton/
+├── .github/                           # Workflows de Integração Contínua (GitHub Actions)
+│   └── workflows/
+│       └── django_tests.yml           # Execução dos testes de unidade, integração e sistema
 ├── README.md                          # Visão geral, quickstart e guia rápido
 ├── DETALHES.md                        # Detalhamento técnico, rotas, Celery e regras de negócio
-├── requirements.txt                   # Dependências do projeto (Django, Celery, Redis, etc.)
+├── requirements.txt                   # Dependências do projeto (Django, Celery, Redis, Playwright, etc.)
 ├── .gitignore
 └── colecture/                         # Diretório raiz do projeto Django
     ├── manage.py                      # Utilitário de comandos CLI do Django
@@ -69,10 +73,14 @@ A aplicação segue a divisão modular do Django, onde cada módulo possui respo
     │   ├── asgi.py
     │   └── wsgi.py
     ├── media/                         # Armazenamento de arquivos enviados (capas e fotos)
+    ├── system_tests/                  # Suíte de testes de sistema E2E (Playwright - CT01 a CT07 e responsividade)
+    │   ├── __init__.py
+    │   └── test_system.py             # Casos de teste ponta a ponta e testes de responsividade
     ├── main/                          # Vitrine inicial, busca global e layout compartilhado
-    │   ├── views.py                   # index, search
+    │   ├── views.py                   # index, search, recommendations
     │   ├── urls.py
-    │   ├── templates/main/            # sidebar.html, index.html, search.html
+    │   ├── middleware.py              # ErrorPageMiddleware (tratamento de páginas 403 e 404)
+    │   ├── templates/                 # 403.html, 404.html, sidebar.html e templates de main/
     │   └── static/main/               # CSS global (variables.css, sidebar.css), JS e logos
     ├── accounts/                      # Gestão de usuários, perfil, autenticação e ofensiva
     │   ├── models.py                  # Profile (streak, last_read_date, bio, foto)
@@ -89,7 +97,7 @@ A aplicação segue a divisão modular do Django, onde cada módulo possui respo
     │   ├── views.py                   # Estante, cronômetro, cadastro e busca de livros
     │   ├── urls.py
     │   ├── tests.py
-    │   ├── management/commands/       # seed_books.py e seed_demo.py
+    │   ├── management/commands/       # seed_books.py, seed_demo.py e seed_reviews_data.py
     │   └── templates/books/
     ├── communities/                   # Clubes de leitura, membros e moderação
     │   ├── models.py                  # Community, Membership, Invitation
@@ -151,6 +159,7 @@ Todas as rotas são relativas ao endereço base `http://127.0.0.1:8000`. Endpoin
 | :--- | :--- | :--- |
 | `/` | Página inicial (se logado, redireciona ao perfil) | Público |
 | `/search` | Página de busca global de livros e comunidades | Público |
+| `/search/recommendations/` | Retorna lista de livros recomendados em JSON para a seção da busca | Autenticado |
 | `/admin/` | Painel administrativo nativo do Django | Administrador |
 
 ### Contas e Perfil (`/user/`)
@@ -411,10 +420,12 @@ Localizados em `management/commands/` de cada app, executados a partir de `colec
 
 | Comando | App | Parâmetros Disponíveis | O que faz |
 | :--- | :--- | :--- | :--- |
-| `seed_books` | `books` | `--no-covers`<br>`--update` | Popula o catálogo com livros reais baseados em ISBN único. |
-| `seed_demo` | `books` | `--password <senha>` | Cria 5 usuários de demonstração, 2 comunidades, metas e ofensivas ativas. |
+| `seed_books` | `books` | `--no-covers`<br>`--no-reviews`<br>`--update` | Popula o catálogo com 82 livros reais baseados em ISBN único e adiciona avaliações/resenhas (`BookReview`) em todos os títulos. |
+| `seed_demo` | `books` | `--password <senha>` | Cria 10 usuários de demonstração com perfis, 2 comunidades (com moderação e pedidos pendentes), mensagens em fóruns, metas individuais e coletivas, ofensiva ativa e resenhas em todos os livros. |
 | `seed_insignias` | `rewards` | Nenhum | Recarrega e sincroniza a tabela de 35 insígnias oficiais. |
 | `purge_archived_communities` | `communities` | Nenhum | Exclui definitivamente comunidades arquivadas há mais de 60 dias. |
+
+> 💡 **Nota sobre `seed_reviews_data.py`:** Presente no diretório `colecture/books/management/commands/`, não se trata de um comando CLI executável diretamente, mas de um módulo centralizado de dados e lógica (`seed_reviews_for_books`) importado tanto por `seed_books` quanto por `seed_demo` para popular e sincronizar as avaliações com notas e textos reais em todos os 82 livros do catálogo de forma 100% idempotente.
 
 ---
 
@@ -479,11 +490,12 @@ create_log(
 
 O app `books` gerencia todo o ciclo de leitura e avaliação:
 
-- **Algoritmo de Recomendação (`get_recommended_books` em `books/services.py`):**
-  Calcula uma pontuação ponderada para cada livro baseando-se em:
-  1. *Tempo dedicado:* Soma de minutos acumulados em sessões de leitura (`add_time_score`).
-  2. *Status na estante:* Livros marcados como "Lendo" e "Quero Ler" recebem peso preferencial (`add_status_score`).
-  3. *Avaliações dos leitores:* Média e volume de avaliações com estrelas (`add_rating_score`).
+- **Algoritmo de Recomendação (`BookRecommendationService` em `books/services.py`):**
+  Calcula pontuações ponderadas por gênero literário (`get_genre_scores`) para o leitor logado baseando-se em:
+  1. *Tempo dedicado por gênero:* Minutos acumulados em sessões de leitura (`add_time_score`).
+  2. *Status na estante:* Livros marcados pelo usuário ("Lendo", "Quero Ler", "Lido") atribuem pontos ao gênero correspondente (`add_status_score`).
+  3. *Avaliações dos leitores:* Notas atribuídas pelo usuário aos livros influenciam a pontuação do gênero (`add_rating_score`).
+  Com base nesses scores, o algoritmo aloca vagas proporcionais por gênero (`allocate_genre_slots`), busca os títulos correspondentes no catálogo excluindo os já presentes na estante do usuário (`get_books_by_genre`) e complementa com títulos aleatórios caso necessário (`get_random_books`).
 - **Sessões e Progresso:**
   O sistema converte automaticamente páginas lidas em porcentagem do livro e atualiza a data da última leitura no `Profile`, garantindo a integridade da sequência de dias consecutivos (*streak*).
 - **Processamento de Imagens com Pillow:**
@@ -522,6 +534,12 @@ tipo(escopo-opcional): mensagem descritiva no imperativo
 - `feat(notifications): adiciona visualização de histórico de notificações`
 - `fix(streak): corrige contagem de dias em ano bissexto`
 - `docs(readme): detalha passos de execução do celery worker`
+
+### Integração Contínua (GitHub Actions)
+
+O repositório possui uma pipeline automatizada (`.github/workflows/django_tests.yml`) com duas etapas executadas em todo `push` e `pull_request`:
+- **test-apps:** Execução paralela em matriz dos testes de unidade e integração para cada app modular (`accounts`, `books`, `communities`, `forums`, `goals`, `logs`, `main`, `notifications`, `rewards`).
+- **test-system:** Execução da suíte completa de testes de sistema ponta a ponta (E2E) com Playwright e Chromium instalados (`system_tests`), validando os Casos de Teste CT01 a CT07 e testes de responsividade móvel/desktop.
 
 ---
 

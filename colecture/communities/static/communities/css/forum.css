@@ -753,15 +753,32 @@
   text-decoration: underline;
 }
 
+.message-delete-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--danger, #ef4444);
+  cursor: pointer;
+}
+
+.message-delete-btn:hover {
+  text-decoration: underline;
+}
+
 /* No computador o botão aparece ao passar o mouse; no celular fica sempre visível */
 @media (hover: hover) and (min-width: 769px) {
-  .message-reply-btn {
+  .message-reply-btn,
+  .message-delete-btn {
     opacity: 0;
     transition: opacity 0.15s;
   }
 
   .message:hover .message-reply-btn,
-  .message-reply-btn:focus-visible {
+  .message:hover .message-delete-btn,
+  .message-reply-btn:focus-visible,
+  .message-delete-btn:focus-visible {
     opacity: 1;
   }
 }
@@ -875,8 +892,41 @@
     border-radius: 12px;
   }
 
+  /* topo compacto: no celular o espaço vertical é do chat */
   .forum-header {
-    padding: 16px 14px 12px;
+    padding: 10px 14px 8px;
+  }
+
+  .forum-back {
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+  }
+
+  .forum-badge {
+    margin-bottom: 4px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+  }
+
+  .forum-title {
+    font-size: 1.05rem;
+    line-height: 1.3;
+    -webkit-line-clamp: 1;
+  }
+
+  .forum-description {
+    margin-top: 2px;
+    font-size: 0.82rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .forum-description.expanded {
+    max-height: 20vh;
+  }
+
+  /* "ver mais" também mostra o título inteiro */
+  .forum-header-info:has(.forum-description.expanded) .forum-title {
+    -webkit-line-clamp: 3;
   }
 
   .pinned,
@@ -893,7 +943,8 @@
     max-width: 88%;
   }
 
-  .message-reply-btn {
+  .message-reply-btn,
+  .message-delete-btn {
     opacity: 1 !important;
     padding: 3px 6px;
     font-size: 0.75rem;
@@ -915,6 +966,13 @@
   /* 16px evita o zoom automático do iPhone ao focar o campo */
   .composer textarea {
     font-size: 16px;
+  }
+
+  /* placeholder não quebra em 2 linhas no campo estreito */
+  .composer textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .composer-send {

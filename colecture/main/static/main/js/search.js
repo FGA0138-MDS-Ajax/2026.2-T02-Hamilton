@@ -450,6 +450,15 @@ function createBookCard(book, variant) {
       info.appendChild(createRating(book));
     }
 
+    // Gênero (hoje só vem nas recomendações)
+    if (book.genre_label) {
+      var genre = document.createElement("span");
+      genre.className = "book-genre";
+      genre.textContent = book.genre_label;
+      genre.title = book.genre_label;
+      info.appendChild(genre);
+    }
+
     if (!compact) {
       info.appendChild(createActions(book));
     }

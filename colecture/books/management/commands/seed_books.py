@@ -1,17 +1,19 @@
-"""Popula o catálogo com livros reais.
+"""Popula o catálogo com livros reais e avaliações dos leitores.
 
 Uso:
-    python manage.py seed_books              # insere os livros que ainda não existem
+    python manage.py seed_books              # insere livros e resenhas que ainda não existem
     python manage.py seed_books --no-covers  # insere sem URL de capa
-    python manage.py seed_books --update     # também atualiza livros já existentes (mesmo ISBN)
+    python manage.py seed_books --no-reviews # insere apenas os livros, sem avaliações
+    python manage.py seed_books --update     # atualiza livros e resenhas existentes (mesmo ISBN)
 
-O comando é idempotente: o ISBN é a chave, então rodá-lo várias vezes
-não cria duplicatas.
+O comando é idempotente: o ISBN é a chave para livros e (livro, usuário) para
+resenhas, portanto rodá-lo várias vezes não cria duplicatas.
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from books.models import Book
+from books.management.commands.seed_reviews_data import seed_reviews_for_books
 
 COVER_URL = "https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
 
@@ -214,7 +216,7 @@ def isbn13_is_valid(isbn: str) -> bool:
 
 
 class Command(BaseCommand):
-    help = "Popula o catálogo de livros com títulos reais. Uso: python manage.py seed_books"
+    help = "Popula o catálogo de livros com títulos reais e resenhas. Uso: python manage.py seed_books"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -222,8 +224,12 @@ class Command(BaseCommand):
             help="Não preenche a URL da capa (campo icon).",
         )
         parser.add_argument(
+            "--no-reviews", action="store_true",
+            help="Não cria avaliações/resenhas para os livros.",
+        )
+        parser.add_argument(
             "--update", action="store_true",
-            help="Atualiza os dados de livros que já existem (mesmo ISBN).",
+            help="Atualiza os dados de livros e resenhas que já existem (mesmo ISBN).",
         )
 
     @transaction.atomic
@@ -259,6 +265,14 @@ class Command(BaseCommand):
                 skipped += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f"Concluído: {created} criado(s), {updated} atualizado(s), "
+            f"Livros concluídos: {created} criado(s), {updated} atualizado(s), "
             f"{skipped} já existente(s), {invalid} inválido(s)."
         ))
+
+        if not options["no_reviews"]:
+            self.stdout.write("Semeando avaliações e resenhas em todos os livros...")
+            seed_reviews_for_books(
+                stdout=self.stdout,
+                style=self.style,
+                update=options["update"],
+            )

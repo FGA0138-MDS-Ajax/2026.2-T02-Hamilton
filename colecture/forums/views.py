@@ -79,6 +79,7 @@ class ViewForum(LoginRequiredMixin, View):
             'parent_community':self.forum_parent_community,
             'parent_goal':self.forum_parent_goal,
             'can_moderate':ForumService.user_can_edit(self.user, self.forum),
+            'is_admin':ForumService.user_can_edit(self.user, self.forum),
         };
 
         # todos os fóruns (geral da comunidade e de meta) usam a mesma
@@ -112,13 +113,14 @@ def delete_message(request, message_id):
 
         # registra antes de apagar (o log guarda só o ID da mensagem).
         # O conteúdo da mensagem não vai para o log.
+        parent_community = ForumService.get_forum_parent_community(forum);
         create_log(
             user,
             AuditLog.Action.MESSAGE_DELETED,
             message,
             metadata={
                 "forum_id": forum.id,
-                "community_id": ForumService.get_forum_parent_community(forum).id,
+                "community_id": parent_community.id if parent_community else None,
                 "message_author_id": message.author_id,
             }
         );

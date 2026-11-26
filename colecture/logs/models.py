@@ -35,6 +35,40 @@ class AuditLog(models.Model):
         LOG_EDITED = "LOG_EDITED", "Log edited"
         LOG_DELETED = "LOG_DELETED", "Log deleted"
 
+    CATEGORY_CHOICES = [
+        ("", "Todas as categorias"),
+        ("communities", "Comunidades"),
+        ("members", "Membros"),
+        ("forums", "Fóruns"),
+        ("logs", "Logs"),
+    ]
+
+    CATEGORY_ACTION_MAP = {
+        "communities": [
+            Action.COMMUNITY_CREATED,
+            Action.COMMUNITY_UPDATED,
+            Action.COMMUNITY_ARCHIVED,
+            Action.COMMUNITY_UNARCHIVED,
+            Action.COMMUNITY_DELETED,
+        ],
+        "members": [
+            Action.MEMBER_ADDED,
+            Action.MEMBER_REMOVED,
+            Action.MEMBER_REQUEST_REJECTED,
+            Action.MEMBER_PROMOTED,
+            Action.MEMBER_DEMOTED,
+            Action.MEMBER_BANNED,
+            Action.MEMBER_UNBANNED,
+        ],
+        "forums": [
+            Action.MESSAGE_DELETED,
+        ],
+        "logs": [
+            Action.LOG_EDITED,
+            Action.LOG_DELETED,
+        ],
+    }
+
     # Usuário que executou a ação. SET_NULL (e não CASCADE) para o histórico
     # sobreviver à exclusão do usuário. Nulo também quando quem agiu foi o
     # sistema (ex.: purge_archived_communities).
@@ -76,6 +110,19 @@ class AuditLog(models.Model):
         if model is None:
             return None
         return model._default_manager.filter(pk=self.object_id).first()
+
+    @property
+    def category(self) -> str:
+        """Categoria amigável da ação."""
+        if self.action.startswith("COMMUNITY_"):
+            return "Comunidades"
+        if self.action.startswith("MEMBER_"):
+            return "Membros"
+        if self.action.startswith("MESSAGE_"):
+            return "Fóruns"
+        if self.action.startswith("LOG_"):
+            return "Logs"
+        return "Geral"
 
     @property
     def metadata_pretty(self) -> str:

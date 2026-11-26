@@ -462,6 +462,14 @@ body {
   height: 135px;
 }
 
+/* gênero longo no carrossel: uma linha só, cortada com "..." */
+.book-card-compact .book-genre {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Usados pelos cards de comunidades */
 .book-synopsis {
   margin: 0;

@@ -39,12 +39,15 @@ def recommendations(request):
         recommended = _books_from_genre_scores(request.user, recommended)
 
     books = list(recommended)[:RECOMMENDATIONS_LIMIT]
+    genre_labels = dict(GENRE_CHOICES)
     results = [
         {
             'id': book.id,
             'title': book.title,
             'author': book.author,
             'genre': book.genre,
+            # nome com acento para exibir no card ("Ficção Científica")
+            'genre_label': genre_labels.get(book.genre) or book.genre or '',
             'icon': book.icon,
             'status': '',
         }
@@ -52,6 +55,21 @@ def recommendations(request):
     ]
 
     return JsonResponse({'results': results})
+
+
+def page_not_found_view(request, exception=None):
+    return render(request, '404.html', {
+        'title': 'Página não encontrada',
+        'message': 'Essa página não existe, foi removida ou você não tem permissão para acessá-la.',
+    }, status=404)
+
+
+def permission_denied_view(request, exception=None):
+    return render(request, '403.html', {
+        'title': 'Página não encontrada',
+        'message': 'Essa página não existe, foi removida ou você não tem permissão para acessá-la.',
+    }, status=403)
+
 
 
 def _books_from_genre_scores(user, genre_scores):

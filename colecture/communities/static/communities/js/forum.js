@@ -30,6 +30,10 @@ var confirmOverlay = document.getElementById("confirmOverlay");
 var confirmCancel = document.getElementById("confirmCancel");
 var confirmDelete = document.getElementById("confirmDelete");
 
+var confirmDeleteMessageOverlay = document.getElementById("confirmDeleteMessageOverlay");
+var confirmDeleteMessageCancel = document.getElementById("confirmDeleteMessageCancel");
+var deleteMessageForm = document.getElementById("deleteMessageForm");
+
 var forumBox = document.getElementById("forum");
 
 // Estado da página
@@ -187,9 +191,35 @@ confirmDelete.addEventListener("click", function () {
   window.location.href = forumBox.dataset.redirectUrl;
 });
 
+function openDeleteMessageModal(deleteUrl) {
+  if (confirmDeleteMessageOverlay && deleteMessageForm) {
+    deleteMessageForm.action = deleteUrl;
+    confirmDeleteMessageOverlay.classList.add("open");
+  }
+}
+
+function closeDeleteMessageModal() {
+  if (confirmDeleteMessageOverlay) {
+    confirmDeleteMessageOverlay.classList.remove("open");
+  }
+}
+
+if (confirmDeleteMessageCancel) {
+  confirmDeleteMessageCancel.addEventListener("click", closeDeleteMessageModal);
+}
+
+if (confirmDeleteMessageOverlay) {
+  confirmDeleteMessageOverlay.addEventListener("click", function (event) {
+    if (event.target === confirmDeleteMessageOverlay) {
+      closeDeleteMessageModal();
+    }
+  });
+}
+
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape") {
     closeConfirm();
+    closeDeleteMessageModal();
     closeMenu();
     cancelReply();
     if (picking) {
@@ -270,6 +300,22 @@ function createMessage(message) {
   }
 
   if (!picking && !state.locked) {
+    if (dados.is_admin) {
+      var deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "message-delete-btn";
+      deleteButton.textContent = "Excluir";
+      deleteButton.setAttribute(
+        "aria-label",
+        message.mine ? "Excluir sua mensagem" : "Excluir mensagem de " + message.author
+      );
+      deleteButton.addEventListener("click", function (event) {
+        event.stopPropagation();
+        openDeleteMessageModal(message.delete_url);
+      });
+      footer.appendChild(deleteButton);
+    }
+
     var replyButton = document.createElement("button");
     replyButton.type = "button";
     replyButton.className = "message-reply-btn";
