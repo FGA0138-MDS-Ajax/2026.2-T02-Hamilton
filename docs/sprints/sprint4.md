@@ -38,9 +38,19 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 | Funcionalidade             | Densidade de Defeitos | Valor máximo de defeitos esperado |
 | -------------------------- | --------------------- | --------------------------------- |
-| Criação de meta de leitura | 0,1111111111111111    | 0,2                               |
+| Criação de meta de leitura | 0,111                 | 0,2                               |
 | Fórum da comunidade        | 0                     | 0,2                               |
 | Moderação de fórum         | 0                     | 0,2                               |
+
+**Defeitos encontrados** (execução de 25/11/2026 na branch `sprint4`, app `goals`):
+
+| ID | Descrição | Requisito | Testes reprovados |
+| -- | --------- | --------- | ----------------- |
+| D4-01 | Editar uma meta pessoal gera erro, pois o serviço de edição espera que toda meta tenha fórum (`Goal has no forum`, em `goals/services.py`) | R11 | `CT04GoalEdit.test_edit_personal_goal_by_owner_VALID` e `CT04GoalEdit.test_edit_cannot_change_owner` |
+| D4-02 | O criador de uma meta individual não é registrado como participante da meta | R11 | `CT04GoalCreation.test_create_individual_goal_VALID` |
+| D4-03 | A participação do criador na meta continua ativa depois que ele sai da comunidade | R11 | `CT04GoalParticipation.test_creator_leaving_community_deactivates_participation` |
+
+A densidade da criação de meta de leitura foi calculada como testes reprovados ÷ testes executados do app `goals`: 4 ÷ 36 = 0,111.
 
 ## 5. Cobertura dos testes
 

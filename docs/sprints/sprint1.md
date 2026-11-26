@@ -28,9 +28,11 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 | Funcionalidade        | Densidade de Defeitos | Valor máximo de defeitos esperado |
 | --------------------- | --------------------- | --------------------------------- |
-| Cadastro              | 0,05                  | 0,2                               |
+| Cadastro              | 0                     | 0,2                               |
 | Login                 | 0                     | 0,2                               |
 | Admin editar usuários | 0                     | 0,2                               |
+
+**Defeitos encontrados:** nenhum. Os testes da sprint (CT01 e CT07, 18 métodos) foram executados em 25/11/2026 na branch `sprint1` e todos foram aprovados. A densidade é calculada como testes reprovados ÷ testes executados (0 ÷ 18 = 0).
 
 ## 5. Cobertura dos testes
 
@@ -78,7 +80,7 @@ Comparação dos valores registrados neste relatório com as metas do [plano GQM
 | Métrica | Meta | Resultado | Situação |
 | ------- | ---- | --------- | -------- |
 | M1 – Taxa de conclusão | No mínimo 70% | 100% (todos os requisitos com 100%) | Atingida |
-| M2 – Densidade de defeitos | No máximo 0,2 | 0,05 (Cadastro); 0 (Login e Admin editar usuários) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0 em todas as funcionalidades | Atingida |
 | M3 – Cobertura de requisitos | 100% | 100% (4 de 4) | Atingida |
 
 Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.

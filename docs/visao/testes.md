@@ -26,7 +26,7 @@ A garantia da qualidade do CoLecture apoia-se em um processo estruturado de veri
 A eficácia dos testes é acompanhada pelos indicadores do [plano GQM](metricas.md):
 
 - **Taxa de cobertura de requisitos:** requisitos testados ÷ implementados em cada sprint, com meta de 100%.
-- **Densidade de defeitos:** tolerância máxima de 0,2 defeito por requisito testado.
+- **Densidade de defeitos:** testes reprovados ÷ testes executados, com tolerância máxima de 0,2.
 
 ## Critério de avaliação (previsto × realizado)
 
@@ -39,7 +39,7 @@ Cada caso de teste define um **resultado previsto**; durante a bateria de testes
 
 Cada caso de teste é planejado segundo o 5W1H: **o quê** (objetivo e critérios), **por quê** (requisitos associados), **quando** (sprint), **quem** (responsável pela execução e pela auditoria), **onde** (ambiente de execução e local de registro dos resultados) e **quanto** (esforço estimado).
 
-- **Quem:** a execução e a auditoria dos testes cabem aos Analistas de Qualidade (ver [Organização do projeto](projeto.md#organizacao-do-projeto)). Por definição do Dono do Produto, a líder de Qualidade (Letícia) executa e audita todos os casos. A auditoria confere se há evidência da execução, se os testes automatizados cobrem o que cada caso promete, se o previsto × realizado foi registrado corretamente e se as métricas do relatório da sprint batem com os defeitos e requisitos testados.
+- **Quem:** a execução e a auditoria dos testes cabem aos Analistas de Qualidade (ver [Organização do projeto](projeto.md#organizacao-do-projeto)). Por definição do Dono do Produto, a líder de Qualidade (Letícia) executa e audita todos os casos. A auditoria confere se há evidência da execução, se os testes automatizados cobrem o que cada caso promete, se o previsto × realizado foi registrado corretamente e se as métricas do relatório da sprint batem com os testes executados, os testes reprovados e os requisitos testados.
 - **Onde:** os testes automatizados são executados no ambiente local, dentro da pasta `colecture/`, com `python manage.py test`, e novamente na branch `sprintN` após a integração dos recursos da sprint. Os resultados (previsto × realizado, defeitos, reparos e retestes) são registrados no relatório da sprint correspondente (`docs/sprints/sprintN.md`), e cada defeito é aberto como *issue* no GitHub.
 - **Quanto:** o esforço de cada caso é a soma de 30 minutos de preparação (ambiente, banco de testes e leitura dos critérios), do tempo de execução medido da suíte automatizada e de cerca de 2 minutos por método de teste para a conferência do previsto × realizado e o registro, arredondada para a meia hora seguinte. Os tempos de execução foram medidos em 23/11/2026, na branch `sprint7` (commit `5fe1e41`), em ambiente local, com todos os 362 métodos dos CT01 a CT07 aprovados. Retestes de defeitos não estão incluídos e são contabilizados no relatório da sprint. O esforço total previsto é de 17 horas.
 
