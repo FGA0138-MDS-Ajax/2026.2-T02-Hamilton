@@ -33,8 +33,22 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 | Funcionalidade        | Densidade de Defeitos | Valor máximo de defeitos esperado |
 | --------------------- | --------------------- | --------------------------------- |
-| Registro de progresso | 0                     | 0,2                               |
-| Ofensiva pessoal      | 0                     | 0,2                               |
+| Registro de progresso | 0,0183486             | 0,2                               |
+| Ofensiva pessoal      | 0,028                 | 0,2                               |
+
+Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
+
+Registro de progresso:
+
+```bash
+python manage.py test books.tests.ReadingSessionModelTests books.tests.ReadingSessionFormTests books.tests.ReadingSessionViewTests books.tests.ReadingSessionStreakViewTests books.tests.ReadingSessionProgressAndGoalTests books.tests.SaveReadingSessionViewTests books.tests.ReadingSessionDataModelTests books.tests.SessionApiBase books.tests.CreateReadingSessionApiTests books.tests.ListReadingSessionsApiTests books.tests.EditReadingSessionApiTests books.tests.RegisterReadingSessionSharedHelperTests books.tests.BookshelfDatabaseSourceTests books.tests.ReadingSessionScriptTests accounts.tests.CTEstantePerfil
+```
+
+Ofensiva pessoal:
+
+```bash
+python manage.py test accounts.tests.ProfileViewStreakResetTests
+```
 
 ## 5. Cobertura dos testes
 
@@ -111,7 +125,7 @@ Comparação dos valores registrados neste relatório com as metas do [plano GQM
 | Métrica | Meta | Resultado | Situação |
 | ------- | ---- | --------- | -------- |
 | M1 – Taxa de conclusão | No mínimo 70% | 100% (requisitos planejados e débitos técnicos) | Atingida |
-| M2 – Densidade de defeitos | No máximo 0,2 | 0 em todas as funcionalidades | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0,0183486 (Registro de progresso); 0,028 (Ofensiva pessoal) | Atingida |
 | M3 – Cobertura de requisitos | 100% | 100% (4 de 4 planejados e 5 de débito técnico) | Atingida |
 
 Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.

@@ -34,6 +34,20 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 **Defeitos encontrados:** nenhum. Os testes da sprint (CT01 e CT07, 18 métodos) foram executados em 25/11/2026 na branch `sprint1` e todos foram aprovados. A densidade é calculada como testes reprovados ÷ testes executados (0 ÷ 18 = 0).
 
+Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
+
+Cadastro e Login:
+
+```bash
+python manage.py test accounts.tests.CT01
+```
+
+Admin editar usuários e Admin inicial via seed:
+
+```bash
+python manage.py test accounts.tests.CT07
+```
+
 ## 5. Cobertura dos testes
 
 Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.

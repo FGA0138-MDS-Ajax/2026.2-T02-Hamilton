@@ -52,6 +52,20 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 
 A densidade da criação de meta de leitura foi calculada como testes reprovados ÷ testes executados do app `goals`: 4 ÷ 36 = 0,111.
 
+Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
+
+Criação de meta de leitura:
+
+```bash
+python manage.py test goals
+```
+
+Fórum da comunidade:
+
+```bash
+python manage.py test forums.tests.ForumCreation
+```
+
 ## 5. Cobertura dos testes
 
 Foram testados **4 dos 4 requisitos planejados** (além da validação dos 2 requisitos de débito técnico concluídos), resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.

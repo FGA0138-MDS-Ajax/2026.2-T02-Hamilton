@@ -32,6 +32,16 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | Pesquisa e filtro do catálogo | 0                     | 0,2                               |
 | Avaliação de livros           | 0                     | 0,2                               |
 
+**Defeitos encontrados:** nenhum.
+
+Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
+
+Registro, pesquisa e avaliação de livros:
+
+```bash
+python manage.py test books
+```
+
 ## 5. Cobertura dos testes
 
 Foram testados **4 dos 4 requisitos planejados**, resultando em uma porcentagem de **100%** dos requisitos testados com um valor mínimo de 100%.
