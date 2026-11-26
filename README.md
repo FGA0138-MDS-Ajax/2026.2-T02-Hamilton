@@ -69,6 +69,7 @@ O **CoLecture** é uma plataforma colaborativa para incentivo e acompanhamento d
 | **django-celery-beat 2.1.0** | Agendador periódico integrado ao Django. |
 | **Redis 8.1.0** | Broker de mensagens e backend do Celery (`localhost:6379`). |
 | **Pillow 13.0.0** | Upload e processamento de capas de livros e avatares. |
+| **Playwright 1.65.2** | Automação e execução de testes de sistema E2E e validação de responsividade. |
 | **HTML5, CSS3 & JS** | Front-end responsivo com temas centralizados e scripts modulares. |
 
 ---
@@ -247,6 +248,8 @@ python manage.py test accounts
 python manage.py test notifications
 python manage.py test books
 ```
+
+> 💡 **Apps testáveis individualmente:** `accounts`, `books`, `communities`, `forums`, `goals`, `logs`, `main`, `notifications` e `rewards`.
 
 ---
 
