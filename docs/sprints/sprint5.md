@@ -34,7 +34,15 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | Funcionalidade        | Densidade de Defeitos | Valor máximo de defeitos esperado |
 | --------------------- | --------------------- | --------------------------------- |
 | Registro de progresso | 0,0183486             | 0,2                               |
-| Ofensiva pessoal      | 0,028                 | 0,2                               |
+| Ofensiva pessoal      | 0                     | 0,2                               |
+
+**Defeitos encontrados** (execução na branch `sprint5`):
+
+| ID | Descrição | Requisito | Testes reprovados |
+| -- | --------- | --------- | ----------------- |
+| D5-01 | Ao rejeitar um registro de sessão de leitura inválido (data futura ou progresso menor ou igual ao anterior), a view `register_reading_session` (`books/views.py`) tenta exibir o template `books/register_reading_session.html`, que não existe, e gera erro em vez de mostrar a mensagem de rejeição ao usuário | R16 | `ReadingSessionStreakViewTests.test_data_futura_e_rejeitada_e_nao_altera_ofensiva` e `ReadingSessionViewTests.test_progresso_menor_ou_igual_ao_anterior_e_rejeitado` |
+
+A densidade do registro de progresso foi calculada como testes reprovados ÷ testes executados: 2 ÷ 109 = 0,0183486. Na ofensiva pessoal nenhum teste foi reprovado.
 
 Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
 
@@ -125,7 +133,7 @@ Comparação dos valores registrados neste relatório com as metas do [plano GQM
 | Métrica | Meta | Resultado | Situação |
 | ------- | ---- | --------- | -------- |
 | M1 – Taxa de conclusão | No mínimo 70% | 100% (requisitos planejados e débitos técnicos) | Atingida |
-| M2 – Densidade de defeitos | No máximo 0,2 | 0,0183486 (Registro de progresso); 0,028 (Ofensiva pessoal) | Atingida |
+| M2 – Densidade de defeitos | No máximo 0,2 | 0,0183486 (Registro de progresso); 0 (Ofensiva pessoal) | Atingida |
 | M3 – Cobertura de requisitos | 100% | 100% (4 de 4 planejados e 5 de débito técnico) | Atingida |
 
 Nenhum [critério de replanejamento](../visao/projeto.md#criterios-de-replanejamento) foi acionado.
