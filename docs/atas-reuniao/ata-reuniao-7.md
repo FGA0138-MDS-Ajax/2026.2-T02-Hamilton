@@ -29,7 +29,7 @@ Foi confirmado que **todos os débitos técnicos de sprints anteriores foram imp
 
 ### 2.3 Testes
 
-Todas as entregas foram testadas e **passaram sem erros**.
+Todas as entregas foram testadas e foram detectados dois erros que foram corrigidos posteriormente após o final da sprint. Entre eles, a falta do template ``"register_reading_session.html"`` que causava o erro ``TemplateDoesNotExist``.
 
 ## 3. Planejamento da Sprint 6
 
