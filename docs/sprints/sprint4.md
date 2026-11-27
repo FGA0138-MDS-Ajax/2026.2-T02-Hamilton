@@ -50,7 +50,7 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | D4-02 | O criador de uma meta individual não é registrado como participante da meta | R11 | `CT04GoalCreation.test_create_individual_goal_VALID` |
 | D4-03 | A participação do criador na meta continua ativa depois que ele sai da comunidade | R11 | `CT04GoalParticipation.test_creator_leaving_community_deactivates_participation` |
 
-A densidade da criação de meta de leitura foi calculada como testes reprovados ÷ testes executados do app `goals`: 4 ÷ 36 = 0,111.
+A densidade da criação de meta de leitura foi calculada como nº de testes que falharam ÷ nº de testes da funcionalidade (app `goals`): 4 ÷ 36 = 0,111.
 
 Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
 

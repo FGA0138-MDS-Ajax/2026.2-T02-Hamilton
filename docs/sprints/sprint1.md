@@ -32,7 +32,7 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | Login                 | 0                     | 0,2                               |
 | Admin editar usuários | 0                     | 0,2                               |
 
-**Defeitos encontrados:** nenhum. Os testes da sprint (CT01 e CT07, 18 métodos) foram executados em 25/11/2026 na branch `sprint1` e todos foram aprovados. A densidade é calculada como testes reprovados ÷ testes executados (0 ÷ 18 = 0).
+**Defeitos encontrados:** nenhum. Os testes da sprint (CT01 e CT07, 18 métodos) foram executados em 25/11/2026 na branch `sprint1` e todos foram aprovados. A densidade é calculada como nº de testes que falharam ÷ nº de testes da funcionalidade; como nenhum teste falhou, o valor é 0 em todas as funcionalidades.
 
 Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
 

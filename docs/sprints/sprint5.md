@@ -42,7 +42,7 @@ O valor esperado de conclusão de cada requisito é de **70%**.
 | -- | --------- | --------- | ----------------- |
 | D5-01 | Ao rejeitar um registro de sessão de leitura inválido (data futura ou progresso menor ou igual ao anterior), a view `register_reading_session` (`books/views.py`) tenta exibir o template `books/register_reading_session.html`, que não existe, e gera erro em vez de mostrar a mensagem de rejeição ao usuário | R16 | `ReadingSessionStreakViewTests.test_data_futura_e_rejeitada_e_nao_altera_ofensiva` e `ReadingSessionViewTests.test_progresso_menor_ou_igual_ao_anterior_e_rejeitado` |
 
-A densidade do registro de progresso foi calculada como testes reprovados ÷ testes executados: 2 ÷ 109 = 0,0183486. Na ofensiva pessoal nenhum teste foi reprovado.
+A densidade do registro de progresso foi calculada como nº de testes que falharam ÷ nº de testes da funcionalidade: 2 ÷ 109 = 0,0183486. Na ofensiva pessoal nenhum teste foi reprovado.
 
 Usamos os seguintes testes para os cálculos (executados na pasta `colecture/`):
 

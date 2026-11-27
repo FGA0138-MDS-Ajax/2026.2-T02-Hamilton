@@ -52,7 +52,7 @@ O workflow `ci.yml` é separado: ele apenas publica este site de documentação 
 A eficácia dos testes é acompanhada pelos indicadores do [plano GQM](metricas.md):
 
 - **Taxa de cobertura de requisitos:** requisitos testados ÷ implementados em cada sprint, com meta de 100%.
-- **Densidade de defeitos:** testes reprovados ÷ testes executados, com tolerância máxima de 0,2.
+- **Densidade de defeitos:** nº de testes que falharam ÷ nº de testes da funcionalidade, com tolerância máxima de 0,2.
 
 ## Critério de avaliação (previsto × realizado)
 
